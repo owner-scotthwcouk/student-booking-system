@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { getAllStudents } from '../../lib/profileAPI'
-import { createBooking } from '../../lib/bookingAPI'
+import { createBooking, updateBookingStatus } from '../../lib/bookingAPI'
 import { createPayment } from '../../lib/paymentsAPI'
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
 
@@ -60,14 +60,8 @@ export default function POSSystem() {
 
   const handlePaymentSuccess = async (details) => {
     try {
-      // Update booking payment status
-      const { error: bookingUpdateError } = await createBooking({
-        studentId: selectedStudent,
-        tutorId: user.id,
-        lessonDate: bookingDate,
-        lessonTime: bookingTime,
-        duration: 60
-      })
+      // Update booking payment status (Fix: Updated existing booking instead of creating new one)
+      const { error: bookingUpdateError } = await updateBookingStatus(bookingId, 'confirmed')
 
       if (bookingUpdateError) throw bookingUpdateError
 
@@ -216,4 +210,3 @@ export default function POSSystem() {
     </div>
   )
 }
-
