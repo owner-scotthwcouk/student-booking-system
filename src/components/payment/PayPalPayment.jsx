@@ -57,8 +57,9 @@ function PayPalPayment() {
           payment_date: new Date().toISOString()
         })
 
-      // Navigate to success page
-      navigate('/booking-success')
+      // Navigate to success page (You'll need to create this route or redirect to dashboard)
+      alert("Payment Successful!");
+      navigate('/dashboard'); 
     } catch (error) {
       console.error('Error processing payment:', error)
     }
@@ -90,4 +91,19 @@ function PayPalPayment() {
                   value: LESSON_PRICE.toString(),
                   currency_code: "GBP"
                 },
-                description: `Tutoring Lesson - ${booking.lesson_date}"`}]
+                description: `Tutoring Lesson - ${booking.lesson_date}`
+              }]
+            })
+          }}
+          onApprove={(data, actions) => {
+            return actions.order.capture().then((details) => {
+              handlePaymentSuccess(details);
+            });
+          }}
+        />
+      </PayPalScriptProvider>
+    </div>
+  )
+}
+
+export default PayPalPayment
