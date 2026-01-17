@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient'
 
 // Upload homework submission (ZIP file)
-export async function uploadHomework(file, lessonId, studentId) {
+export async function uploadHomework(file, lessonId, studentId, submittedAt = null) {
   try {
     const fileExt = file.name.split('.').pop()
     const fileName = `${studentId}/${lessonId}/${Date.now()}.${fileExt}`
@@ -21,6 +21,9 @@ export async function uploadHomework(file, lessonId, studentId) {
       .from('homework-submissions')
       .getPublicUrl(fileName)
     
+    // Use provided submittedAt or current time
+    const submissionDate = submittedAt || new Date().toISOString()
+    
     // Create submission record in database
     const { data, error } = await supabase
       .from('homework_submissions')
@@ -30,7 +33,7 @@ export async function uploadHomework(file, lessonId, studentId) {
         submission_file_url: publicUrl,
         submission_file_name: file.name,
         submission_file_size: file.size,
-        submitted_at: new Date().toISOString(),
+        submitted_at: submissionDate,
         status: 'submitted'
       })
       .select()

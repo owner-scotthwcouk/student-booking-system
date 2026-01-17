@@ -50,7 +50,7 @@ function App() {
 
           <Route path="/book/:tutorId" element={
             <ProtectedRoute allowedRoles={['student']}>
-              <BookingForm tutorId={window.location.pathname.split('/').pop()} />
+              <BookingForm />
             </ProtectedRoute>
           } />
           

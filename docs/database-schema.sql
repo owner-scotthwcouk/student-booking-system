@@ -179,14 +179,44 @@ CREATE POLICY "Users can update their own profile"
   ON profiles FOR UPDATE 
   USING (auth.uid() = id);
 
+-- Create helper functions to check user role without recursion
+-- These use SECURITY DEFINER to bypass RLS when checking the current user's role
+CREATE OR REPLACE FUNCTION public.is_user_tutor()
+RETURNS boolean AS $$
+BEGIN
+  -- Check if current user's role is 'tutor' by checking profiles with security definer
+  -- This bypasses RLS to prevent recursion
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role = 'tutor'
+  );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.is_user_student()
+RETURNS boolean AS $$
+BEGIN
+  -- Check if current user's role is 'student' by checking profiles with security definer
+  -- This bypasses RLS to prevent recursion
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role = 'student'
+  );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
 CREATE POLICY "Tutors can view student profiles" 
   ON profiles FOR SELECT 
   USING (
     role = 'student' AND 
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'tutor'
-    )
+    public.is_user_tutor() = true
+  );
+
+CREATE POLICY "Students can view tutor profiles" 
+  ON profiles FOR SELECT 
+  USING (
+    role = 'tutor' AND 
+    public.is_user_student() = true
   );
 
 -- Bookings policies
@@ -280,6 +310,32 @@ CREATE POLICY "Tutors can manage their availability"
 -- =============================================
 -- FUNCTIONS AND TRIGGERS
 -- =============================================
+
+-- Function to handle new user profile creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role, date_of_birth)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', 'User'),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'student'),
+    CASE 
+      WHEN NEW.raw_user_meta_data->>'date_of_birth' IS NOT NULL 
+      THEN (NEW.raw_user_meta_data->>'date_of_birth')::date 
+      ELSE NULL 
+    END
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to create profile when user signs up
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

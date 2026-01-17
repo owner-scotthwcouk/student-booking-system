@@ -27,9 +27,8 @@ export default function Register() {
     setError(null)
 
     try {
-      // Option 2: Sign up with metadata
-      // (The SQL Trigger 'on_auth_user_created' will handle the profile creation)
-      const { data, error } = await supabase.auth.signUp({
+      // Sign up the user
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -41,8 +40,31 @@ export default function Register() {
         }
       })
 
-      if (error) throw error
+      if (signUpError) throw signUpError
       
+      if (!data?.user) {
+        throw new Error('User creation failed')
+      }
+
+      // Create profile in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: formData.email,
+          full_name: formData.fullName,
+          role: formData.role,
+          date_of_birth: formData.dateOfBirth || null
+        })
+
+      if (profileError) {
+        // If profile already exists (trigger might have created it), that's okay
+        if (!profileError.message?.includes('duplicate') && !profileError.code?.includes('23505')) {
+          console.error('Profile creation error:', profileError)
+          // Don't throw here - user is created, profile might exist
+        }
+      }
+
       // Check if session exists (if email confirmation is on, it might be null)
       if (data?.user) {
         alert('Registration successful! Please log in.')

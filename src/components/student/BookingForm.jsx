@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { createBooking, getTutorAvailability } from '../../lib/bookingAPI'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
-function BookingForm({ tutorId }) {
+function BookingForm() {
+  const { tutorId } = useParams()
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState('')

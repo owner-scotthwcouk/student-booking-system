@@ -1,0 +1,187 @@
+import { useState, useEffect } from 'react'
+import { useAuth } from '../../hooks/useAuth'
+import { updateProfile, uploadProfilePicture } from '../../lib/profileAPI'
+
+export default function TutorProfile() {
+  const { user, profile } = useAuth()
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    phone_number: '',
+    address: '',
+    date_of_birth: ''
+  })
+  const [profilePicture, setProfilePicture] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+        phone_number: profile.phone_number || '',
+        address: profile.address || '',
+        date_of_birth: profile.date_of_birth || ''
+      })
+      setProfilePicture(profile.profile_picture_url)
+    }
+  }, [profile])
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file')
+      return
+    }
+
+    setUploading(true)
+    setError(null)
+
+    try {
+      const { url, error: uploadError } = await uploadProfilePicture(user.id, file)
+      if (uploadError) throw uploadError
+      
+      setProfilePicture(url)
+      await updateProfile(user.id, { profile_picture_url: url }, true)
+    } catch (err) {
+      setError(err.message || 'Failed to upload profile picture')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    setSuccess(false)
+
+    try {
+      const { error: updateError } = await updateProfile(user.id, formData, true)
+      if (updateError) throw updateError
+
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err) {
+      setError(err.message || 'Failed to update profile')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!profile) return <div>Loading profile...</div>
+
+  return (
+    <div className="profile-container">
+      <h2>My Profile</h2>
+
+      {success && (
+        <div className="success-message">Profile updated successfully!</div>
+      )}
+      {error && <div className="error-message">{error}</div>}
+
+      <div className="profile-section">
+        <div className="profile-picture-section">
+          <div className="profile-picture-container">
+            {profilePicture ? (
+              <img src={profilePicture} alt="Profile" className="profile-picture" />
+            ) : (
+              <div className="profile-picture-placeholder">
+                {profile.full_name?.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div className="profile-picture-upload">
+            <label htmlFor="profile-picture">
+              {uploading ? 'Uploading...' : 'Change Picture'}
+            </label>
+            <input
+              type="file"
+              id="profile-picture"
+              accept="image/*"
+              onChange={handleProfilePictureChange}
+              disabled={uploading}
+              style={{ display: 'none' }}
+            />
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="profile-form">
+          <div className="form-group">
+            <label htmlFor="full_name">Full Name *</label>
+            <input
+              type="text"
+              id="full_name"
+              name="full_name"
+              value={formData.full_name}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="date_of_birth">Date of Birth</label>
+            <input
+              type="date"
+              id="date_of_birth"
+              name="date_of_birth"
+              value={formData.date_of_birth}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email Address *</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="phone_number">Phone Number</label>
+            <input
+              type="tel"
+              id="phone_number"
+              name="phone_number"
+              value={formData.phone_number}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="address">Address</label>
+            <textarea
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              rows="3"
+            />
+          </div>
+
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+

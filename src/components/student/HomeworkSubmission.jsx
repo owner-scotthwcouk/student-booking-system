@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { uploadHomework } from '../../lib/fileUploadAPI'
 import { useAuth } from '../../hooks/useAuth'
 
-function HomeworkSubmission({ lessonId }) {
+function HomeworkSubmission({ lessonId, onSubmissionSuccess }) {
   const { user } = useAuth()
   const [selectedFile, setSelectedFile] = useState(null)
   const [submissionDate, setSubmissionDate] = useState('')
@@ -40,23 +40,41 @@ function HomeworkSubmission({ lessonId }) {
       return
     }
     
+    if (!submissionDate || !submissionTime) {
+      setError('Please select submission date and time')
+      return
+    }
+    
     setUploading(true)
     setError(null)
     
     try {
+      // Combine date and time into ISO string
+      const submittedAt = new Date(`${submissionDate}T${submissionTime}`).toISOString()
+      
       const { data, error } = await uploadHomework(
         selectedFile,
         lessonId,
-        user.id
+        user.id,
+        submittedAt
       )
       
       if (error) throw error
       
       setSuccess(true)
       setSelectedFile(null)
+      setSubmissionDate('')
+      setSubmissionTime('')
       
       // Reset form
       e.target.reset()
+      
+      // Notify parent component to refresh data
+      if (onSubmissionSuccess) {
+        setTimeout(() => {
+          onSubmissionSuccess()
+        }, 1000)
+      }
     } catch (err) {
       setError(err.message || 'Failed to upload homework')
     } finally {

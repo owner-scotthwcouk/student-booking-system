@@ -28,20 +28,35 @@ export async function createBooking(bookingData) {
 // Get bookings for a student
 export async function getStudentBookings(studentId) {
   try {
-    const { data, error } = await supabase
+    // First get bookings
+    const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
-      .select(`
-        *,
-        tutor:tutor_id(
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('student_id', studentId)
       .order('lesson_date', { ascending: false })
     
-    if (error) throw error
-    return { data, error: null }
+    if (bookingsError) throw bookingsError
+    
+    // Then get tutor profiles for each booking
+    if (bookings && bookings.length > 0) {
+      const tutorIds = [...new Set(bookings.map(b => b.tutor_id))]
+      const { data: tutors, error: tutorsError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', tutorIds)
+      
+      if (tutorsError) throw tutorsError
+      
+      // Merge tutor data into bookings
+      const bookingsWithTutors = bookings.map(booking => ({
+        ...booking,
+        tutor: tutors?.find(t => t.id === booking.tutor_id) || null
+      }))
+      
+      return { data: bookingsWithTutors, error: null }
+    }
+    
+    return { data: bookings || [], error: null }
   } catch (error) {
     console.error('Error fetching bookings:', error)
     return { data: null, error }
@@ -51,20 +66,35 @@ export async function getStudentBookings(studentId) {
 // Get bookings for a tutor
 export async function getTutorBookings(tutorId) {
   try {
-    const { data, error } = await supabase
+    // First get bookings
+    const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
-      .select(`
-        *,
-        student:student_id(
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('tutor_id', tutorId)
       .order('lesson_date', { ascending: false })
     
-    if (error) throw error
-    return { data, error: null }
+    if (bookingsError) throw bookingsError
+    
+    // Then get student profiles for each booking
+    if (bookings && bookings.length > 0) {
+      const studentIds = [...new Set(bookings.map(b => b.student_id))]
+      const { data: students, error: studentsError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', studentIds)
+      
+      if (studentsError) throw studentsError
+      
+      // Merge student data into bookings
+      const bookingsWithStudents = bookings.map(booking => ({
+        ...booking,
+        student: students?.find(s => s.id === booking.student_id) || null
+      }))
+      
+      return { data: bookingsWithStudents, error: null }
+    }
+    
+    return { data: bookings || [], error: null }
   } catch (error) {
     console.error('Error fetching bookings:', error)
     return { data: null, error }

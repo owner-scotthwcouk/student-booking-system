@@ -1,0 +1,141 @@
+import { supabase } from './supabaseClient'
+
+// Get a profile
+export async function getProfile(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error fetching profile:', error)
+    return { data: null, error }
+  }
+}
+
+// Update profile (students can only update certain fields)
+export async function updateProfile(userId, profileData, isTutor = false) {
+  try {
+    const updateData = {}
+    
+    if (isTutor) {
+      // Tutors can update all fields
+      if (profileData.full_name) updateData.full_name = profileData.full_name
+      if (profileData.date_of_birth) updateData.date_of_birth = profileData.date_of_birth
+      if (profileData.email) updateData.email = profileData.email
+      if (profileData.phone_number !== undefined) updateData.phone_number = profileData.phone_number
+      if (profileData.address !== undefined) updateData.address = profileData.address
+      if (profileData.profile_picture_url !== undefined) updateData.profile_picture_url = profileData.profile_picture_url
+    } else {
+      // Students can only update email, phone, address, profile picture
+      if (profileData.email) updateData.email = profileData.email
+      if (profileData.phone_number !== undefined) updateData.phone_number = profileData.phone_number
+      if (profileData.address !== undefined) updateData.address = profileData.address
+      if (profileData.profile_picture_url !== undefined) updateData.profile_picture_url = profileData.profile_picture_url
+    }
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error updating profile:', error)
+    return { data: null, error }
+  }
+}
+
+// Update student Name/DOB (tutors only)
+export async function updateStudentProfile(studentId, profileData) {
+  try {
+    const updateData = {}
+    if (profileData.full_name) updateData.full_name = profileData.full_name
+    if (profileData.date_of_birth) updateData.date_of_birth = profileData.date_of_birth
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', studentId)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error updating student profile:', error)
+    return { data: null, error }
+  }
+}
+
+// Get all students (for tutors to select when booking)
+export async function getAllStudents() {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('role', 'student')
+      .order('full_name', { ascending: true })
+    
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error fetching students:', error)
+    return { data: null, error }
+  }
+}
+
+// Get all tutors (for students to select when booking)
+export async function getAllTutors() {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('role', 'tutor')
+      .order('full_name', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching tutors:', error)
+      // Return error so calling code can handle it
+      return { data: null, error }
+    }
+    
+    return { data: data || [], error: null }
+  } catch (error) {
+    console.error('Error fetching tutors:', error)
+    return { data: null, error }
+  }
+}
+
+// Upload profile picture
+export async function uploadProfilePicture(userId, file) {
+  try {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${userId}/${Date.now()}.${fileExt}`
+    
+    const { error: uploadError } = await supabase.storage
+      .from('profile-pictures')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true
+      })
+    
+    if (uploadError) throw uploadError
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('profile-pictures')
+      .getPublicUrl(fileName)
+    
+    return { url: publicUrl, error: null }
+  } catch (error) {
+    console.error('Error uploading profile picture:', error)
+    return { url: null, error }
+  }
+}
