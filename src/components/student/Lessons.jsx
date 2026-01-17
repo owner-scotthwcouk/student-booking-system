@@ -65,7 +65,13 @@ export default function StudentLessons() {
               <div className="lesson-header">
                 <h3>{lesson.title}</h3>
                 <button
-                  onClick={() => loadLessonDetails(lesson.id)}
+                  onClick={() => {
+                    if (selectedLesson === lesson.id) {
+                      setSelectedLesson(null)
+                    } else {
+                      loadLessonDetails(lesson.id)
+                    }
+                  }}
                   className="btn-secondary"
                 >
                   {selectedLesson === lesson.id ? 'Hide Details' : 'View Details'}
@@ -222,4 +228,3 @@ export default function StudentLessons() {
     </div>
   )
 }
-
