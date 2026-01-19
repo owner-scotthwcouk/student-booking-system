@@ -9,19 +9,43 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+
     // 1. Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (!session?.user) setLoading(false)
+      if (!mounted) return
+      const sessionUser = session?.user ?? null
+      setUser(sessionUser)
+
+      if (sessionUser) {
+        // fetch profile and clear loading after done
+        fetchProfile(sessionUser.id).finally(() => {
+          if (mounted) setLoading(false)
+        })
+      } else {
+        setLoading(false)
+      }
+    }).catch((err) => {
+      console.error('Error getting session:', err)
+      if (mounted) setLoading(false)
     })
 
     // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      const sessionUser = session?.user ?? null
+      setUser(sessionUser)
       setLoading(false)
+      if (sessionUser) {
+        fetchProfile(sessionUser.id)
+      } else {
+        setProfile(null)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      mounted = false
+    }
   }, [])
 
   // 3. Fetch Profile SEPARATELY (Prevents loops)
@@ -49,6 +73,35 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // New: signIn helper used by Login component
+  const signIn = async ({ email, password }) => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (error) {
+        return { error }
+      }
+
+      // Supabase v2 returns data.session and/or data.user
+      const sessionUser = data?.user ?? data?.session?.user ?? null
+      setUser(sessionUser)
+      if (sessionUser) {
+        await fetchProfile(sessionUser.id)
+      }
+
+      return { user: sessionUser, error: null }
+    } catch (err) {
+      console.error('signIn error:', err)
+      return { error: err }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setProfile(null)
@@ -60,6 +113,7 @@ export function AuthProvider({ children }) {
     profile,
     loading,
     signOut,
+    signIn, // <-- exposed for Login component
     isStudent: profile?.role === 'student',
     isTutor: profile?.role === 'tutor'
   }
