@@ -1,126 +1,209 @@
-import { createContext, useState, useEffect } from 'react'
+// src/context/AuthContext.jsx
+import { createContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { normaliseSupabaseError } from '../lib/supabaseErrors'
 
 export const AuthContext = createContext()
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let mounted = true
+  // Distinguish between "initial auth resolution" and general UI loading
+  const [initialising, setInitialising] = useState(true)
+  const [loadingProfile, setLoadingProfile] = useState(false)
 
-    // 1. Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return
-      const sessionUser = session?.user ?? null
-      setUser(sessionUser)
+  const [authError, setAuthError] = useState(null)
+  const lastProfileUserIdRef = useRef(null)
 
-      if (sessionUser) {
-        // fetch profile and clear loading after done
-        fetchProfile(sessionUser.id).finally(() => {
-          if (mounted) setLoading(false)
-        })
-      } else {
-        setLoading(false)
-      }
-    }).catch((err) => {
-      console.error('Error getting session:', err)
-      if (mounted) setLoading(false)
-    })
+  const fetchProfile = async (userId) => {
+    if (!userId) return null
 
-    // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const sessionUser = session?.user ?? null
-      setUser(sessionUser)
-      setLoading(false)
-      if (sessionUser) {
-        fetchProfile(sessionUser.id)
-      } else {
-        setProfile(null)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-      mounted = false
+    // Prevent duplicate fetches for the same user in rapid succession
+    if (lastProfileUserIdRef.current === userId && profile?.id === userId) {
+      return profile
     }
-  }, [])
 
-  // 3. Fetch Profile SEPARATELY (Prevents loops)
-  useEffect(() => {
-    if (user) {
-      fetchProfile(user.id)
-    } else {
-      setProfile(null)
-    }
-  }, [user])
-
-  async function fetchProfile(userId) {
+    setLoadingProfile(true)
     try {
-      // Use maybeSingle() to avoid 406 error if profile doesn't exist
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle()
-      
-      if (error) throw error
-      setProfile(data)
-    } catch (error) {
-      console.error('Error fetching profile:', error)
+
+      if (error) {
+        setAuthError(normaliseSupabaseError(error))
+        setProfile(null)
+        return null
+      }
+
+      lastProfileUserIdRef.current = userId
+      setProfile(data ?? null)
+      return data ?? null
+    } catch (err) {
+      setAuthError(normaliseSupabaseError(err))
+      setProfile(null)
+      return null
+    } finally {
+      setLoadingProfile(false)
     }
   }
 
-  // New: signIn helper used by Login component
+  useEffect(() => {
+    let alive = true
+
+    const init = async () => {
+      setAuthError(null)
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        if (!alive) return
+
+        if (error) {
+          setAuthError(normaliseSupabaseError(error))
+        }
+
+        const sessionUser = data?.session?.user ?? null
+        setUser(sessionUser)
+
+        if (sessionUser) {
+          await fetchProfile(sessionUser.id)
+        } else {
+          setProfile(null)
+        }
+      } catch (err) {
+        if (!alive) return
+        setAuthError(normaliseSupabaseError(err))
+        setUser(null)
+        setProfile(null)
+      } finally {
+        if (!alive) return
+        setInitialising(false)
+      }
+    }
+
+    init()
+
+    const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!alive) return
+
+      setAuthError(null)
+
+      const sessionUser = session?.user ?? null
+      setUser(sessionUser)
+
+      if (sessionUser) {
+        await fetchProfile(sessionUser.id)
+      } else {
+        lastProfileUserIdRef.current = null
+        setProfile(null)
+      }
+    })
+
+    return () => {
+      alive = false
+      data?.subscription?.unsubscribe?.()
+    }
+    // Intentionally omit profile from deps; fetchProfile internally manages caching
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const signIn = async ({ email, password }) => {
-    setLoading(true)
+    setAuthError(null)
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
-        return { error }
+        const norm = normaliseSupabaseError(error)
+        setAuthError(norm)
+        return { user: null, error: norm }
       }
 
-      // Supabase v2 returns data.session and/or data.user
       const sessionUser = data?.user ?? data?.session?.user ?? null
       setUser(sessionUser)
+
       if (sessionUser) {
         await fetchProfile(sessionUser.id)
       }
 
       return { user: sessionUser, error: null }
     } catch (err) {
-      console.error('signIn error:', err)
-      return { error: err }
-    } finally {
-      setLoading(false)
+      const norm = normaliseSupabaseError(err)
+      setAuthError(norm)
+      return { user: null, error: norm }
+    }
+  }
+
+  const signUp = async ({ email, password, profileData }) => {
+    setAuthError(null)
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: profileData || {},
+        },
+      })
+
+      if (error) {
+        const norm = normaliseSupabaseError(error)
+        setAuthError(norm)
+        return { user: null, error: norm }
+      }
+
+      // If email confirmation is enabled, session may be null
+      const createdUser = data?.user ?? null
+      return { user: createdUser, error: null }
+    } catch (err) {
+      const norm = normaliseSupabaseError(err)
+      setAuthError(norm)
+      return { user: null, error: norm }
     }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setProfile(null)
-    setUser(null)
+    setAuthError(null)
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        const norm = normaliseSupabaseError(error)
+        setAuthError(norm)
+        return { error: norm }
+      }
+      lastProfileUserIdRef.current = null
+      setProfile(null)
+      setUser(null)
+      return { error: null }
+    } catch (err) {
+      const norm = normaliseSupabaseError(err)
+      setAuthError(norm)
+      return { error: norm }
+    }
   }
 
-  const value = {
-    user,
-    profile,
-    loading,
-    signOut,
-    signIn, // <-- exposed for Login component
-    isStudent: profile?.role === 'student',
-    isTutor: profile?.role === 'tutor'
+  const refreshProfile = async () => {
+    if (!user?.id) return null
+    // Force refresh by clearing cache marker
+    lastProfileUserIdRef.current = null
+    return fetchProfile(user.id)
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      profile,
+      initialising,
+      loading: initialising || loadingProfile, // preserve your existing "loading" usage
+      authError,
+      signIn,
+      signUp,
+      signOut,
+      refreshProfile,
+      isStudent: profile?.role === 'student',
+      isTutor: profile?.role === 'tutor',
+    }),
+    [user, profile, initialising, loadingProfile, authError],
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
