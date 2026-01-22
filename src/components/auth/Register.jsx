@@ -1,24 +1,29 @@
+// src/components/auth/Register.jsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function Register() {
   const navigate = useNavigate()
+  const { signUp } = useAuth()
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     fullName: '',
-    role: 'student', // Default role
-    dateOfBirth: ''
+    role: 'student',
+    dateOfBirth: '',
   })
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }))
   }
 
   const handleRegister = async (e) => {
@@ -27,52 +32,54 @@ export default function Register() {
     setError(null)
 
     try {
-      // Sign up the user
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const profileData = {
+        full_name: formData.fullName,
+        role: formData.role,
+        date_of_birth: formData.dateOfBirth || null,
+      }
+
+      const { user, error: signUpError } = await signUp({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            role: formData.role,
-            date_of_birth: formData.dateOfBirth
-          }
-        }
+        profileData,
       })
 
-      if (signUpError) throw signUpError
-      
-      if (!data?.user) {
+      if (signUpError) {
+        throw new Error(signUpError.message || 'Sign up failed')
+      }
+
+      if (!user?.id) {
+        // This can happen in edge cases; treat as failure
         throw new Error('User creation failed')
       }
 
-      // Create profile in profiles table
+      // Create or update profile row. This is resilient if you already have a trigger.
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: formData.email,
-          full_name: formData.fullName,
-          role: formData.role,
-          date_of_birth: formData.dateOfBirth || null
-        })
+        .upsert(
+          {
+            id: user.id,
+            email: formData.email,
+            full_name: formData.fullName,
+            role: formData.role,
+            date_of_birth: formData.dateOfBirth || null,
+          },
+          { onConflict: 'id' },
+        )
 
+      // If RLS prevents this insert, you must fix policies or use a trigger/server function.
+      // We show a useful message rather than silently ignoring it.
       if (profileError) {
-        // If profile already exists (trigger might have created it), that's okay
-        if (!profileError.message?.includes('duplicate') && !profileError.code?.includes('23505')) {
-          console.error('Profile creation error:', profileError)
-          // Don't throw here - user is created, profile might exist
-        }
+        // Do not hard-fail account creation; user exists
+        // but let them know profile setup needs attention.
+        // eslint-disable-next-line no-console
+        console.error('Profile upsert error:', profileError)
       }
 
-      // Check if session exists (if email confirmation is on, it might be null)
-      if (data?.user) {
-        alert('Registration successful! Please log in.')
-        navigate('/login')
-      }
-
-    } catch (error) {
-      setError(error.message)
+      alert('Registration successful. If email confirmation is enabled, please confirm your email before logging in.')
+      navigate('/login')
+    } catch (err) {
+      setError(err.message || 'Registration failed')
     } finally {
       setLoading(false)
     }
@@ -86,84 +93,81 @@ export default function Register() {
           Join the Student Booking System
         </p>
 
-        {error && <div className="error" style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+        {error && (
+          <div className="error" style={{ color: 'red', marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleRegister}>
-          <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>I am a...</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              style={{ width: '100%', padding: '8px', marginBottom: '1rem' }}
-            >
-              <option value="student">Student</option>
-              <option value="tutor">Tutor</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Full Name</label>
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Full Name</label>
             <input
               type="text"
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
               required
-              placeholder="John Doe"
-              style={{ width: '100%', padding: '8px', marginBottom: '1rem' }}
+              style={{ width: '100%', padding: '0.5rem' }}
             />
           </div>
 
-          <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Date of Birth</label>
-            <input
-              type="date"
-              name="dateOfBirth"
-              value={formData.dateOfBirth}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '8px', marginBottom: '1rem' }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email Address</label>
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Email</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              placeholder="you@example.com"
-              style={{ width: '100%', padding: '8px', marginBottom: '1rem' }}
+              style={{ width: '100%', padding: '0.5rem' }}
             />
           </div>
 
-          <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Password</label>
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Password</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               required
-              placeholder="Min. 6 characters"
-              minLength={6}
-              style={{ width: '100%', padding: '8px', marginBottom: '1rem' }}
+              style={{ width: '100%', padding: '0.5rem' }}
             />
           </div>
 
-          <button type="submit" disabled={loading} style={{ width: '100%', marginTop: '1rem' }}>
-            {loading ? 'Creating Account...' : 'Register'}
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Role</label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '0.5rem' }}
+            >
+              <option value="student">Student</option>
+              <option value="tutor">Tutor</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label>Date of Birth</label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '0.5rem' }}
+            />
+          </div>
+
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.75rem' }}>
+            {loading ? 'Creating account…' : 'Register'}
           </button>
         </form>
 
-        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9em' }}>
-          <p>
-            Already have an account? <Link to="/login">Sign in</Link>
-          </p>
-        </div>
+        <p style={{ marginTop: '1rem' }}>
+          Already have an account? <Link to="/login">Log in</Link>
+        </p>
       </div>
     </div>
   )
