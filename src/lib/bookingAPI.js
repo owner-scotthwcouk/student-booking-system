@@ -18,6 +18,16 @@ export async function createBooking(bookingData) {
       .single()
     
     if (error) throw error
+
+    // Notify tutor via Edge Function (email)
+    try {
+      await supabase.functions.invoke('notify-booking', {
+        body: { booking_id: data.id }
+      })
+    } catch (notifyError) {
+      console.error('Failed to send booking notification:', notifyError)
+    }
+
     return { data, error: null }
   } catch (error) {
     console.error('Error creating booking:', error)

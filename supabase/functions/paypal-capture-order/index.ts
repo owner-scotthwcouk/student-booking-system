@@ -3,6 +3,7 @@
 import { ENV, PAYPAL_BASE_URL } from "../_shared/env.ts";
 import { supabaseAdmin } from "../_shared/supabase.ts";
 import { verifySupabaseJwt } from "../_shared/jwt.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 type CaptureOrderRequest = {
   order_id: string;
@@ -112,6 +113,41 @@ Deno.serve(async (req) => {
     await supabase.from("bookings").update({
       status: "confirmed",
     }).eq("id", payment.booking_id).eq("status", "pending");
+
+    // Email tutor on payment
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("lesson_date, lesson_time, tutor_id, student_id")
+      .eq("id", payment.booking_id)
+      .single();
+
+    if (booking?.tutor_id) {
+      const { data: tutor } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", booking.tutor_id)
+        .single();
+
+      const { data: student } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", booking.student_id)
+        .single();
+
+      if (tutor?.email) {
+        const subject = "Payment received for lesson";
+        const html = `
+          <div>
+            <h2>Payment Received</h2>
+            <p><strong>Student:</strong> ${student?.full_name || "Unknown"} (${student?.email || "N/A"})</p>
+            <p><strong>Date:</strong> ${booking.lesson_date}</p>
+            <p><strong>Time:</strong> ${booking.lesson_time}</p>
+            <p><strong>Order ID:</strong> ${order_id}</p>
+          </div>
+        `;
+        await sendEmail({ to: tutor.email, subject, html });
+      }
+    }
 
     return json(200, { ok: true, captureId });
   } catch (e) {

@@ -415,3 +415,9 @@ entrypoint = "./functions/paypal-webhook/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/paypal-webhook/*.html" ]
+
+[functions.notify-booking]
+enabled = true
+verify_jwt = false
+import_map = "./functions/notify-booking/deno.json"
+entrypoint = "./functions/notify-booking/index.ts"
