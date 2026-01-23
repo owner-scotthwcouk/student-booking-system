@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { getTutorAvailability, setTutorAvailability as setAvailability, getBlockedTimeSlots, blockTimeSlot, deleteBlockedTimeSlot } from '../../lib/availabilityAPI'
+import { getTutorAvailability, setTutorAvailability as setAvailability, deleteTutorAvailability, getBlockedTimeSlots, blockTimeSlot, deleteBlockedTimeSlot } from '../../lib/availabilityAPI'
 
 export default function AvailabilityManager() {
   const { user } = useAuth()
@@ -127,6 +127,18 @@ export default function AvailabilityManager() {
     }
   }
 
+  const handleDeleteAvailability = async (availabilityId) => {
+    if (!confirm('Delete this availability slot?')) return
+
+    try {
+      const { error } = await deleteTutorAvailability(availabilityId)
+      if (error) throw error
+      loadAvailability()
+    } catch (err) {
+      setError(err.message || 'Failed to delete availability')
+    }
+  }
+
   if (loading) return <div>Loading availability...</div>
 
   return (
@@ -222,6 +234,7 @@ export default function AvailabilityManager() {
                   <th>Start Time</th>
                   <th>End Time</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -234,6 +247,14 @@ export default function AvailabilityManager() {
                       <span className={avail.is_available ? 'text-success' : 'text-error'}>
                         {avail.is_available ? 'Available' : 'Unavailable'}
                       </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => handleDeleteAvailability(avail.id)}
+                        className="btn-danger btn-small"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -43,6 +43,22 @@ export async function getTutorAvailability(tutorId) {
   }
 }
 
+// Delete a tutor availability slot
+export async function deleteTutorAvailability(availabilityId) {
+  try {
+    const { error } = await supabase
+      .from('tutor_availability')
+      .delete()
+      .eq('id', availabilityId)
+
+    if (error) throw error
+    return { error: null }
+  } catch (error) {
+    console.error('Error deleting availability:', error)
+    return { error }
+  }
+}
+
 // Block a time slot
 export async function blockTimeSlot(tutorId, startDatetime, endDatetime, reason = '') {
   try {
