@@ -1,127 +1,180 @@
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
-import { supabase } from '../../lib/supabaseClient'
+// D:\Dev\student-booking-system\src\components\payment\PayPalPayment.jsx
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useState, useEffect, useMemo } from 'react'
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js'
+import { supabase } from '../../lib/supabaseClient'
 
 function PayPalPayment() {
   const { bookingId } = useParams()
   const navigate = useNavigate()
 
+  const [session, setSession] = useState(null)
   const [booking, setBooking] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [creating, setCreating] = useState(false)
-  const [capturing, setCapturing] = useState(false)
-  const [serverAmount, setServerAmount] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID
 
-  const paypalOptions = useMemo(() => ({
-    "client-id": paypalClientId,
-    currency: "GBP",
-    intent: "capture",
-  }), [paypalClientId])
+  const paypalOptions = useMemo(() => {
+    return {
+      'client-id': paypalClientId || '',
+      currency: 'GBP',
+      intent: 'capture'
+    }
+  }, [paypalClientId])
 
   useEffect(() => {
-    fetchBooking()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookingId])
+    let mounted = true
 
-  async function fetchBooking() {
-    setLoading(true)
-    setError(null)
-    try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', bookingId)
-        .single()
+    async function init() {
+      setLoading(true)
+      setErrorMessage('')
 
-      if (error) throw error
-      setBooking(data)
-    } catch (e) {
-      console.error(e)
-      setError('Failed to load booking. Please try again.')
-    } finally {
-      setLoading(false)
+      try {
+        // 1) Session required (otherwise Edge Function will 401)
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) throw sessionError
+
+        const currentSession = sessionData?.session ?? null
+
+        if (!currentSession) {
+          // Not logged in - redirect to login (adjust route if yours differs)
+          navigate('/login', { replace: true })
+          return
+        }
+
+        if (!mounted) return
+        setSession(currentSession)
+
+        // 2) Load booking (RLS will also enforce ownership)
+        const { data: bookingData, error: bookingError } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('id', bookingId)
+          .single()
+
+        if (bookingError) throw bookingError
+        if (!mounted) return
+
+        setBooking(bookingData)
+      } catch (err) {
+        console.error('PayPalPayment init error:', err)
+        setErrorMessage(err?.message || 'Failed to load booking/session.')
+      } finally {
+        if (mounted) setLoading(false)
+      }
     }
+
+    init()
+
+    return () => {
+      mounted = false
+    }
+  }, [bookingId, navigate])
+
+  async function callEdgeFunction(functionName, payload) {
+    // Always send JWT to avoid 401
+    const accessToken = session?.access_token
+    if (!accessToken) {
+      throw new Error('No active session access token. Please sign in again.')
+    }
+
+    const url = `http://127.0.0.1:54321/functions/v1/${functionName}`
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(payload ?? {})
+    })
+
+    const text = await res.text()
+    let data
+    try {
+      data = text ? JSON.parse(text) : null
+    } catch {
+      data = { raw: text }
+    }
+
+    if (!res.ok) {
+      const msg =
+        data?.error ||
+        data?.message ||
+        `Edge Function ${functionName} failed with status ${res.status}`
+      throw new Error(msg)
+    }
+
+    return data
   }
 
   async function createOrderServerSide() {
-    setCreating(true)
-    setError(null)
+    setErrorMessage('')
+    setBusy(true)
     try {
-      const { data, error } = await supabase.functions.invoke('paypal-create-order', {
-        body: { bookingId }
-      })
+      // Your Edge Function should accept bookingId and compute amount server-side
+      const data = await callEdgeFunction('paypal-create-order', { bookingId })
 
-      if (error) {
-        console.error(error)
-        throw new Error(error.message || 'Failed to create PayPal order.')
-      }
-
+      // Expecting: { orderId: "..." }
       if (!data?.orderId) {
-        console.error('Unexpected create-order response:', data)
-        throw new Error('PayPal order ID missing from server response.')
+        throw new Error('paypal-create-order did not return orderId.')
       }
-
-      // Amount computed by server (authoritative)
-      if (typeof data.amount === 'number') setServerAmount(data.amount)
 
       return data.orderId
     } finally {
-      setCreating(false)
+      setBusy(false)
     }
   }
 
   async function captureOrderServerSide(orderId) {
-    setCapturing(true)
-    setError(null)
+    setErrorMessage('')
+    setBusy(true)
     try {
-      const { data, error } = await supabase.functions.invoke('paypal-capture-order', {
-        body: { bookingId, orderId }
-      })
+      // Your Edge Function should capture order AND update DB records
+      const data = await callEdgeFunction('paypal-capture-order', { bookingId, orderId })
 
-      if (error) {
-        console.error(error)
-        throw new Error(error.message || 'Failed to capture PayPal order.')
-      }
-
-      if (!data?.ok) {
-        console.error('Unexpected capture response:', data)
-        throw new Error('Payment capture failed.')
-      }
-
-      alert("Payment Successful!")
-      navigate('/dashboard')
+      // Expecting something like: { status: "COMPLETED", captureId: "..." }
+      return data
     } finally {
-      setCapturing(false)
+      setBusy(false)
     }
   }
 
-  if (loading) return <div className="payment-container"><h2>Loading...</h2></div>
-  if (error) return (
-    <div className="payment-container">
-      <h2>Payment</h2>
-      <p style={{ color: 'crimson' }}>{error}</p>
-      <button className="btn" onClick={() => fetchBooking()}>Retry</button>
-    </div>
-  )
+  if (loading) {
+    return <div className="payment-container">Loading payment page…</div>
+  }
 
-  if (!booking) return (
-    <div className="payment-container">
-      <h2>Payment</h2>
-      <p>Booking not found.</p>
-    </div>
-  )
+  if (errorMessage) {
+    return (
+      <div className="payment-container">
+        <h2>Payment</h2>
+        <div style={{ padding: 12, border: '1px solid #cc0000', borderRadius: 6 }}>
+          <strong>Problem:</strong> {errorMessage}
+        </div>
+      </div>
+    )
+  }
 
   if (!paypalClientId) {
     return (
       <div className="payment-container">
         <h2>Payment</h2>
-        <p style={{ color: 'crimson' }}>
-          Missing VITE_PAYPAL_CLIENT_ID. Add it to your .env file and restart the dev server.
-        </p>
+        <div style={{ padding: 12, border: '1px solid #cc0000', borderRadius: 6 }}>
+          Missing <code>VITE_PAYPAL_CLIENT_ID</code> in <code>.env</code>. Restart <code>npm run dev</code>.
+        </div>
+      </div>
+    )
+  }
+
+  if (!booking) {
+    return (
+      <div className="payment-container">
+        <h2>Payment</h2>
+        <div style={{ padding: 12, border: '1px solid #cc0000', borderRadius: 6 }}>
+          Booking not found (or you do not have access to it).
+        </div>
       </div>
     )
   }
@@ -131,47 +184,46 @@ function PayPalPayment() {
       <h2>Complete Your Payment</h2>
 
       <div className="booking-summary">
-        <p><strong>Lesson Date:</strong> {booking.lesson_date}</p>
-        <p><strong>Time:</strong> {booking.lesson_time}</p>
-        <p><strong>Duration:</strong> {booking.duration_minutes ?? 60} minutes</p>
-        <p className="price">
-          <strong>Total:</strong>{" "}
-          {serverAmount !== null ? `£${serverAmount.toFixed(2)}` : "Calculated at checkout"}
-        </p>
-        <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-          The total is calculated server-side to prevent tampering.
-        </p>
+        <p>Lesson Date: {booking.lesson_date ?? 'N/A'}</p>
+        <p>Time: {booking.lesson_time ?? 'N/A'}</p>
+        <p>Status: {booking.status ?? 'N/A'}</p>
+        <p>Payment Status: {booking.payment_status ?? 'N/A'}</p>
       </div>
 
-      <PayPalScriptProvider options={paypalOptions}>
-        <PayPalButtons
-          disabled={creating || capturing}
-          createOrder={async () => {
-            return await createOrderServerSide()
-          }}
-          onApprove={async (data) => {
-            const orderId = data?.orderID
-            if (!orderId) {
-              setError('PayPal approval returned no order ID.')
-              return
-            }
-            await captureOrderServerSide(orderId)
-          }}
-          onError={(err) => {
-            console.error('PayPal Buttons error:', err)
-            setError('PayPal error. Please try again.')
-          }}
-          onCancel={() => {
-            setError('Payment was cancelled.')
-          }}
-        />
-      </PayPalScriptProvider>
+      <div style={{ marginTop: 16 }}>
+        <PayPalScriptProvider options={paypalOptions}>
+          <PayPalButtons
+            disabled={busy}
+            createOrder={async () => {
+              // This must return an order ID string
+              return await createOrderServerSide()
+            }}
+            onApprove={async (data) => {
+              try {
+                if (!data?.orderID) {
+                  throw new Error('PayPal did not return an orderID.')
+                }
 
-      {(creating || capturing) && (
-        <p style={{ marginTop: '1rem' }}>
-          {creating ? 'Creating PayPal order...' : 'Capturing payment...'}
-        </p>
-      )}
+                const result = await captureOrderServerSide(data.orderID)
+
+                // If capture succeeded, navigate somewhere sensible
+                // Adjust route to your real success/dashboard page
+                navigate('/dashboard', { replace: true })
+
+                return result
+              } catch (err) {
+                console.error('PayPal onApprove error:', err)
+                setErrorMessage(err?.message || 'Payment approval failed.')
+                throw err
+              }
+            }}
+            onError={(err) => {
+              console.error('PayPal Buttons error:', err)
+              setErrorMessage(err?.message || 'PayPal button error.')
+            }}
+          />
+        </PayPalScriptProvider>
+      </div>
     </div>
   )
 }

@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Check your .env file and restart the dev server.'
+    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Check your .env and restart the dev server.'
   )
 }
 
