@@ -49,6 +49,10 @@ Deno.serve(async (req) => {
     }
     if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
+    if (!ENV.paypal.clientId || !ENV.paypal.clientSecret) {
+      return json(500, { error: "Missing PayPal credentials in Edge Function secrets" });
+    }
+
     // Require an authenticated Supabase user
     const payload = await verifySupabaseJwt(req.headers.get("Authorization"));
     const userId = (payload.sub as string) || "";

@@ -34,9 +34,9 @@ export const ENV = {
 
   paypal: {
     env: (Deno.env.get("PAYPAL_ENV")?.trim() || "sandbox") as PayPalEnv,
-    clientId: required("PAYPAL_CLIENT_ID"),
-    clientSecret: required("PAYPAL_CLIENT_SECRET"),
-    webhookId: Deno.env.get("PAYPAL_WEBHOOK_ID")?.trim() || "",
+    clientId: optional("PAYPAL_CLIENT_ID"),
+    clientSecret: optional("PAYPAL_CLIENT_SECRET"),
+    webhookId: optional("PAYPAL_WEBHOOK_ID"),
   },
 };
 
