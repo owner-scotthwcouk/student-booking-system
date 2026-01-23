@@ -14,7 +14,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    // Avoid Navigator Lock API issues in some browsers/contexts.
+    lock: async (_name, _acquireTimeout, fn) => {
+      return await fn()
+    }
   }
 })
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { getTutorLessons, createLesson, updateLesson, archiveLesson, deleteLesson } from '../../lib/lessonsAPI'
+import { getTutorLessons, createLesson, updateLesson, archiveLesson, deleteLesson, getLessonActivities } from '../../lib/lessonsAPI'
+import { uploadLessonActivity } from '../../lib/fileUploadAPI'
 import { getAllStudents } from '../../lib/profileAPI'
 
 export default function LessonEditor() {
@@ -9,6 +10,15 @@ export default function LessonEditor() {
   const [students, setStudents] = useState([])
   const [selectedLesson, setSelectedLesson] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [resourceLesson, setResourceLesson] = useState(null)
+  const [activities, setActivities] = useState([])
+  const [resourceType, setResourceType] = useState('resources')
+  const [activityTitle, setActivityTitle] = useState('')
+  const [activityDescription, setActivityDescription] = useState('')
+  const [activityFile, setActivityFile] = useState(null)
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [activityError, setActivityError] = useState(null)
+  const [activityUploading, setActivityUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -74,6 +84,71 @@ export default function LessonEditor() {
       status: lesson.status || 'scheduled'
     })
     setShowForm(true)
+  }
+
+  const handleOpenResources = async (lesson, type) => {
+    setResourceLesson(lesson)
+    setResourceType(type)
+    setActivityError(null)
+    setActivityLoading(true)
+    try {
+      const { data, error: activitiesError } = await getLessonActivities(lesson.id)
+      if (activitiesError) throw activitiesError
+      setActivities(data || [])
+    } catch (err) {
+      setActivityError(err.message || 'Failed to load lesson resources')
+    } finally {
+      setActivityLoading(false)
+    }
+  }
+
+  const handleCloseResources = () => {
+    setResourceLesson(null)
+    setActivities([])
+    setResourceType('resources')
+    setActivityTitle('')
+    setActivityDescription('')
+    setActivityFile(null)
+    setActivityError(null)
+  }
+
+  const handleUploadActivity = async (e) => {
+    e.preventDefault()
+    if (!resourceLesson) return
+    if (!activityFile) {
+      setActivityError('Please choose a file to upload')
+      return
+    }
+
+    setActivityUploading(true)
+    setActivityError(null)
+    try {
+      const typePrefix = resourceType === 'homework' ? 'Homework:' : 'Resource:'
+      const resolvedTitle = activityTitle
+        ? (activityTitle.startsWith(typePrefix) ? activityTitle : `${typePrefix} ${activityTitle}`)
+        : `${typePrefix} ${activityFile.name}`
+
+      const { error: uploadError } = await uploadLessonActivity(
+        activityFile,
+        resourceLesson.id,
+        user.id,
+        resolvedTitle,
+        activityDescription || ''
+      )
+      if (uploadError) throw uploadError
+
+      const { data, error: activitiesError } = await getLessonActivities(resourceLesson.id)
+      if (activitiesError) throw activitiesError
+      setActivities(data || [])
+
+      setActivityTitle('')
+      setActivityDescription('')
+      setActivityFile(null)
+    } catch (err) {
+      setActivityError(err.message || 'Failed to upload resource')
+    } finally {
+      setActivityUploading(false)
+    }
   }
 
   const handleCreate = () => {
@@ -161,6 +236,12 @@ export default function LessonEditor() {
   }
 
   if (loading) return <div>Loading lessons...</div>
+
+  const typePrefix = resourceType === 'homework' ? 'Homework:' : 'Resource:'
+  const filteredActivities = activities.filter((activity) => {
+    if (!activity?.title) return resourceType === 'resources'
+    return activity.title.startsWith(typePrefix)
+  })
 
   return (
     <div className="lesson-editor-container">
@@ -324,6 +405,12 @@ export default function LessonEditor() {
                 <button onClick={() => handleEdit(lesson)} className="btn-secondary">
                   Edit
                 </button>
+                <button onClick={() => handleOpenResources(lesson, 'resources')} className="btn-secondary">
+                  Resources
+                </button>
+                <button onClick={() => handleOpenResources(lesson, 'homework')} className="btn-secondary">
+                  Homework
+                </button>
                 {lesson.status !== 'archived' && (
                   <button onClick={() => handleArchive(lesson.id)} className="btn-secondary">
                     Archive
@@ -337,6 +424,88 @@ export default function LessonEditor() {
           ))
         )}
       </div>
+
+      {resourceLesson && (
+        <div className="lesson-form-modal">
+          <div className="modal-content">
+            <h3>{resourceType === 'homework' ? 'Lesson Homework' : 'Lesson Resources'}</h3>
+            <p><strong>Lesson:</strong> {resourceLesson.title}</p>
+
+            {activityError && <div className="error-message">{activityError}</div>}
+
+            <form onSubmit={handleUploadActivity}>
+              <div className="form-group">
+                <label htmlFor="activityTitle">Title</label>
+                <input
+                  id="activityTitle"
+                  type="text"
+                  value={activityTitle}
+                  onChange={(e) => setActivityTitle(e.target.value)}
+                  placeholder="e.g., Worksheet 1"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="activityDescription">Description</label>
+                <textarea
+                  id="activityDescription"
+                  value={activityDescription}
+                  onChange={(e) => setActivityDescription(e.target.value)}
+                  rows="3"
+                  placeholder="Optional notes for the student"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="activityFile">File *</label>
+                <input
+                  id="activityFile"
+                  type="file"
+                  onChange={(e) => setActivityFile(e.target.files?.[0] || null)}
+                  required
+                />
+              </div>
+              <div className="form-actions">
+                <button type="submit" disabled={activityUploading} className="btn-primary">
+                  {activityUploading
+                    ? 'Uploading...'
+                    : resourceType === 'homework'
+                      ? 'Upload Homework'
+                      : 'Upload Resource'}
+                </button>
+                <button type="button" onClick={handleCloseResources} className="btn-secondary">
+                  Close
+                </button>
+              </div>
+            </form>
+
+            <div style={{ marginTop: '1.5rem' }}>
+              <h4>{resourceType === 'homework' ? 'Homework Files' : 'Resource Files'}</h4>
+              {activityLoading ? (
+                <p>Loading resources...</p>
+              ) : filteredActivities.length === 0 ? (
+                <p>No resources uploaded yet.</p>
+              ) : (
+                <div className="activities-list">
+                  {filteredActivities.map((activity) => (
+                    <div key={activity.id} className="activity-item">
+                      <div className="activity-info">
+                        <h5>{activity.title}</h5>
+                        {activity.description && <p>{activity.description}</p>}
+                        <small>{activity.file_name} ({(activity.file_size / 1024).toFixed(2)} KB)</small>
+                      </div>
+                      <button
+                        onClick={() => window.open(activity.file_url, '_blank')}
+                        className="btn-secondary"
+                      >
+                        Download
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -90,7 +90,7 @@ export default function Register() {
       <div className="card">
         <h2>Create an Account</h2>
         <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-          Join the Student Booking System
+          Join Edumaxim
         </p>
 
         {error && (

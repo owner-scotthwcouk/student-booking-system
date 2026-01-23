@@ -74,37 +74,13 @@ function PayPalPayment() {
   }, [bookingId, navigate])
 
   async function callEdgeFunction(functionName, payload) {
-    // Always send JWT to avoid 401
-    const accessToken = session?.access_token
-    if (!accessToken) {
-      throw new Error('No active session access token. Please sign in again.')
-    }
-
-    const url = `http://127.0.0.1:54321/functions/v1/${functionName}`
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`
-      },
-      body: JSON.stringify(payload ?? {})
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: payload ?? {}
     })
 
-    const text = await res.text()
-    let data
-    try {
-      data = text ? JSON.parse(text) : null
-    } catch {
-      data = { raw: text }
-    }
-
-    if (!res.ok) {
-      const msg =
-        data?.error ||
-        data?.message ||
-        `Edge Function ${functionName} failed with status ${res.status}`
-      throw new Error(msg)
+    if (error) {
+      const message = error?.message || `Edge Function ${functionName} failed`
+      throw new Error(message)
     }
 
     return data
@@ -114,10 +90,9 @@ function PayPalPayment() {
     setErrorMessage('')
     setBusy(true)
     try {
-      // Your Edge Function should accept bookingId and compute amount server-side
-      const data = await callEdgeFunction('paypal-create-order', { bookingId })
+      // Your Edge Function should accept booking_id and compute amount server-side
+      const data = await callEdgeFunction('paypal-create-order', { booking_id: bookingId })
 
-      // Expecting: { orderId: "..." }
       if (!data?.orderId) {
         throw new Error('paypal-create-order did not return orderId.')
       }
@@ -133,7 +108,7 @@ function PayPalPayment() {
     setBusy(true)
     try {
       // Your Edge Function should capture order AND update DB records
-      const data = await callEdgeFunction('paypal-capture-order', { bookingId, orderId })
+      const data = await callEdgeFunction('paypal-capture-order', { order_id: orderId })
 
       // Expecting something like: { status: "COMPLETED", captureId: "..." }
       return data

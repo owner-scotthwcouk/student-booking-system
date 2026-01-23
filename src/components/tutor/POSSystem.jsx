@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { getAllStudents } from '../../lib/profileAPI'
-import { createBooking, updateBookingStatus } from '../../lib/bookingAPI'
-import { createPayment } from '../../lib/paymentsAPI'
+import { createBooking } from '../../lib/bookingAPI'
+import { supabase } from '../../lib/supabaseClient'
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
 
 export default function POSSystem() {
@@ -11,13 +11,13 @@ export default function POSSystem() {
   const [selectedStudent, setSelectedStudent] = useState('')
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('')
-  const [amount, setAmount] = useState('50')
   const [bookingId, setBookingId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
 
   const LESSON_PRICE = 50 // Default price
+  const amount = LESSON_PRICE.toFixed(2)
 
   useEffect(() => {
     if (user) loadStudents()
@@ -58,35 +58,50 @@ export default function POSSystem() {
     }
   }
 
-  const handlePaymentSuccess = async (details) => {
+  async function callEdgeFunction(functionName, payload) {
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: payload ?? {}
+    })
+
+    if (error) {
+      const message = error?.message || `Edge Function ${functionName} failed`
+      throw new Error(message)
+    }
+
+    return data
+  }
+
+  async function createOrderServerSide() {
+    if (!bookingId) {
+      throw new Error('No booking created yet.')
+    }
+
+    const data = await callEdgeFunction('paypal-create-order', { booking_id: bookingId })
+
+    if (!data?.orderId) {
+      throw new Error('paypal-create-order did not return orderId.')
+    }
+
+    return data.orderId
+  }
+
+  async function captureOrderServerSide(orderId) {
+    if (!orderId) {
+      throw new Error('Missing orderId.')
+    }
+
+    const data = await callEdgeFunction('paypal-capture-order', { order_id: orderId })
+    return data
+  }
+
+  const handlePaymentSuccess = async () => {
     try {
-      // Update booking payment status (Fix: Updated existing booking instead of creating new one)
-      const { error: bookingUpdateError } = await updateBookingStatus(bookingId, 'confirmed')
-
-      if (bookingUpdateError) throw bookingUpdateError
-
-      // Create payment record
-      const { error: paymentError } = await createPayment({
-        bookingId: bookingId,
-        studentId: selectedStudent,
-        amount: parseFloat(amount),
-        currency: 'GBP',
-        paymentMethod: 'paypal',
-        paypalTransactionId: details.id,
-        paypalOrderId: details.purchase_units[0].payments.captures[0].id,
-        status: 'completed',
-        paymentDate: new Date().toISOString()
-      })
-
-      if (paymentError) throw paymentError
-
       alert('Payment processed successfully!')
       
       // Reset form
       setSelectedStudent('')
       setBookingDate('')
       setBookingTime('')
-      setAmount('50')
       setBookingId(null)
       setSuccess(false)
     } catch (error) {
@@ -156,9 +171,8 @@ export default function POSSystem() {
             type="number"
             id="amount"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
             required
-            disabled={bookingId !== null}
+            readOnly
             min="0"
             step="0.01"
           />
@@ -187,21 +201,16 @@ export default function POSSystem() {
             }}
           >
             <PayPalButtons
-              createOrder={(data, actions) => {
-                return actions.order.create({
-                  purchase_units: [{
-                    amount: {
-                      value: parseFloat(amount).toFixed(2),
-                      currency_code: "GBP"
-                    },
-                    description: `Tutoring Lesson - ${bookingDate}`
-                  }]
-                })
+              createOrder={async () => {
+                return await createOrderServerSide()
               }}
-              onApprove={(data, actions) => {
-                return actions.order.capture().then((details) => {
-                  handlePaymentSuccess(details)
-                })
+              onApprove={async (data) => {
+                if (!data?.orderID) {
+                  throw new Error('PayPal did not return an orderID.')
+                }
+
+                await captureOrderServerSide(data.orderID)
+                await handlePaymentSuccess()
               }}
             />
           </PayPalScriptProvider>
