@@ -1,32 +1,46 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+const PAYPAL_BASE = Deno.env.get("PAYPAL_BASE_URL")!;
+const CLIENT_ID = Deno.env.get("PAYPAL_CLIENT_ID")!;
+const CLIENT_SECRET = Deno.env.get("PAYPAL_CLIENT_SECRET")!;
 
-console.log("Hello from Functions!")
+async function getAccessToken() {
+  const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      "Authorization": "Basic " + btoa(`${CLIENT_ID}:${CLIENT_SECRET}`),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
 
-Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
+  const data = await res.json();
+  return data.access_token;
+}
+
+serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405 });
   }
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
-})
+  const { order_id } = await req.json();
 
-/* To invoke locally:
+  const token = await getAccessToken();
 
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
+  const captureRes = await fetch(
+    `${PAYPAL_BASE}/v2/checkout/orders/${order_id}/capture`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/paypal-capture-order' \
-    --header 'Authorization: Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6ImI4MTI2OWYxLTIxZDgtNGYyZS1iNzE5LWMyMjQwYTg0MGQ5MCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjIwODQ0NTgzMTV9.w9MuMN14SYQouFGZRqNOh6-_3-k8q9pblnpOYMs9nkMXHYDGsV9R1ieC2AgOl7dZchpIAcoBqSgVjIawpUietQ' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
+  const capture = await captureRes.json();
 
-*/
+  return new Response(JSON.stringify(capture), {
+    headers: { "Content-Type": "application/json" },
+  });
+});

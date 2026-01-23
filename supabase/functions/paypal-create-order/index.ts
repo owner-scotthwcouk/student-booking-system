@@ -1,32 +1,55 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+const PAYPAL_BASE = Deno.env.get("PAYPAL_BASE_URL")!;
+const CLIENT_ID = Deno.env.get("PAYPAL_CLIENT_ID")!;
+const CLIENT_SECRET = Deno.env.get("PAYPAL_CLIENT_SECRET")!;
 
-console.log("Hello from Functions!")
+async function getAccessToken() {
+  const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      "Authorization": "Basic " + btoa(`${CLIENT_ID}:${CLIENT_SECRET}`),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
 
-Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
+  const data = await res.json();
+  return data.access_token;
+}
+
+serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405 });
   }
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
-})
+  const { booking_id, amount } = await req.json();
 
-/* To invoke locally:
+  const token = await getAccessToken();
 
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
+  const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          reference_id: booking_id,
+          amount: {
+            currency_code: "GBP",
+            value: amount.toFixed(2),
+          },
+        },
+      ],
+    }),
+  });
 
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/paypal-create-order' \
-    --header 'Authorization: Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6ImI4MTI2OWYxLTIxZDgtNGYyZS1iNzE5LWMyMjQwYTg0MGQ5MCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjIwODQ0NTgzMTB9.xJxDwPhrHYylolEZ6bb2jALAQ1TX5TrB_-3f9b8qgWvb1Wqsq8_uG3pT5zTESIcznykEsVLAmrDk0KIbpMpViw' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
+  const order = await orderRes.json();
 
-*/
+  return new Response(JSON.stringify(order), {
+    headers: { "Content-Type": "application/json" },
+  });
+});
