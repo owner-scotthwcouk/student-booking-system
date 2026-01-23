@@ -6,6 +6,7 @@ import LessonEditor from './LessonEditor'
 import HomeworkReview from './HomeworkReview'
 import POSSystem from './POSSystem'
 import AvailabilityManager from './AvailabilityManager'
+import Students from './Students'
 
 export default function TutorDashboard() {
   const { user } = useAuth()
@@ -66,6 +67,12 @@ export default function TutorDashboard() {
           onClick={() => setActiveTab('pos')}
         >
           POS System
+        </button>
+        <button
+          className={activeTab === 'students' ? 'active' : ''}
+          onClick={() => setActiveTab('students')}
+        >
+          Students
         </button>
         <button
           className={activeTab === 'availability' ? 'active' : ''}
@@ -142,6 +149,7 @@ export default function TutorDashboard() {
         {activeTab === 'lessons' && <LessonEditor />}
         {activeTab === 'homework' && <HomeworkReview />}
         {activeTab === 'pos' && <POSSystem />}
+        {activeTab === 'students' && <Students />}
         {activeTab === 'availability' && <AvailabilityManager />}
         {activeTab === 'profile' && <Profile />}
       </div>

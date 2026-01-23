@@ -80,7 +80,7 @@ export async function getAllStudents() {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name, email, phone_number, address, date_of_birth')
       .eq('role', 'student')
       .order('full_name', { ascending: true })
     
