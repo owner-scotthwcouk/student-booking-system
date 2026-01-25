@@ -1,11 +1,6 @@
 {
-  "functions": {
-    "api/**/*.[jt]s": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/.*", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
