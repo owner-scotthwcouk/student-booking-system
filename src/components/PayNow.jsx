@@ -19,7 +19,7 @@ export default function PayNow({ reference }) {
   useEffect(() => {
     (async () => {
       // TEMP: paste your Live Client ID here (Client ID is public/safe)
-      const paypal = await loadPayPalSdk("YOUR_LIVE_CLIENT_ID_HERE");
+      const paypal = await loadPayPalSdk("ARKGneSziYvAKp3hl_1y0kyid7aSRAbJD-EYOHreBPEtfCl3U56kkgOPuj-fYLRYmPg58BUC_fOfAsIo");
 
       paypal.Buttons({
         createOrder: async () => {
