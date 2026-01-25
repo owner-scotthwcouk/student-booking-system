@@ -65,14 +65,6 @@ function App() {
     </div>
   )
 }
-export default function App() {
-  const bookingId = "test_booking_123"; // replace with your real booking UUID
-  return (
-    <div style={{ padding: 24 }}>
-      <h1>PayPal Test</h1>
-      <PayNow amountGBP="1.00" reference={bookingId} />
-    </div>
-  );
-}
+
 
 export default App
