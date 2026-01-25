@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "../hooks/useAuth";
 
 // ⬇️ Replace this with your real LIVE PayPal Client ID (Client ID is public/safe)
-const PAYPAL_CLIENT_ID = "PASTE_YOUR_REAL_LIVE_CLIENT_ID_HERE";
+const PAYPAL_CLIENT_ID = "ARKGneSziYvAKp3hl_1y0kyid7aSRAbJD-EYOHreBPEtfCl3U56kkgOPuj-fYLRYmPg58BUC_fOfAsIo";
 
 // Load the PayPal JS SDK (only once)
 function loadPayPalSdk(clientId) {
