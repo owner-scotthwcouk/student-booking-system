@@ -14,3 +14,5 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </StrictMode>,
 )
+console.log("PAYPAL ID:", import.meta.env.VITE_PAYPAL_CLIENT_ID);
+window.__paypalId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
