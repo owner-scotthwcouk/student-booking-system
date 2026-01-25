@@ -1,31 +1,35 @@
-import { Routes, Route, Link, Navigate } from 'react-router-dom'
-import { useAuth } from './hooks/useAuth'
-import './App.css'
+import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
+import "./App.css";
 
 // Components
-import Login from './components/auth/Login'
-import Register from './components/auth/Register'
-import ProtectedRoute from './components/shared/ProtectedRoute'
-import StudentDashboard from './components/student/Dashboard'
-import TutorDashboard from './components/tutor/Dashboard'
-import BookingForm from './components/student/BookingForm'
-import PayPalPayment from './components/payment/PayPalPayment'
+import Login from "./components/auth/Login";
+import Register from "./components/auth/Register";
+import ProtectedRoute from "./components/shared/ProtectedRoute";
+import StudentDashboard from "./components/student/Dashboard";
+import TutorDashboard from "./components/tutor/Dashboard";
+import BookingForm from "./components/student/BookingForm";
 import PayNow from "./components/PayNow";
+import PaymentPage from "./pages/PaymentPage";
 
 function App() {
-  const { user, isTutor, loading, signOut } = useAuth()
+  const { user, isTutor, loading, signOut } = useAuth();
 
-  if (loading) return <div className="loading">Loading App...</div>
+  if (loading) return <div className="loading">Loading App...</div>;
 
   return (
     <div className="app-container">
       <nav className="navbar">
-        <Link to="/" className="nav-logo">Edumaxim</Link>
+        <Link to="/" className="nav-logo">
+          Edumaxim
+        </Link>
         <div className="nav-links">
           {user ? (
             <>
               <Link to="/dashboard">Dashboard</Link>
-              <button onClick={signOut} className="btn-signout">Sign Out</button>
+              <button onClick={signOut} className="btn-signout">
+                Sign Out
+              </button>
             </>
           ) : (
             <Link to="/login">Login</Link>
@@ -35,36 +39,60 @@ function App() {
 
       <main className="main-content">
         <Routes>
-          <Route path="/" element={
-             user ? <Navigate to="/dashboard" /> : <div className="card"><h1>Welcome</h1><Link to="/login">Login</Link></div>
-          } />
-          
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
-          <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" />} />
+          <Route
+            path="/"
+            element={
+              user ? (
+                <Navigate to="/dashboard" />
+              ) : (
+                <div className="card">
+                  <h1>Welcome</h1>
+                  <Link to="/login">Login</Link>
+                </div>
+              )
+            }
+          />
+
+          <Route
+            path="/login"
+            element={!user ? <Login /> : <Navigate to="/dashboard" />}
+          />
+          <Route
+            path="/register"
+            element={!user ? <Register /> : <Navigate to="/dashboard" />}
+          />
 
           {/* Protected Routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              {isTutor ? <TutorDashboard /> : <StudentDashboard />}
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                {isTutor ? <TutorDashboard /> : <StudentDashboard />}
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/book/:tutorId" element={
-            <ProtectedRoute allowedRoles={['student']}>
-              <BookingForm />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/payment/:bookingId" element={
-            <ProtectedRoute allowedRoles={['student']}>
-              <PayPalPayment />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/book/:tutorId"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <BookingForm />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payment/:bookingId"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <PaymentPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
     </div>
-  )
+  );
 }
 
-
-export default App
+export default App;
