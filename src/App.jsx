@@ -10,6 +10,7 @@ import StudentDashboard from './components/student/Dashboard'
 import TutorDashboard from './components/tutor/Dashboard'
 import BookingForm from './components/student/BookingForm'
 import PayPalPayment from './components/payment/PayPalPayment'
+import PayNow from "./components/PayNow";
 
 function App() {
   const { user, isTutor, loading, signOut } = useAuth()
@@ -63,6 +64,15 @@ function App() {
       </main>
     </div>
   )
+}
+export default function App() {
+  const bookingId = "test_booking_123"; // replace with your real booking UUID
+  return (
+    <div style={{ padding: 24 }}>
+      <h1>PayPal Test</h1>
+      <PayNow amountGBP="1.00" reference={bookingId} />
+    </div>
+  );
 }
 
 export default App
