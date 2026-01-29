@@ -4,11 +4,14 @@ class TutorDashboard {
 
 	render() {
 		// ...existing code...
-		this.createHourlyRateInput();
+		const container = document.getElementById('tutor-dashboard-container'); // Ensure this container exists
+		if (container) {
+			this.createHourlyRateInput(container);
+		}
 		// ...existing code...
 	}
 
-	createHourlyRateInput() {
+	createHourlyRateInput(container: HTMLElement) {
 		const input = document.createElement('input');
 		input.type = 'number';
 		input.placeholder = 'Set Hourly Rate';
@@ -18,8 +21,8 @@ class TutorDashboard {
 			const rate = parseFloat(input.value);
 			this.updateAvailability(rate);
 		};
-		document.body.appendChild(input);
-		document.body.appendChild(button);
+		container.appendChild(input);
+		container.appendChild(button);
 	}
 
 	updateAvailability(hourlyRate: number) {
