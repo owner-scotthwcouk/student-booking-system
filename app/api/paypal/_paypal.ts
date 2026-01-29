@@ -1,5 +1,5 @@
 // app/api/paypal/_paypal.ts
-export const runtime = 'nodejs'; // force Node runtime (so Buffer is available)
+export const runtime = 'nodejs';
 
 const base =
   (process.env.PAYPAL_ENV || 'sandbox').toLowerCase() === 'live'
@@ -35,7 +35,8 @@ export async function getAccessToken(): Promise<{ access_token: string; expires_
   return res.json();
 }
 
-export async function createOrder(value: string, currency_code = 'GBP') {
+// UPDATED: Now accepts reference_id (Booking ID)
+export async function createOrder(value: string, currency_code = 'GBP', reference_id?: string) {
   const { access_token } = await getAccessToken();
 
   const res = await fetch(`${base}/v2/checkout/orders`, {
@@ -46,7 +47,10 @@ export async function createOrder(value: string, currency_code = 'GBP') {
     },
     body: JSON.stringify({
       intent: 'CAPTURE',
-      purchase_units: [{ amount: { currency_code, value } }],
+      purchase_units: [{ 
+        reference_id: reference_id, // Links payment to the booking in PayPal
+        amount: { currency_code, value } 
+      }],
       application_context: { shipping_preference: 'NO_SHIPPING' },
     }),
     cache: 'no-store',
