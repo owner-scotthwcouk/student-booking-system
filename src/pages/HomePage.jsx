@@ -127,8 +127,7 @@ export default function HomePage() {
             <div className="hero-cta">
               <button 
                 className="btn btn-primary btn-hero"
-                onClick={() => navigate(user ? '/tutors' : '/signup')}
-              >
+                onClick={() => navigate('/signup')}>
                 Find Your Tutor →
               </button>
             </div>
