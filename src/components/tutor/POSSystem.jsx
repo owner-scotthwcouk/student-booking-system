@@ -143,15 +143,6 @@ export default function POSSystem() {
 
 
     <div className="pos-system-container">
-    <input 
-      style={{
-        backgroundColor: '#ffffff',
-        color: '#000000',
-        fontSize: '16px',
-        padding: '12px',
-        border: '2px solid #333'
-      }}
-/>
 
       <h2>POS System</h2>
       <p className="description">Enter payment details manually to book and charge immediately.</p>
@@ -162,7 +153,15 @@ export default function POSSystem() {
       <form onSubmit={handleSubmit} className="pos-form">
         <div className="form-grid">
           {/* Section 1: Booking Details */}
-          <div className="form-section">
+          <div className="form-section" 
+      style={{
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        fontSize: '16px',
+        padding: '12px',
+        border: '2px solid #333'
+      }}>
+>
             <h3>Booking Details</h3>
             
             <div className="form-group">
