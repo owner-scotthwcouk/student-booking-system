@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../contexts/auth'
 import { updateProfile, uploadProfilePicture } from '../../lib/profileAPI'
 
 export default function TutorProfile() {

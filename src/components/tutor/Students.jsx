@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../contexts/auth'
 import { getAllStudents, getProfile } from '../../lib/profileAPI'
 import { getStudentPayments } from '../../lib/paymentsAPI'
 

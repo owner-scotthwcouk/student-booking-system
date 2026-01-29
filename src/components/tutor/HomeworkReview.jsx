@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../contexts/auth'
 import { getTutorHomework, updateHomeworkFeedback } from '../../lib/homeworkAPI'
 import { downloadFile } from '../../lib/fileUploadAPI'
 
