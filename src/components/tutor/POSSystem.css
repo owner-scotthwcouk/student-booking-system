@@ -1,0 +1,111 @@
+/* POS System - Improved Visibility */
+.pos-system {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.pos-system h2 {
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.pos-system p {
+  color: #cccccc;
+  margin-bottom: 2rem;
+}
+
+/* Form inputs with better contrast */
+.pos-system input,
+.pos-system select,
+.pos-system textarea {
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #333333;
+  padding: 0.75rem;
+  font-size: 16px;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.pos-system input::placeholder {
+  color: #666666;
+  opacity: 1;
+}
+
+/* Labels */
+.pos-system label {
+  color: #ffffff;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 14px;
+}
+
+/* Price display */
+.pos-system .price-display {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: bold;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+/* Charge button */
+.pos-system .charge-button {
+  background-color: #7c3aed;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.pos-system .charge-button:hover {
+  background-color: #6d28d9;
+}
+
+.pos-system .charge-button:disabled {
+  background-color: #4a5568;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Form sections */
+.pos-form-section {
+  background-color: #f7f7f7;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.pos-form-section h3 {
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+/* Grid layout for card fields */
+.card-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card-details-grid input {
+  margin: 0;
+}
+
+/* Full width fields */
+.full-width {
+  grid-column: 1 / -1;
+}
