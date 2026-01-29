@@ -6,6 +6,7 @@ import LessonEditor from './LessonEditor'
 import BookingManagement from './BookingManagement'
 import TutorPayments from './Payments'
 import './TutorDashboard.css'
+import HourlyRateSettings from './HourlyRateSettings'
 
 export default function TutorDashboard() {
   const { user, profile } = useAuth()
@@ -57,6 +58,7 @@ export default function TutorDashboard() {
         {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
         {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
         {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
+        {activeTab === 'settings' && <HourlyRateSettings />}
       </div>
     </div>
   )
