@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/auth'
 import StudentLessons from './Lessons'
+import StudentPayments from './Payments'
+import HomeworkSubmission from './HomeworkSubmission'
 import './StudentDashboard.css'
 
 export default function StudentDashboard() {
@@ -22,6 +24,18 @@ export default function StudentDashboard() {
           📅 My Bookings
         </button>
         <button 
+          className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('payments')}
+        >
+          💳 Payments
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'homework' ? 'active' : ''}`}
+          onClick={() => setActiveTab('homework')}
+        >
+          📝 Homework
+        </button>
+        <button 
           className={`tab-button ${activeTab === 'lessons' ? 'active' : ''}`}
           onClick={() => setActiveTab('lessons')}
         >
@@ -38,6 +52,8 @@ export default function StudentDashboard() {
       <div className="dashboard-content">
         {activeTab === 'bookings' && <div><h2>My Bookings</h2><p>Booking management coming soon</p></div>}
         {activeTab === 'lessons' && <StudentLessons />}
+        {activeTab === 'payments' && <StudentPayments />}
+        {activeTab === 'homework' && <HomeworkSubmission />}
         {activeTab === 'profile' && (
           <div className="profile-section">
             <h2>My Profile</h2>

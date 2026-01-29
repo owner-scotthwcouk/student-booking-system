@@ -3,7 +3,6 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { recordPayment } from '../../lib/paymentsAPI'
 import { useAuth } from '../../contexts/auth'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
@@ -54,10 +53,18 @@ function CheckoutForm({ bookingId, amount, studentId }) {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        // Record payment in database
-        await recordPayment(bookingId, studentId, amount, paymentIntent.id)
+        // Let server verify the PaymentIntent with Stripe and record the payment
+        try {
+          await fetch('/api/stripe/record-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentIntentId: paymentIntent.id, bookingId })
+          })
+        } catch (err) {
+          console.error('record-payment request failed', err)
+        }
 
-        // Update booking
+        // Update booking client-side as a best-effort (server also updates)
         await supabase
           .from('bookings')
           .update({ payment_status: 'paid', status: 'confirmed' })
@@ -109,8 +116,9 @@ function CheckoutForm({ bookingId, amount, studentId }) {
   )
 }
 
-export default function StripePayment() {
-  const { bookingId } = useParams()
+export default function StripePayment({ bookingId: propBookingId }) {
+  const params = useParams()
+  const bookingId = propBookingId || params.bookingId
   const [booking, setBooking] = useState(null)
   const [loading, setLoading] = useState(true)
 

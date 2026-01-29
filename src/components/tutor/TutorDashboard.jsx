@@ -4,6 +4,7 @@ import POSSystem from './POSSystem'
 import AvailabilityManager from './AvailabilityManager'
 import LessonEditor from './LessonEditor'
 import BookingManagement from './BookingManagement'
+import TutorPayments from './Payments'
 import './TutorDashboard.css'
 
 export default function TutorDashboard() {
@@ -42,6 +43,12 @@ export default function TutorDashboard() {
         >
           💳 POS System
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('payments')}
+        >
+          💷 Payments
+        </button>
       </div>
 
       <div className="dashboard-content">
@@ -49,6 +56,7 @@ export default function TutorDashboard() {
         {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
         {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
         {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
+        {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
       </div>
     </div>
   )

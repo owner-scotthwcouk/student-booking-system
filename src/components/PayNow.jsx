@@ -2,23 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
-
-// ⬇️ Replace this with your real LIVE PayPal Client ID (Client ID is public/safe)
-const PAYPAL_CLIENT_ID = "ARKGneSziYvAKp3hl_1y0kyid7aSRAbJD-EYOHreBPEtfCl3U56kkgOPuj-fYLRYmPg58BUC_fOfAsIo";
-
-// Load the PayPal JS SDK (only once)
-function loadPayPalSdk(clientId) {
-  return new Promise((resolve, reject) => {
-    if (window.paypal) return resolve(window.paypal);
-    const s = document.createElement("script");
-    s.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=GBP&intent=capture`;
-    s.async = true;
-    s.onload = () =>
-      window.paypal ? resolve(window.paypal) : reject(new Error("PayPal SDK failed to load"));
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
+import { loadPayPalSdk } from "../lib/loadPayPalSdk";
 
 export default function PayNow({ reference }) {
   // `reference` should be your bookingId (string/UUID)
@@ -95,7 +79,8 @@ export default function PayNow({ reference }) {
 
     (async () => {
       try {
-        const paypal = await loadPayPalSdk(PAYPAL_CLIENT_ID);
+        // loadPayPalSdk reads VITE_PAYPAL_CLIENT_ID from the environment
+        const paypal = await loadPayPalSdk();
         if (cancelled || !btnRef.current) return;
 
         // Clear container in case of re-renders
@@ -128,15 +113,18 @@ export default function PayNow({ reference }) {
             // 2) After buyer approves, capture on your server and record in Supabase
             onApprove: async ({ orderID }) => {
               try {
+                // The capture route expects orderId in the query string and
+                // other metadata in the POST body (see app/api/paypal/order-capture)
                 const resp = await fetch(`/api/paypal/order-capture?orderId=${orderID}`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     studentId: user?.id || null,
                     bookingId: reference,
-                    expectedAmount: bookingAmount, // ✅ SEND FOR SERVER VALIDATION
+                    expectedAmount: bookingAmount,
                   }),
                 });
+
                 const data = await resp.json();
                 if (!resp.ok) {
                   console.error("Capture failed:", data);
