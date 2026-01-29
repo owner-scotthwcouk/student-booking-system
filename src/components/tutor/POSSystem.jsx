@@ -140,6 +140,18 @@ export default function POSSystem() {
   }
 
   return (
+    // In your POSSystem component
+<input 
+  style={{
+    backgroundColor: '#ffffff',
+    color: '#000000',
+    fontSize: '16px',
+    padding: '12px',
+    border: '2px solid #333'
+  }}
+  // ... other props
+/>
+
     <div className="pos-system-container">
       <h2>POS System</h2>
       <p className="description">Enter payment details manually to book and charge immediately.</p>
