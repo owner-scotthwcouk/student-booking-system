@@ -1,14 +1,42 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-const AuthContext = createContext()
+const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = useCallback(async (userId) => {
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        loadProfile(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    }).catch((error) => {
+      console.error('Error getting session:', error)
+      setLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        loadProfile(session.user.id)
+      } else {
+        setProfile(null)
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function loadProfile(userId) {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -18,70 +46,30 @@ export function AuthProvider({ children }) {
 
       if (error) throw error
       setProfile(data)
-      return data
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error('Error loading profile:', error)
       setProfile(null)
-      return null
+    } finally {
+      setLoading(false)
     }
-  }, [])
+  }
 
-  useEffect(() => {
-    let mounted = true
-
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (mounted) {
-          setUser(session?.user ?? null)
-          if (session?.user) {
-            await fetchProfile(session.user.id)
-          } else {
-            setLoading(false)
-          }
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error)
-        if (mounted) {
-          setLoading(false)
-        }
-      }
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      setUser(null)
+      setProfile(null)
+    } catch (error) {
+      console.error('Error signing out:', error)
     }
+  }
 
-    initAuth()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (mounted) {
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          await fetchProfile(session.user.id)
-        } else {
-          setProfile(null)
-          setLoading(false)
-        }
-      }
-    })
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [fetchProfile])
-
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-  }, [])
-
-  const value = useMemo(() => ({
+  const value = {
     user,
     profile,
     loading,
-    signOut,
-    isStudent: profile?.role === 'student',
-    isTutor: profile?.role === 'tutor'
-  }), [user, profile, loading, signOut])
+    signOut
+  }
 
   return (
     <AuthContext.Provider value={value}>
@@ -97,3 +85,5 @@ export function useAuth() {
   }
   return context
 }
+
+export { AuthContext }
