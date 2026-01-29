@@ -335,5 +335,3 @@ me.book_tutor("Python")`}</pre>
     </div>
   )
 }
-
-export default HomePage
