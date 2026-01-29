@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import StudentLessons from './Lessons'
 import StudentPayments from './Payments'
 import HomeworkSubmission from './HomeworkSubmission'
+import StudentVideoLessons from './VideoLessons'
 import './StudentDashboard.css'
 
 export default function StudentDashboard() {
@@ -19,31 +20,42 @@ export default function StudentDashboard() {
       </div>
 
       <div className="dashboard-tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'bookings' ? 'active' : ''}`}
           onClick={() => setActiveTab('bookings')}
         >
           📅 My Bookings
         </button>
-        <button 
+
+        <button
+          className={`tab-button ${activeTab === 'video' ? 'active' : ''}`}
+          onClick={() => setActiveTab('video')}
+        >
+          🎥 Video
+        </button>
+
+        <button
           className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
           onClick={() => setActiveTab('payments')}
         >
           💳 Payments
         </button>
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'homework' ? 'active' : ''}`}
           onClick={() => setActiveTab('homework')}
         >
           📝 Homework
         </button>
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'lessons' ? 'active' : ''}`}
           onClick={() => setActiveTab('lessons')}
         >
           📚 My Lessons
         </button>
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
           onClick={() => setActiveTab('profile')}
         >
@@ -56,8 +68,8 @@ export default function StudentDashboard() {
           <div>
             <h2>My Bookings</h2>
             <p>View and manage your upcoming lessons</p>
-            <button 
-              onClick={() => navigate('/student/tutors')} 
+            <button
+              onClick={() => navigate('/student/tutors')}
               className="btn-primary"
               style={{
                 padding: '1rem 2rem',
@@ -75,20 +87,28 @@ export default function StudentDashboard() {
             </button>
           </div>
         )}
-        
+
+        {activeTab === 'video' && <StudentVideoLessons />}
+
         {activeTab === 'lessons' && <StudentLessons />}
-        
+
         {activeTab === 'payments' && <StudentPayments />}
-        
+
         {activeTab === 'homework' && <HomeworkSubmission />}
-        
+
         {activeTab === 'profile' && (
           <div className="profile-section">
             <h2>My Profile</h2>
             <div className="profile-info">
-              <p><strong>Name:</strong> {profile?.full_name}</p>
-              <p><strong>Email:</strong> {profile?.email}</p>
-              <p><strong>Role:</strong> Student</p>
+              <p>
+                <strong>Name:</strong> {profile?.full_name}
+              </p>
+              <p>
+                <strong>Email:</strong> {profile?.email}
+              </p>
+              <p>
+                <strong>Role:</strong> Student
+              </p>
             </div>
           </div>
         )}

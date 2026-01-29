@@ -8,6 +8,7 @@ import BookingManagement from './BookingManagement'
 import TutorPayments from './Payments'
 import './TutorDashboard.css'
 import HourlyRateSettings from './HourlyRateSettings'
+import VideoLessons from './VideoLessons'
 
 export default function TutorDashboard() {
   const { user, profile } = useAuth()
@@ -43,6 +44,13 @@ export default function TutorDashboard() {
         </button>
 
         <button
+          className={`tab-button ${activeTab === 'video' ? 'active' : ''}`}
+          onClick={() => setActiveTab('video')}
+        >
+          🎥 Video
+        </button>
+
+        <button
           className={`tab-button ${activeTab === 'pos' ? 'active' : ''}`}
           onClick={() => setActiveTab('pos')}
         >
@@ -55,22 +63,16 @@ export default function TutorDashboard() {
         >
           💷 Payments
         </button>
-
-        <button
-          className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          ⚙️ Settings
-        </button>
       </div>
 
       <div className="dashboard-content">
         {activeTab === 'bookings' && <BookingManagement tutorId={user?.id} />}
         {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
         {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
+        {activeTab === 'video' && <VideoLessons tutorId={user?.id} />}
         {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
         {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
-        {activeTab === 'settings' && <HourlyRateSettings tutorId={user?.id} />}
+        {activeTab === 'settings' && <HourlyRateSettings />}
       </div>
     </div>
   )
