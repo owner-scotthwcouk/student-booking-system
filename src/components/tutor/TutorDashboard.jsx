@@ -1,3 +1,4 @@
+// src/components/tutor/TutorDashboard.jsx
 import { useState } from 'react'
 import { useAuth } from '../../contexts/auth'
 import POSSystem from './POSSystem'
@@ -20,35 +21,46 @@ export default function TutorDashboard() {
       </div>
 
       <div className="dashboard-tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'bookings' ? 'active' : ''}`}
           onClick={() => setActiveTab('bookings')}
         >
           📅 Bookings
         </button>
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'lessons' ? 'active' : ''}`}
           onClick={() => setActiveTab('lessons')}
         >
           📚 Lessons
         </button>
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'availability' ? 'active' : ''}`}
           onClick={() => setActiveTab('availability')}
         >
           🕐 Availability
         </button>
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'pos' ? 'active' : ''}`}
           onClick={() => setActiveTab('pos')}
         >
           💳 POS System
         </button>
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
           onClick={() => setActiveTab('payments')}
         >
           💷 Payments
+        </button>
+
+        <button
+          className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => setActiveTab('settings')}
+        >
+          ⚙️ Settings
         </button>
       </div>
 
@@ -58,7 +70,7 @@ export default function TutorDashboard() {
         {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
         {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
         {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
-        {activeTab === 'settings' && <HourlyRateSettings />}
+        {activeTab === 'settings' && <HourlyRateSettings tutorId={user?.id} />}
       </div>
     </div>
   )
