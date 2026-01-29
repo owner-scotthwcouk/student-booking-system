@@ -6,11 +6,12 @@ import "./App.css";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
-import StudentDashboard from "./components/student/Dashboard";
+import StudentDashboard from "./components/student/StudentDashboard";
 import TutorDashboard from "./components/tutor/Dashboard";
 import BookingForm from "./components/student/BookingForm";
 import PayNow from "./components/PayNow";
 import PaymentPage from "./pages/PaymentPage";
+import HomePage from "./pages/HomePage";
 
 function App() {
   const { user, isTutor, loading, signOut } = useAuth();
@@ -39,30 +40,14 @@ function App() {
 
       <main className="main-content">
         <Routes>
-          <Route
-            path="/"
-            element={
-              user ? (
-                <Navigate to="/dashboard" />
-              ) : (
-                <div className="card">
-                  <h1>Welcome</h1>
-                  <Link to="/login">Login</Link>
-                </div>
-              )
-            }
-          />
-
-          <Route
-            path="/login"
-            element={!user ? <Login /> : <Navigate to="/dashboard" />}
-          />
-          <Route
-            path="/register"
-            element={!user ? <Register /> : <Navigate to="/dashboard" />}
-          />
-
-          {/* Protected Routes */}
+          {/* Home page - new marketing landing page */}
+          <Route path="/" element={<HomePage />} />
+          
+          {/* Auth routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          {/* Protected routes */}
           <Route
             path="/dashboard"
             element={
@@ -71,20 +56,18 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/book/:tutorId"
             element={
-              <ProtectedRoute allowedRoles={["student"]}>
+              <ProtectedRoute>
                 <BookingForm />
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/payment/:bookingId"
             element={
-              <ProtectedRoute allowedRoles={["student"]}>
+              <ProtectedRoute>
                 <PaymentPage />
               </ProtectedRoute>
             }
