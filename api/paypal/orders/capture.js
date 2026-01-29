@@ -5,10 +5,23 @@ const PAYPAL_BASE =
     ? 'https://api-m.sandbox.paypal.com'
     : 'https://api-m.paypal.com';
 
+function cors(h = {}) {
+  return {
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'POST, OPTIONS',
+    'access-control-allow-headers': 'content-type, authorization',
+    ...h,
+  };
+}
+
 export default async function handler(request) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: cors() });
+  }
+
   try {
     if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 });
+      return new Response('Method Not Allowed', { status: 405, headers: cors() });
     }
 
     let body = {};
@@ -17,7 +30,7 @@ export default async function handler(request) {
     } catch (e) {
       return new Response(
         JSON.stringify({ error: 'Invalid JSON body', detail: String(e) }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
+        { status: 400, headers: cors({ 'content-type': 'application/json' }) }
       );
     }
 
@@ -25,7 +38,7 @@ export default async function handler(request) {
     if (!orderId) {
       return new Response(JSON.stringify({ error: 'orderId is required' }), {
         status: 400,
-        headers: { 'content-type': 'application/json' },
+        headers: cors({ 'content-type': 'application/json' }),
       });
     }
 
@@ -43,12 +56,37 @@ export default async function handler(request) {
       }
     );
 
-    const data = await paypalRes.json().catch(() => ({}));
+    const raw = await paypalRes.text();
+    let parsed;
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
+    }
 
-    return new Response(JSON.stringify(data), {
-      status: paypalRes.status,
-      headers: { 'content-type': 'application/json' },
-    });
+    if (paypalRes.ok && parsed) {
+      return new Response(JSON.stringify(parsed), {
+        status: paypalRes.status,
+        headers: cors({ 'content-type': 'application/json' }),
+      });
+    }
+
+    const diagHeaders = {};
+    for (const h of ['paypal-debug-id', 'www-authenticate', 'content-type']) {
+      const v = paypalRes.headers.get(h);
+      if (v) diagHeaders[h] = v;
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: 'PAYPAL_CAPTURE_FAILED',
+        status: paypalRes.status,
+        ok: paypalRes.ok,
+        headers: diagHeaders,
+        body: parsed ?? raw,
+      }),
+      { status: paypalRes.status, headers: cors({ 'content-type': 'application/json' }) }
+    );
   } catch (err) {
     return new Response(
       JSON.stringify({
@@ -56,7 +94,7 @@ export default async function handler(request) {
         message: String(err?.message || err),
         stack: err?.stack,
       }),
-      { status: 500, headers: { 'content-type': 'application/json' } }
+      { status: 500, headers: cors({ 'content-type': 'application/json' }) }
     );
   }
 }

@@ -5,10 +5,26 @@ const PAYPAL_BASE =
     ? 'https://api-m.sandbox.paypal.com'
     : 'https://api-m.paypal.com';
 
+function cors(h = {}) {
+  return {
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'POST, OPTIONS',
+    'access-control-allow-headers': 'content-type, authorization',
+    ...h,
+  };
+}
+
 export default async function handler(request) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: cors() });
+  }
+
   try {
     if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 });
+      return new Response('Method Not Allowed', {
+        status: 405,
+        headers: cors(),
+      });
     }
 
     let body = {};
@@ -17,7 +33,7 @@ export default async function handler(request) {
     } catch (e) {
       return new Response(
         JSON.stringify({ error: 'Invalid JSON body', detail: String(e) }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
+        { status: 400, headers: cors({ 'content-type': 'application/json' }) }
       );
     }
 
@@ -32,11 +48,11 @@ export default async function handler(request) {
     if (!amount) {
       return new Response(JSON.stringify({ error: 'amount is required' }), {
         status: 400,
-        headers: { 'content-type': 'application/json' },
+        headers: cors({ 'content-type': 'application/json' }),
       });
     }
 
-    // Lazy import to avoid path issues; keep the .js extension
+    // Import the same token helper your /api/paypal/token route uses.
     const { fetchPayPalToken } = await import('../_client.js');
     const accessToken = await fetchPayPalToken();
 
@@ -62,22 +78,48 @@ export default async function handler(request) {
       }),
     });
 
-    const data = await paypalRes.json().catch(() => ({}));
+    // Read raw text first so we can handle non-JSON bodies too.
+    const raw = await paypalRes.text();
+    let parsed;
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
+    }
 
-    // Surface PayPal errors back to you instead of crashing
-    return new Response(JSON.stringify(data), {
-      status: paypalRes.status,
-      headers: { 'content-type': 'application/json' },
-    });
+    // On success, return PayPal’s JSON as-is.
+    if (paypalRes.ok && parsed) {
+      return new Response(JSON.stringify(parsed), {
+        status: paypalRes.status,
+        headers: cors({ 'content-type': 'application/json' }),
+      });
+    }
+
+    // On error, surface diagnostics (status, key headers, and raw body).
+    const diagHeaders = {};
+    for (const h of ['paypal-debug-id', 'www-authenticate', 'content-type']) {
+      const v = paypalRes.headers.get(h);
+      if (v) diagHeaders[h] = v;
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: 'PAYPAL_CREATE_ORDER_FAILED',
+        status: paypalRes.status,
+        ok: paypalRes.ok,
+        headers: diagHeaders,
+        body: parsed ?? raw,
+      }),
+      { status: paypalRes.status, headers: cors({ 'content-type': 'application/json' }) }
+    );
   } catch (err) {
-    // Final safety net — return the stack so you can see the cause in your client
     return new Response(
       JSON.stringify({
         error: 'CREATE_ORDER_FUNCTION_FAILED',
         message: String(err?.message || err),
         stack: err?.stack,
       }),
-      { status: 500, headers: { 'content-type': 'application/json' } }
+      { status: 500, headers: cors({ 'content-type': 'application/json' }) }
     );
   }
 }
