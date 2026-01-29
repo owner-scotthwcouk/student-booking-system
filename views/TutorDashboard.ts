@@ -4,34 +4,54 @@ class TutorDashboard {
 
 	render() {
 		// ...existing code...
-		const availabilitySection = document.getElementById('availability-section'); // Target the availability section
-		if (availabilitySection) {
-			this.createHourlyRateInput(availabilitySection);
-		}
+		this.initializeAvailabilitySection();
 		// ...existing code...
 	}
 
-	createHourlyRateInput(container: HTMLElement) {
-		const label = document.createElement('label');
-		label.innerText = 'Hourly Rate: $';
-		const input = document.createElement('input');
-		input.type = 'number';
-		input.placeholder = 'Enter your hourly rate';
-		const button = document.createElement('button');
-		button.innerText = 'Update Rate';
-		button.onclick = () => {
-			const rate = parseFloat(input.value);
-			this.updateAvailability(rate);
-		};
-		container.appendChild(label);
-		container.appendChild(input);
-		container.appendChild(button);
+	initializeAvailabilitySection() {
+		const availabilitySection = document.getElementById('availability-section');
+		if (availabilitySection) {
+			this.addHourlyRateField(availabilitySection);
+		}
 	}
 
-	updateAvailability(hourlyRate: number) {
-		const tutor = getCurrentTutor(); // Assuming a method to get the current Tutor
-		tutor.setHourlyRate(hourlyRate);
-		// Additional logic to update the UI or save changes
+	addHourlyRateField(section: HTMLElement) {
+		const fieldContainer = document.createElement('div');
+		fieldContainer.id = 'hourly-rate-field';
+		fieldContainer.style.padding = '10px';
+		fieldContainer.style.border = '1px solid #ccc';
+		fieldContainer.style.marginTop = '10px';
+
+		const label = document.createElement('label');
+		label.innerText = 'Hourly Rate: ';
+		label.style.fontWeight = 'bold';
+
+		const input = document.createElement('input');
+		input.type = 'number';
+		input.id = 'hourly-rate-input';
+		input.placeholder = 'Enter rate';
+		input.style.marginLeft = '5px';
+
+		const button = document.createElement('button');
+		button.innerText = 'Save';
+		button.style.marginLeft = '5px';
+		button.onclick = () => this.saveHourlyRate(input.value);
+
+		fieldContainer.appendChild(label);
+		fieldContainer.appendChild(input);
+		fieldContainer.appendChild(button);
+		section.appendChild(fieldContainer);
+	}
+
+	saveHourlyRate(value: string) {
+		const rate = parseFloat(value);
+		if (isNaN(rate) || rate < 0) {
+			alert('Please enter a valid hourly rate');
+			return;
+		}
+		const tutor = getCurrentTutor();
+		tutor.setHourlyRate(rate);
+		alert('Hourly rate updated successfully');
 	}
 
 	// ...existing code...
