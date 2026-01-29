@@ -1,4 +1,6 @@
+// api/paypal/order-capture.js
 import { BASE, getAccessToken } from './_client';
+import { supabase } from '../../src/lib/supabaseClient'; // ✅ Import Supabase
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -7,26 +9,17 @@ export default async function handler(req, res) {
 
   try {
     const { orderID } = req.body || {};
-    if (!orderID) return res.status(400).json({ error: 'missing_orderID' });
+    if (!orderID) {
+      return res.status(400).json({ error: 'missing_orderID' });
+    }
 
+    // Extract booking details from request
+    const { bookingId, expectedAmount } = req.body;
+
+    // Get PayPal access token
     const accessToken = await getAccessToken();
+
+    // Capture the payment from PayPal
     const r = await fetch(`${BASE}/v2/checkout/orders/${orderID}/capture`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const data = await r.json().catch(async () => ({ raw: await r.text() }));
-    if (!r.ok) {
-      console.error('PayPal capture error', data);
-      return res.status(500).json({ error: 'paypal_capture_failed', details: data });
-    }
-
-    return res.status(200).json(data);
-  } catch (err) {
-    console.error('order-capture failed', err);
-    return res.status(500).json({ error: 'internal', message: String(err?.message || err) });
-  }
-}

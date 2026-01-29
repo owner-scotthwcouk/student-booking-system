@@ -1,3 +1,4 @@
+// src/lib/bookingAPI.js
 import { supabase } from './supabaseClient'
 
 // Create a new booking
@@ -18,7 +19,7 @@ export async function createBooking(bookingData) {
       .single()
     
     if (error) throw error
-
+    
     // Notify tutor via Edge Function (email)
     try {
       await supabase.functions.invoke('notify-booking', {
@@ -27,10 +28,49 @@ export async function createBooking(bookingData) {
     } catch (notifyError) {
       console.error('Failed to send booking notification:', notifyError)
     }
-
+    
     return { data, error: null }
   } catch (error) {
     console.error('Error creating booking:', error)
+    return { data: null, error }
+  }
+}
+
+// ✅ NEW FUNCTION: Get a booking by ID with tutor details
+export async function getBookingById(bookingId) {
+  try {
+    if (!bookingId) {
+      throw new Error('Booking ID is required')
+    }
+
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .single()
+
+    if (bookingError) throw bookingError
+    if (!booking) throw new Error('Booking not found')
+
+    // Get tutor details including hourly rate
+    const { data: tutor, error: tutorError } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, email, hourly_rate')
+      .eq('id', booking.tutor_id)
+      .single()
+
+    if (tutorError) throw tutorError
+
+    // Return booking with tutor data
+    return {
+      data: {
+        ...booking,
+        tutor: tutor
+      },
+      error: null
+    }
+  } catch (error) {
+    console.error('Error fetching booking by ID:', error)
     return { data: null, error }
   }
 }
