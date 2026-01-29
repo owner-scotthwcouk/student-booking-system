@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/auth'
+import Home from './components/Home'
 import Login from './components/auth/Login'
 import Register from './components/auth/Register'
 import StudentDashboard from './components/student/StudentDashboard'
@@ -52,7 +53,7 @@ function ProtectedRoute({ children, allowedRole }) {
 }
 
 function AppRoutes() {
-  const { user, profile, loading } = useAuth()
+  const { loading } = useAuth()
 
   if (loading) {
     return (
@@ -86,8 +87,9 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to={profile?.role === 'tutor' ? '/tutor' : '/student'} /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to={profile?.role === 'tutor' ? '/tutor' : '/student'} /> : <Register />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       
       <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/tutors" element={<ProtectedRoute allowedRole="student"><TutorSelection /></ProtectedRoute>} />
@@ -95,7 +97,6 @@ function AppRoutes() {
       
       <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor"><TutorDashboard /></ProtectedRoute>} />
       
-      <Route path="/" element={<Navigate to={user ? (profile?.role === 'tutor' ? '/tutor' : '/student') : '/login'} />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
