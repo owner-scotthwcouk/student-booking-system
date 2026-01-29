@@ -302,148 +302,38 @@ me.book_tutor("Python")`}</pre>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="pricing-section" id="pricing">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Transparent Pricing</h2>
-            <p className="section-subtitle">Find tutors at rates that fit your budget</p>
-          </div>
-          
-          <div className="pricing-grid">
-            <div className="pricing-card">
-              <div className="pricing-header">
-                <h3>Entry Level</h3>
-                <p className="pricing-subtitle">Great for beginners</p>
-              </div>
-              <div className="pricing-price">
-                <span className="currency">£</span>
-                <span className="amount">15-25</span>
-                <span className="period">/hour</span>
-              </div>
-              <ul className="pricing-features">
-                <li><span className="check">✓</span> Foundational topics</li>
-                <li><span className="check">✓</span> New tutors building experience</li>
-                <li><span className="check">✓</span> Perfect for learning basics</li>
-                <li><span className="check">✓</span> Homework support included</li>
-              </ul>
-              <button 
-                className="btn btn-pricing"
-                onClick={() => navigate('/tutors?rate=15-25')}
-              >
-                Find Tutors
-              </button>
-            </div>
-
-            <div className="pricing-card featured">
-              <div className="popular-badge">Most Popular</div>
-              <div className="pricing-header">
-                <h3>Professional</h3>
-                <p className="pricing-subtitle">Best value for money</p>
-              </div>
-              <div className="pricing-price">
-                <span className="currency">£</span>
-                <span className="amount">25-40</span>
-                <span className="period">/hour</span>
-              </div>
-              <ul className="pricing-features">
-                <li><span className="check">✓</span> Advanced topics covered</li>
-                <li><span className="check">✓</span> 2-5 years teaching experience</li>
-                <li><span className="check">✓</span> Industry best practices</li>
-                <li><span className="check">✓</span> Project guidance included</li>
-              </ul>
-              <button 
-                className="btn btn-pricing-featured"
-                onClick={() => navigate('/tutors?rate=25-40')}
-              >
-                Find Tutors
-              </button>
-            </div>
-
-            <div className="pricing-card">
-              <div className="pricing-header">
-                <h3>Expert</h3>
-                <p className="pricing-subtitle">Premium instruction</p>
-              </div>
-              <div className="pricing-price">
-                <span className="currency">£</span>
-                <span className="amount">40-60</span>
-                <span className="period">/hour</span>
-              </div>
-              <ul className="pricing-features">
-                <li><span className="check">✓</span> Specialized knowledge</li>
-                <li><span className="check">✓</span> 5+ years experience</li>
-                <li><span className="check">✓</span> Career mentoring</li>
-                <li><span className="check">✓</span> Comprehensive resources</li>
-              </ul>
-              <button 
-                className="btn btn-pricing"
-                onClick={() => navigate('/tutors?rate=40-60')}
-              >
-                Find Tutors
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="testimonials" id="testimonials">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">What Students Say</h2>
-            <p className="section-subtitle">Real feedback from our learners</p>
-          </div>
-          
-          <div className="testimonials-slider">
-            {/* Slider content will be dynamically generated */}
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action Section */}
-      <section className="cta-section">
-        <div className="container">
-          <div className="cta-content">
-            <h2>Ready to Start Your Learning Journey?</h2>
-            <p>Sign up now and get your first lesson at a discounted rate!</p>
-            <button className="btn btn-primary btn-cta" onClick={() => navigate('/signup')}>
-              Get Started Today
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="footer">
-        <div className="container">
-          <div className="footer-top">
-            <div className="footer-logo">
-              <span className="logo-icon">🎓</span>
-              <span className="logo-text">TutorHub</span>
+        <div className="footer-container">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h4>About TutorHub</h4>
+              <p>Connecting students with expert tutors for personalized learning experiences.</p>
             </div>
-            <div className="footer-links">
-              <a href="#categories" className="footer-link">Subjects</a>
-              <a href="#how-it-works" className="footer-link">How It Works</a>
-              <a href="#pricing" className="footer-link">Pricing</a>
-              <a href="/about" className="footer-link">About Us</a>
-              <a href="/contact" className="footer-link">Contact</a>
+            
+            <div className="footer-section">
+              <h4>Quick Links</h4>
+              <ul>
+                <li><a href="#categories">Subjects</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="/">Home</a></li>
+              </ul>
+            </div>
+            
+            <div className="footer-section">
+              <h4>Contact</h4>
+              <p>Email: info@tutorhub.com</p>
+              <p>Phone: +44 (0)20 1234 5678</p>
             </div>
           </div>
-
+          
           <div className="footer-bottom">
-            <div className="social-links">
-              <a href="#" className="social-link">Facebook</a>
-              <a href="#" className="social-link">Twitter</a>
-              <a href="#" className="social-link">Instagram</a>
-              <a href="#" className="social-link">LinkedIn</a>
-            </div>
-            <div className="footer-text">
-              &copy; 2023 TutorHub. All rights reserved.
-            </div>
+            <p>&copy; 2026 TutorHub. All rights reserved.</p>
           </div>
         </div>
       </footer>
     </div>
-  );
+  )
 }
+
+export default HomePage
