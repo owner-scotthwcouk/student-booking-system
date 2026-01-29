@@ -1,41 +1,41 @@
 import { useState } from 'react'
-import { uploadHomework } from '../../lib/fileUploadAPI'
 import { useAuth } from '../../hooks/useAuth'
+import { supabase } from '../../lib/supabaseClient'
 
 function HomeworkSubmission({ lessonId, onSubmissionSuccess }) {
   const { user } = useAuth()
-  const [selectedFile, setSelectedFile] = useState(null)
+  const [file, setFile] = useState(null)
   const [submissionDate, setSubmissionDate] = useState('')
   const [submissionTime, setSubmissionTime] = useState('')
-  const [uploading, setUploading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0]
+    const selectedFile = e.target.files[0]
     
     // Validate file type (ZIP only)
-    if (file && file.type !== 'application/zip' && !file.name.endsWith('.zip')) {
+    if (selectedFile && selectedFile.type !== 'application/zip' && !selectedFile.name.endsWith('.zip')) {
       setError('Please select a ZIP file')
-      setSelectedFile(null)
+      setFile(null)
       return
     }
     
     // Validate file size (max 50MB)
-    if (file && file.size > 50 * 1024 * 1024) {
+    if (selectedFile && selectedFile.size > 50 * 1024 * 1024) {
       setError('File size must be less than 50MB')
-      setSelectedFile(null)
+      setFile(null)
       return
     }
     
-    setSelectedFile(file)
+    setFile(selectedFile)
     setError(null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!selectedFile) {
+    if (!file) {
       setError('Please select a file')
       return
     }
@@ -45,24 +45,40 @@ function HomeworkSubmission({ lessonId, onSubmissionSuccess }) {
       return
     }
     
-    setUploading(true)
+    setLoading(true)
     setError(null)
+    setSuccess(false)
     
     try {
-      // Combine date and time into ISO string
-      const submittedAt = new Date(`${submissionDate}T${submissionTime}`).toISOString()
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/${lessonId}/${Date.now()}.${fileExt}`
       
-      const { data, error } = await uploadHomework(
-        selectedFile,
-        lessonId,
-        user.id,
-        submittedAt
-      )
+      const { error: uploadError } = await supabase.storage
+        .from('homework-submissions')
+        .upload(fileName, file)
       
-      if (error) throw error
+      if (uploadError) throw uploadError
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('homework-submissions')
+        .getPublicUrl(fileName)
+      
+      const { error: insertError } = await supabase
+        .from('homework_submissions')
+        .insert({
+          lesson_id: lessonId,
+          student_id: user.id,
+          submission_file_url: publicUrl,
+          submission_file_name: file.name,
+          submission_file_size: file.size,
+          submitted_at: new Date().toISOString(),
+          status: 'submitted'
+        })
+      
+      if (insertError) throw insertError
       
       setSuccess(true)
-      setSelectedFile(null)
+      setFile(null)
       setSubmissionDate('')
       setSubmissionTime('')
       
@@ -78,7 +94,7 @@ function HomeworkSubmission({ lessonId, onSubmissionSuccess }) {
     } catch (err) {
       setError(err.message || 'Failed to upload homework')
     } finally {
-      setUploading(false)
+      setLoading(false)
     }
   }
 
@@ -96,19 +112,19 @@ function HomeworkSubmission({ lessonId, onSubmissionSuccess }) {
       
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="homework-file">
-            Select ZIP File:
+          <label htmlFor="file">
+            Upload Homework File:
           </label>
           <input
             type="file"
-            id="homework-file"
-            accept=".zip,application/zip"
+            id="file"
             onChange={handleFileChange}
+            accept=".pdf,.doc,.docx,.zip,.txt"
             required
           />
-          {selectedFile && (
+          {file && (
             <p className="file-info">
-              Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
             </p>
           )}
         </div>
@@ -136,8 +152,8 @@ function HomeworkSubmission({ lessonId, onSubmissionSuccess }) {
           />
         </div>
         
-        <button type="submit" disabled={uploading || !selectedFile}>
-          {uploading ? 'Uploading...' : 'Submit Homework'}
+        <button type="submit" disabled={loading || !file}>
+          {loading ? 'Uploading...' : 'Submit Homework'}
         </button>
       </form>
     </div>

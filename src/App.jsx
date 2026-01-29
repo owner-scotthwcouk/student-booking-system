@@ -1,4 +1,4 @@
-import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
@@ -19,62 +19,66 @@ function App() {
   if (loading) return <div className="loading">Loading App...</div>;
 
   return (
-    <div className="app-container">
-      <nav className="navbar">
-        <Link to="/" className="nav-logo">
-          Edumaxim
-        </Link>
-        <div className="nav-links">
-          {user ? (
-            <>
-              <Link to="/dashboard">Dashboard</Link>
-              <button onClick={signOut} className="btn-signout">
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <Link to="/login">Login</Link>
-          )}
-        </div>
-      </nav>
+    <Router>
+      <div className="app-container">
+        <nav className="navbar">
+          <Link to="/" className="nav-logo">
+            Edumaxim
+          </Link>
+          <div className="nav-links">
+            {user ? (
+              <>
+                <Link to="/dashboard">Dashboard</Link>
+                <button onClick={signOut} className="btn-signout">
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link to="/login">Login</Link>
+            )}
+          </div>
+        </nav>
 
-      <main className="main-content">
-        <Routes>
-          {/* Home page - new marketing landing page */}
-          <Route path="/" element={<HomePage />} />
-          
-          {/* Auth routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Protected routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                {isTutor ? <TutorDashboard /> : <StudentDashboard />}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/book/:tutorId"
-            element={
-              <ProtectedRoute>
-                <BookingForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/payment/:bookingId"
-            element={
-              <ProtectedRoute>
-                <PaymentPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
-    </div>
+        <main className="main-content">
+          <Routes>
+            {/* Home page - new marketing landing page */}
+            <Route path="/" element={<HomePage />} />
+            
+            {/* Auth routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* Protected routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  {isTutor ? <TutorDashboard /> : <StudentDashboard />}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/book/:tutorId"
+              element={
+                <ProtectedRoute>
+                  <BookingForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Catch all - redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 

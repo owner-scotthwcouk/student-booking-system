@@ -51,31 +51,28 @@ export async function uploadHomework(file, lessonId, studentId, submittedAt = nu
 export async function uploadLessonActivity(file, lessonId, tutorId, title, description) {
   try {
     const fileExt = file.name.split('.').pop()
-    const fileName = `lessons/${lessonId}/${Date.now()}_${file.name}`
+    const fileName = `${lessonId}/${Date.now()}.${fileExt}`
     
-    // Upload file
     const { error: uploadError } = await supabase.storage
       .from('lesson-activities')
       .upload(fileName, file)
     
     if (uploadError) throw uploadError
     
-    // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('lesson-activities')
       .getPublicUrl(fileName)
     
-    // Create activity record
     const { data, error } = await supabase
       .from('lesson_activities')
       .insert({
         lesson_id: lessonId,
-        title: title,
-        description: description,
+        tutor_id: tutorId,
+        title,
+        description,
         file_url: publicUrl,
         file_name: file.name,
-        file_size: file.size,
-        uploaded_by: tutorId
+        file_size: file.size
       })
       .select()
       .single()
