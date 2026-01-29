@@ -19,16 +19,6 @@ export async function createBooking(bookingData) {
       .single()
     
     if (error) throw error
-    
-    // Notify tutor via Edge Function (email)
-    try {
-      await supabase.functions.invoke('notify-booking', {
-        body: { booking_id: data.id }
-      })
-    } catch (notifyError) {
-      console.error('Failed to send booking notification:', notifyError)
-    }
-    
     return { data, error: null }
   } catch (error) {
     console.error('Error creating booking:', error)
@@ -36,7 +26,7 @@ export async function createBooking(bookingData) {
   }
 }
 
-// ✅ NEW FUNCTION: Get a booking by ID with tutor details
+// Get booking by ID with tutor details
 export async function getBookingById(bookingId) {
   try {
     if (!bookingId) {
@@ -78,7 +68,6 @@ export async function getBookingById(bookingId) {
 // Get bookings for a student
 export async function getStudentBookings(studentId) {
   try {
-    // First get bookings
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('*')
@@ -116,7 +105,6 @@ export async function getStudentBookings(studentId) {
 // Get bookings for a tutor
 export async function getTutorBookings(tutorId) {
   try {
-    // First get bookings
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('*')
