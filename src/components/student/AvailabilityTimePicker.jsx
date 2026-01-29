@@ -75,9 +75,7 @@ export default function AvailabilityTimePicker({
 
   return (
     <div className="availability-time-picker">
-      <label htmlFor="lesson-time">
-        Time {durationMinutes ? `(${durationMinutes} mins)` : ''}
-      </label>
+      <label htmlFor="lesson-time">Time {durationMinutes ? `(${durationMinutes} mins)` : ''}</label>
 
       {error && <div className="error-message">{error}</div>}
 

@@ -3,10 +3,7 @@ import { supabase } from './supabaseClient'
 
 export function toISODate(dateLike) {
   if (!dateLike) return null
-  if (typeof dateLike === 'string') {
-    // expect YYYY-MM-DD
-    return dateLike.slice(0, 10)
-  }
+  if (typeof dateLike === 'string') return dateLike.slice(0, 10)
   if (dateLike instanceof Date && !Number.isNaN(dateLike.getTime())) {
     const yyyy = dateLike.getFullYear()
     const mm = String(dateLike.getMonth() + 1).padStart(2, '0')
@@ -24,9 +21,7 @@ export function getDayOfWeek(dateLike) {
     if (Number.isNaN(d.getTime())) return null
     return d.getDay()
   }
-  if (dateLike instanceof Date && !Number.isNaN(dateLike.getTime())) {
-    return dateLike.getDay()
-  }
+  if (dateLike instanceof Date && !Number.isNaN(dateLike.getTime())) return dateLike.getDay()
   return null
 }
 
@@ -52,9 +47,10 @@ export async function getTutorAvailability(tutorId) {
 
   const { data, error } = await supabase
     .from('tutor_availability')
-    .select('id, tutor_id, day_of_week, start_time, end_time, is_active')
+    .select('id, tutor_id, day_of_week, start_time, end_time, is_available, is_active')
     .eq('tutor_id', tutorId)
     .eq('is_active', true)
+    .eq('is_available', true)
     .order('day_of_week', { ascending: true })
     .order('start_time', { ascending: true })
 
@@ -65,7 +61,6 @@ export async function getTutorBookingsForDate(tutorId, dateLike) {
   const iso = toISODate(dateLike)
   if (!tutorId || !iso) return { data: [], error: null }
 
-  // Blocks times already taken. Adjust statuses if your system uses different values.
   const blockedStatuses = ['pending', 'confirmed']
 
   const { data, error } = await supabase
@@ -89,7 +84,7 @@ export function computeAvailableStartTimes({
   if (day === null || day === undefined) return []
 
   const daySlots = availability.filter(
-    (s) => s.is_active === true && Number(s.day_of_week) === Number(day)
+    (s) => s.is_active === true && s.is_available === true && Number(s.day_of_week) === Number(day)
   )
 
   const bookings = (existingBookings || []).map((b) => {

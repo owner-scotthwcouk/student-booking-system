@@ -15,41 +15,40 @@ const DAYS = [
 
 function toMinutes(timeStr) {
   if (!timeStr) return 0
-  const t = String(timeStr).slice(0, 5) // HH:MM
+  const t = String(timeStr).slice(0, 5)
   const [hh, mm] = t.split(':').map((v) => parseInt(v, 10))
   return (Number.isFinite(hh) ? hh : 0) * 60 + (Number.isFinite(mm) ? mm : 0)
 }
 
 function normalizeTime(timeStr) {
-  // Supabase TIME accepts HH:MM or HH:MM:SS; we normalize to HH:MM:SS
+  // Store as HH:MM:SS
   if (!timeStr) return ''
   const s = String(timeStr).trim()
   if (s.length === 5) return `${s}:00`
   return s
 }
 
-function formatTimeLabel(timeStr) {
+function timeLabel(timeStr) {
   if (!timeStr) return ''
   return String(timeStr).slice(0, 5)
 }
 
 function overlaps(aStart, aEnd, bStart, bEnd) {
-  // Strict overlap check: [aStart,aEnd) intersects [bStart,bEnd)
+  // [aStart,aEnd) intersects [bStart,bEnd)
   return aStart < bEnd && aEnd > bStart
 }
 
 export default function AvailabilityManager({ tutorId }) {
   const { user } = useAuth()
-
   const effectiveTutorId = tutorId || user?.id
 
   const [hourlyRate, setHourlyRate] = useState(30.0)
 
   const [availability, setAvailability] = useState([])
 
-  const [loading, setLoading] = useState(false)
+  const [loadingRate, setLoadingRate] = useState(false)
   const [loadingAvailability, setLoadingAvailability] = useState(false)
-  const [slotBusyId, setSlotBusyId] = useState(null)
+  const [busySlotId, setBusySlotId] = useState(null)
 
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -57,32 +56,38 @@ export default function AvailabilityManager({ tutorId }) {
   const [newSlot, setNewSlot] = useState({
     day_of_week: 1,
     start_time: '09:00',
-    end_time: '17:00'
+    end_time: '17:00',
+    is_available: true
   })
 
   const [editingId, setEditingId] = useState(null)
   const [editSlot, setEditSlot] = useState({
     day_of_week: 1,
     start_time: '09:00',
-    end_time: '17:00'
+    end_time: '17:00',
+    is_available: true
   })
 
   const availabilityByDay = useMemo(() => {
-    const grouped = new Map()
-    for (const d of DAYS) grouped.set(d.value, [])
-    for (const slot of availability) {
-      const key = Number(slot.day_of_week)
-      if (!grouped.has(key)) grouped.set(key, [])
-      grouped.get(key).push(slot)
+    const map = new Map()
+    for (const d of DAYS) map.set(d.value, [])
+    for (const s of availability) {
+      const k = Number(s.day_of_week)
+      if (!map.has(k)) map.set(k, [])
+      map.get(k).push(s)
     }
-
-    for (const [key, list] of grouped.entries()) {
+    for (const [k, list] of map.entries()) {
       list.sort((a, b) => toMinutes(a.start_time) - toMinutes(b.start_time))
-      grouped.set(key, list)
+      map.set(k, list)
     }
-
-    return grouped
+    return map
   }, [availability])
+
+  const flashSuccess = (msg) => {
+    setSuccess(msg)
+    window.clearTimeout(flashSuccess._t)
+    flashSuccess._t = window.setTimeout(() => setSuccess(null), 3000)
+  }
 
   const loadHourlyRate = useCallback(async () => {
     if (!effectiveTutorId) return
@@ -94,13 +99,11 @@ export default function AvailabilityManager({ tutorId }) {
         .single()
 
       if (qErr) throw qErr
-
       if (data?.hourly_rate !== null && data?.hourly_rate !== undefined) {
         setHourlyRate(Number(data.hourly_rate))
       }
     } catch (err) {
       console.error('Error loading hourly rate:', err)
-      // Keep UI usable even if rate fails to load
     }
   }, [effectiveTutorId])
 
@@ -112,8 +115,9 @@ export default function AvailabilityManager({ tutorId }) {
     try {
       const { data, error: qErr } = await supabase
         .from('tutor_availability')
-        .select('id, tutor_id, day_of_week, start_time, end_time, is_active, created_at, updated_at')
+        .select('id, tutor_id, day_of_week, start_time, end_time, is_available, is_active, created_at, updated_at')
         .eq('tutor_id', effectiveTutorId)
+        .eq('is_active', true)
         .order('day_of_week', { ascending: true })
         .order('start_time', { ascending: true })
 
@@ -132,12 +136,6 @@ export default function AvailabilityManager({ tutorId }) {
     loadAvailability()
   }, [loadHourlyRate, loadAvailability])
 
-  const flashSuccess = (msg) => {
-    setSuccess(msg)
-    window.clearTimeout(flashSuccess._t)
-    flashSuccess._t = window.setTimeout(() => setSuccess(null), 3000)
-  }
-
   const validateSlot = (slot, { ignoreId = null } = {}) => {
     const day = Number(slot.day_of_week)
     const start = toMinutes(slot.start_time)
@@ -147,21 +145,16 @@ export default function AvailabilityManager({ tutorId }) {
     if (!slot.start_time || !slot.end_time) return 'Start and end time are required.'
     if (end <= start) return 'End time must be after start time.'
 
-    // Prevent overlaps with ACTIVE slots on same day
-    const existing = availability.filter(
-      (s) =>
-        Number(s.day_of_week) === day &&
-        s.is_active === true &&
-        s.id !== ignoreId
+    // Prevent overlaps among active slots (regardless of is_available to avoid confusing schedules)
+    const sameDay = availability.filter(
+      (s) => s.is_active === true && Number(s.day_of_week) === day && s.id !== ignoreId
     )
 
-    for (const s of existing) {
+    for (const s of sameDay) {
       const sStart = toMinutes(s.start_time)
       const sEnd = toMinutes(s.end_time)
       if (overlaps(start, end, sStart, sEnd)) {
-        return `This overlaps an existing active slot (${formatTimeLabel(s.start_time)}–${formatTimeLabel(
-          s.end_time
-        )}).`
+        return `This overlaps an existing slot (${timeLabel(s.start_time)}–${timeLabel(s.end_time)}).`
       }
     }
 
@@ -170,7 +163,7 @@ export default function AvailabilityManager({ tutorId }) {
 
   const saveHourlyRate = async () => {
     if (!effectiveTutorId) return
-    setLoading(true)
+    setLoadingRate(true)
     setError(null)
     setSuccess(null)
 
@@ -191,7 +184,7 @@ export default function AvailabilityManager({ tutorId }) {
     } catch (err) {
       setError(err?.message || 'Failed to save hourly rate')
     } finally {
-      setLoading(false)
+      setLoadingRate(false)
     }
   }
 
@@ -206,25 +199,32 @@ export default function AvailabilityManager({ tutorId }) {
       return
     }
 
-    setSlotBusyId('new')
+    setBusySlotId('new')
     try {
       const payload = {
         tutor_id: effectiveTutorId,
         day_of_week: Number(newSlot.day_of_week),
         start_time: normalizeTime(newSlot.start_time),
         end_time: normalizeTime(newSlot.end_time),
+        is_available: Boolean(newSlot.is_available),
         is_active: true
       }
 
       const { error: iErr } = await supabase.from('tutor_availability').insert([payload])
-      if (iErr) throw iErr
+      if (iErr) {
+        // Friendly message for your unique(tutor_id, day_of_week, start_time)
+        if (String(iErr.message || '').toLowerCase().includes('duplicate') || String(iErr.code) === '23505') {
+          throw new Error('You already have a slot starting at that time for this day.')
+        }
+        throw iErr
+      }
 
       flashSuccess('Availability slot added.')
       await loadAvailability()
     } catch (err) {
       setError(err?.message || 'Failed to add availability slot')
     } finally {
-      setSlotBusyId(null)
+      setBusySlotId(null)
     }
   }
 
@@ -232,8 +232,9 @@ export default function AvailabilityManager({ tutorId }) {
     setEditingId(slot.id)
     setEditSlot({
       day_of_week: Number(slot.day_of_week),
-      start_time: formatTimeLabel(slot.start_time),
-      end_time: formatTimeLabel(slot.end_time)
+      start_time: timeLabel(slot.start_time),
+      end_time: timeLabel(slot.end_time),
+      is_available: Boolean(slot.is_available)
     })
   }
 
@@ -242,7 +243,8 @@ export default function AvailabilityManager({ tutorId }) {
     setEditSlot({
       day_of_week: 1,
       start_time: '09:00',
-      end_time: '17:00'
+      end_time: '17:00',
+      is_available: true
     })
   }
 
@@ -257,12 +259,13 @@ export default function AvailabilityManager({ tutorId }) {
       return
     }
 
-    setSlotBusyId(editingId)
+    setBusySlotId(editingId)
     try {
       const updates = {
         day_of_week: Number(editSlot.day_of_week),
         start_time: normalizeTime(editSlot.start_time),
-        end_time: normalizeTime(editSlot.end_time)
+        end_time: normalizeTime(editSlot.end_time),
+        is_available: Boolean(editSlot.is_available)
       }
 
       const { error: uErr } = await supabase
@@ -271,7 +274,12 @@ export default function AvailabilityManager({ tutorId }) {
         .eq('id', editingId)
         .eq('tutor_id', effectiveTutorId)
 
-      if (uErr) throw uErr
+      if (uErr) {
+        if (String(uErr.message || '').toLowerCase().includes('duplicate') || String(uErr.code) === '23505') {
+          throw new Error('You already have a slot starting at that time for this day.')
+        }
+        throw uErr
+      }
 
       flashSuccess('Availability slot updated.')
       setEditingId(null)
@@ -279,7 +287,31 @@ export default function AvailabilityManager({ tutorId }) {
     } catch (err) {
       setError(err?.message || 'Failed to update availability slot')
     } finally {
-      setSlotBusyId(null)
+      setBusySlotId(null)
+    }
+  }
+
+  const toggleAvailable = async (slot) => {
+    if (!effectiveTutorId) return
+    setError(null)
+    setSuccess(null)
+
+    setBusySlotId(slot.id)
+    try {
+      const { error: uErr } = await supabase
+        .from('tutor_availability')
+        .update({ is_available: !slot.is_available })
+        .eq('id', slot.id)
+        .eq('tutor_id', effectiveTutorId)
+
+      if (uErr) throw uErr
+
+      flashSuccess(slot.is_available ? 'Slot marked unavailable.' : 'Slot marked available.')
+      await loadAvailability()
+    } catch (err) {
+      setError(err?.message || 'Failed to update slot availability')
+    } finally {
+      setBusySlotId(null)
     }
   }
 
@@ -291,8 +323,9 @@ export default function AvailabilityManager({ tutorId }) {
     // eslint-disable-next-line no-restricted-globals
     if (!confirm('Delete this availability slot?')) return
 
-    setSlotBusyId(slotId)
+    setBusySlotId(slotId)
     try {
+      // IMPORTANT: hard delete so the UNIQUE(tutor_id, day_of_week, start_time) doesn't block recreating the slot
       const { error: dErr } = await supabase
         .from('tutor_availability')
         .delete()
@@ -306,31 +339,7 @@ export default function AvailabilityManager({ tutorId }) {
     } catch (err) {
       setError(err?.message || 'Failed to delete availability slot')
     } finally {
-      setSlotBusyId(null)
-    }
-  }
-
-  const toggleActive = async (slot) => {
-    if (!effectiveTutorId) return
-    setError(null)
-    setSuccess(null)
-
-    setSlotBusyId(slot.id)
-    try {
-      const { error: uErr } = await supabase
-        .from('tutor_availability')
-        .update({ is_active: !slot.is_active })
-        .eq('id', slot.id)
-        .eq('tutor_id', effectiveTutorId)
-
-      if (uErr) throw uErr
-
-      flashSuccess(slot.is_active ? 'Slot disabled.' : 'Slot enabled.')
-      await loadAvailability()
-    } catch (err) {
-      setError(err?.message || 'Failed to update slot status')
-    } finally {
-      setSlotBusyId(null)
+      setBusySlotId(null)
     }
   }
 
@@ -367,8 +376,8 @@ export default function AvailabilityManager({ tutorId }) {
             />
           </div>
 
-          <button onClick={saveHourlyRate} disabled={loading} className="btn-primary">
-            {loading ? 'Saving...' : 'Save Rate'}
+          <button onClick={saveHourlyRate} disabled={loadingRate} className="btn-primary">
+            {loadingRate ? 'Saving...' : 'Save Rate'}
           </button>
         </div>
       </div>
@@ -414,15 +423,27 @@ export default function AvailabilityManager({ tutorId }) {
             </div>
 
             <div className="field">
+              <label htmlFor="available">Available?</label>
+              <select
+                id="available"
+                value={newSlot.is_available ? 'yes' : 'no'}
+                onChange={(e) => setNewSlot((s) => ({ ...s, is_available: e.target.value === 'yes' }))}
+              >
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+
+            <div className="field">
               <label>&nbsp;</label>
-              <button onClick={addSlot} className="btn-primary" disabled={slotBusyId === 'new'}>
-                {slotBusyId === 'new' ? 'Adding...' : 'Add Slot'}
+              <button onClick={addSlot} className="btn-primary" disabled={busySlotId === 'new'}>
+                {busySlotId === 'new' ? 'Adding...' : 'Add Slot'}
               </button>
             </div>
           </div>
 
           <p style={{ marginTop: 8, opacity: 0.8 }}>
-            Tip: Add multiple slots per day (e.g. 09:00–12:00 and 14:00–17:00).
+            Add multiple slots per day (e.g. 09:00–12:00 and 14:00–17:00). Use “Available?” to quickly block a slot.
           </p>
         </div>
 
@@ -443,10 +464,13 @@ export default function AvailabilityManager({ tutorId }) {
                   ) : (
                     slots.map((slot) => {
                       const isEditing = editingId === slot.id
-                      const busy = slotBusyId === slot.id
+                      const busy = busySlotId === slot.id
 
                       return (
-                        <div key={slot.id} className={`availability-item ${slot.is_active ? '' : 'is-disabled'}`}>
+                        <div
+                          key={slot.id}
+                          className={`availability-item ${slot.is_available ? '' : 'is-disabled'}`}
+                        >
                           {isEditing ? (
                             <div className="availability-edit">
                               <div className="availability-form-row">
@@ -485,6 +509,19 @@ export default function AvailabilityManager({ tutorId }) {
                                 </div>
 
                                 <div className="field">
+                                  <label>Available?</label>
+                                  <select
+                                    value={editSlot.is_available ? 'yes' : 'no'}
+                                    onChange={(e) =>
+                                      setEditSlot((s) => ({ ...s, is_available: e.target.value === 'yes' }))
+                                    }
+                                  >
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                  </select>
+                                </div>
+
+                                <div className="field">
                                   <label>&nbsp;</label>
                                   <div style={{ display: 'flex', gap: 8 }}>
                                     <button onClick={saveEdit} className="btn-success" disabled={busy}>
@@ -502,19 +539,27 @@ export default function AvailabilityManager({ tutorId }) {
                               <div className="availability-item-main">
                                 <div>
                                   <strong>
-                                    {formatTimeLabel(slot.start_time)} – {formatTimeLabel(slot.end_time)}
+                                    {timeLabel(slot.start_time)} – {timeLabel(slot.end_time)}
                                   </strong>
-                                  {!slot.is_active && <span style={{ marginLeft: 8, opacity: 0.7 }}>(disabled)</span>}
+                                  {!slot.is_available && (
+                                    <span style={{ marginLeft: 8, opacity: 0.7 }}>(unavailable)</span>
+                                  )}
                                 </div>
                               </div>
 
                               <div className="availability-actions" style={{ display: 'flex', gap: 8 }}>
-                                <button onClick={() => toggleActive(slot)} className="btn-secondary" disabled={busy}>
-                                  {busy ? '...' : slot.is_active ? 'Disable' : 'Enable'}
+                                <button
+                                  onClick={() => toggleAvailable(slot)}
+                                  className="btn-secondary"
+                                  disabled={busy}
+                                >
+                                  {busy ? '...' : slot.is_available ? 'Mark Unavailable' : 'Mark Available'}
                                 </button>
+
                                 <button onClick={() => startEdit(slot)} className="btn-secondary" disabled={busy}>
                                   Edit
                                 </button>
+
                                 <button onClick={() => deleteSlot(slot.id)} className="btn-danger" disabled={busy}>
                                   Delete
                                 </button>
