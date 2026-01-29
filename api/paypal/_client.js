@@ -1,48 +1,82 @@
 // api/paypal/_client.js
-let cachedToken = null;
-let tokenExpiry = 0;
+// ESM module. Make sure imports use file extensions when importing this file: `import {...} from './_client.js'`
 
-function getBase() {
-  const env = (process.env.PAYPAL_ENV || 'live').toLowerCase();
-  const domain = (process.env.PAYPAL_API_DOMAIN || 'api-m').toLowerCase(); // 'api-m' (default) or 'api'
-  const host = domain === 'api' ? 'api.paypal.com' : 'api-m.paypal.com';
-  return env === 'sandbox' ? `https://${host.replace('.paypal.com', '.sandbox.paypal.com')}` : `https://${host}`;
+const ENV = process.env.PAYPAL_ENV ?? 'live';
+export const PAYPAL_API =
+  ENV === 'sandbox' ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
+
+function assertEnv() {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
+    throw new Error('Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET');
+  }
 }
 
-export async function fetchPayPalToken() {
-  const now = Date.now();
-  if (cachedToken && now < tokenExpiry - 60_000) return cachedToken;
-
-  const base = getBase();
-  const id = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_CLIENT_SECRET;
-  if (!id || !secret) throw new Error('Missing PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET');
-
-  const creds = Buffer.from(`${id}:${secret}`).toString('base64');
-
-  const res = await fetch(`${base}/v1/oauth2/token`, {
+export async function getAccessToken() {
+  assertEnv();
+  const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
+  const r = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${creds}`,
+      Authorization: `Basic ${auth}`,
       'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-      'Accept-Language': 'en_GB',
-      'User-Agent': (process.env.APP_NAME || 'student-booking-system') + ' / token',
     },
     body: 'grant_type=client_credentials',
   });
-
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`TOKEN_FAILED ${res.status}: ${text}`);
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`paypal_token_failed ${r.status} ${t}`);
   }
-
-  const json = JSON.parse(text);
-  cachedToken = json.access_token;
-  tokenExpiry = now + (json.expires_in ? json.expires_in * 1000 : 9 * 60 * 60 * 1000);
-  return cachedToken;
+  return r.json();
 }
 
-export function getPayPalBase() {
-  return getBase();
+export async function createPaypalOrder({ amount, currency_code = 'GBP', description, reference_id }) {
+  const { access_token } = await getAccessToken();
+
+  const body = {
+    intent: 'CAPTURE',
+    purchase_units: [
+      {
+        amount: {
+          currency_code,
+          value: amount, // string like "25.00"
+        },
+        ...(description ? { description } : {}),
+        ...(reference_id ? { reference_id } : {}),
+      },
+    ],
+  };
+
+  const r = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      'Content-Type': 'application/json',
+      'PayPal-Request-Id': `order-${reference_id || Date.now()}`, // idempotency
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await r.text();
+  let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  if (!r.ok) throw new Error(`paypal_create_failed ${r.status} ${text}`);
+  return data;
+}
+
+export async function capturePaypalOrder(orderId) {
+  const { access_token } = await getAccessToken();
+  const r = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}/capture`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      'Content-Type': 'application/json',
+      'PayPal-Request-Id': `capture-${orderId}-${Date.now()}`,
+    },
+  });
+  const text = await r.text();
+  let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  if (!r.ok) throw new Error(`paypal_capture_failed ${r.status} ${text}`);
+  return data;
 }
