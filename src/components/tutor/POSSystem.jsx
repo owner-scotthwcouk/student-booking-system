@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../context/AuthContext'
 import { getAllStudents, getTutorHourlyRate } from '../../lib/profileAPI'
 import { createBooking } from '../../lib/bookingAPI'
 import { supabase } from '../../lib/supabaseClient'

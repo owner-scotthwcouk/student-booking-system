@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient'
 export async function getTutorProfile(tutorId) {
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('*')
       .eq('id', tutorId)
       .single()

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../context/AuthContext'
 import { getStudentPayments } from '../../lib/paymentsAPI'
 
 export default function StudentPayments() {
@@ -107,14 +107,14 @@ export default function StudentPayments() {
                       : 'N/A'}
                   </td>
                   <td>£{parseFloat(payment.amount || 0).toFixed(2)}</td>
-                  <td>{payment.payment_method || 'PayPal'}</td>
+                  <td>{payment.payment_method === 'stripe' ? 'Stripe Card' : payment.payment_method || 'Unknown'}</td>
                   <td>
                     <span className={`status-badge ${payment.status}`}>
                       {payment.status}
                     </span>
                   </td>
                   <td>
-                    <small>{payment.paypal_transaction_id || 'N/A'}</small>
+                    <small>{payment.stripe_payment_intent_id || 'N/A'}</small>
                   </td>
                 </tr>
               ))}
