@@ -1,5 +1,5 @@
 // src/pages/HomePage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import './HomePage.css';
@@ -9,7 +9,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
@@ -17,103 +17,93 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const tutorCategories = [
+  const categories = [
     {
       icon: '🐍',
       title: 'Python Programming',
-      description: 'Master Python from basics to advanced. Learn data structures, OOP, Django, and more.',
-      color: '#3776ab'
+      description: 'Master Python from basics to advanced. Learn data structures, algorithms, Django, Flask, and automation.',
+      color: '#3776ab',
+      skills: ['Python Basics', 'Data Science', 'Django', 'Automation']
     },
     {
       icon: '💾',
       title: 'Database Management',
-      description: 'SQL, NoSQL, PostgreSQL, MongoDB. Design and optimize databases for any application.',
-      color: '#336791'
+      description: 'SQL, PostgreSQL, MongoDB, MySQL. Design, optimize, and manage databases for any project.',
+      color: '#336791',
+      skills: ['SQL', 'PostgreSQL', 'MongoDB', 'Database Design']
     },
     {
       icon: '🌐',
       title: 'Web Development',
-      description: 'React, Vue, Node.js, full-stack development. Build responsive, modern web applications.',
-      color: '#f7df1e'
+      description: 'React, Vue, Node.js, full-stack development. Build responsive, modern web applications from scratch.',
+      color: '#61dafb',
+      skills: ['React', 'Node.js', 'HTML/CSS', 'JavaScript']
     },
     {
       icon: '💻',
       title: 'IT & Coding',
-      description: 'JavaScript, Java, C++, algorithms, data structures. Core programming fundamentals.',
-      color: '#00b4ab'
-    },
+      description: 'JavaScript, Java, C++, algorithms, data structures. Master programming fundamentals and CS concepts.',
+      color: '#f7df1e',
+      skills: ['JavaScript', 'Algorithms', 'Data Structures', 'Java']
+    }
   ];
 
   const features = [
     {
       icon: '📅',
-      title: 'Easy Booking',
-      description: 'Schedule lessons at times that work for you. Book with experienced tutors instantly.'
+      title: 'Flexible Scheduling',
+      description: 'Book lessons at times that work for you. Real-time availability makes scheduling a breeze.'
     },
     {
       icon: '👨‍🏫',
       title: 'Expert Tutors',
-      description: 'Learn from professional developers and IT specialists with real-world experience.'
+      description: 'Learn from professional developers with real-world industry experience.'
     },
     {
       icon: '💷',
-      title: 'Flexible Pricing',
-      description: 'Tutors set their own rates. Find quality lessons at prices that suit your budget.'
+      title: 'Fair Pricing',
+      description: 'Tutors set their own competitive hourly rates. Quality education at affordable prices.'
     },
     {
-      icon: '🚀',
-      title: 'Fast Progress',
-      description: 'One-on-one personalized learning. Achieve your goals faster with dedicated instruction.'
-    },
+      icon: '🎯',
+      title: 'Personalized Learning',
+      description: 'One-on-one instruction tailored to your goals, skill level, and learning pace.'
+    }
   ];
 
-  const testimonials = [
-    {
-      name: 'Alex Johnson',
-      role: 'Student',
-      text: 'The tutors here are amazing! I went from struggling with Python to building my own projects in just 2 months.',
-      avatar: '👨‍💼'
-    },
-    {
-      name: 'Sarah Williams',
-      role: 'Student',
-      text: 'Finally understand web development! The personalized approach made all the difference for me.',
-      avatar: '👩‍💼'
-    },
-    {
-      name: 'Mike Chen',
-      role: 'Student',
-      text: 'Best investment I\'ve made in my career. The database course was exactly what I needed.',
-      avatar: '👨‍💻'
-    },
+  const stats = [
+    { number: '200+', label: 'Expert Tutors' },
+    { number: '5,000+', label: 'Lessons Completed' },
+    { number: '98%', label: 'Satisfaction Rate' },
+    { number: '£20-50', label: 'Avg. Hourly Rate' }
   ];
 
   return (
     <div className="home-page">
-      {/* Navigation Header */}
+      {/* Navigation */}
       <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
         <div className="nav-container">
-          <div className="nav-logo">
-            <span className="logo-icon">💡</span>
-            <span>TutorHub</span>
+          <div className="nav-logo" onClick={() => navigate('/')}>
+            <span className="logo-icon">🎓</span>
+            <span className="logo-text">TutorHub</span>
           </div>
           <div className="nav-links">
-            <a href="#tutors" className="nav-link">Find Tutors</a>
-            <a href="#features" className="nav-link">Why Us</a>
+            <a href="#categories" className="nav-link">Subjects</a>
+            <a href="#how-it-works" className="nav-link">How It Works</a>
             <a href="#pricing" className="nav-link">Pricing</a>
             {user ? (
               <button className="btn btn-primary" onClick={() => navigate('/dashboard')}>
                 Dashboard
               </button>
             ) : (
-              <>
-                <button className="btn btn-outline" onClick={() => navigate('/login')}>
+              <div className="nav-auth">
+                <button className="btn btn-text" onClick={() => navigate('/login')}>
                   Log In
                 </button>
                 <button className="btn btn-primary" onClick={() => navigate('/signup')}>
-                  Sign Up
+                  Get Started
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -121,66 +111,120 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="hero">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            Master Tech Skills with <span className="highlight">Expert Tutors</span>
-          </h1>
-          <p className="hero-subtitle">
-            Learn Python, Web Development, Database Management & IT from experienced professionals. 
-            Book lessons with flexible scheduling at competitive rates.
-          </p>
-          <div className="hero-cta">
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={() => navigate(user ? '/tutors' : '/signup')}
-            >
-              Find a Tutor Now
-            </button>
-            <button 
-              className="btn btn-outline btn-lg"
-              onClick={() => navigate('/become-tutor')}
-            >
-              Become a Tutor
-            </button>
-          </div>
-        </div>
-        <div className="hero-visual">
-          <div className="code-block">
-            <div className="code-header">
-              <span className="code-dot red"></span>
-              <span className="code-dot yellow"></span>
-              <span className="code-dot green"></span>
+        <div className="hero-container">
+          <div className="hero-content">
+            <div className="hero-badge">
+              <span>🏆</span> Trusted by 5,000+ Students
             </div>
-            <div className="code-content">
-              <p>{'def learn_tech():'}</p>
-              <p className="indent">{'skills = ["Python", "Web Dev", "Database"]'}</p>
-              <p className="indent">{'for skill in skills:'}</p>
-              <p className="indent-2">{'master(skill)'}</p>
-              <p className="indent">{'return Success()'}</p>
+            <h1 className="hero-title">
+              Learn <span className="gradient-text">IT & Coding</span><br/>
+              From Expert Tutors
+            </h1>
+            <p className="hero-subtitle">
+              Master Python, Web Development, Database Management, and more with personalized 
+              one-on-one lessons. Book experienced tutors instantly with flexible scheduling.
+            </p>
+            <div className="hero-cta">
+              <button 
+                className="btn btn-primary btn-hero"
+                onClick={() => navigate(user ? '/tutors' : '/signup')}
+              >
+                Find Your Tutor →
+              </button>
+              <button 
+                className="btn btn-outline-white btn-hero"
+                onClick={() => navigate('/become-tutor')}
+              >
+                Become a Tutor
+              </button>
+            </div>
+            <div className="hero-trust">
+              <div className="trust-item">
+                <span className="trust-icon">✓</span> Verified Tutors
+              </div>
+              <div className="trust-item">
+                <span className="trust-icon">✓</span> Secure Payment
+              </div>
+              <div className="trust-item">
+                <span className="trust-icon">✓</span> Money-Back Guarantee
+              </div>
+            </div>
+          </div>
+          
+          <div className="hero-visual">
+            <div className="code-window">
+              <div className="code-window-header">
+                <div className="window-dots">
+                  <span className="dot red"></span>
+                  <span className="dot yellow"></span>
+                  <span className="dot green"></span>
+                </div>
+                <div className="window-title">lesson.py</div>
+              </div>
+              <div className="code-content">
+                <pre>de><span className="code-comment"># Your journey starts here</span>
+<span className="code-keyword">class</span> <span className="code-class">TechCareer</span>:
+    <span className="code-keyword">def</span> <span className="code-function">__init__</span>(self):
+        self.skills = []
+        
+    <span className="code-keyword">def</span> <span className="code-function">book_tutor</span>(self, subject):
+        tutor = <span className="code-function">find_expert</span>(subject)
+        self.skills.<span className="code-function">append</span>(subject)
+        <span className="code-keyword">return</span> <span className="code-string">"Learning started! 🚀"</span>
+
+<span className="code-comment"># Start your success story</span>
+me = <span className="code-class">TechCareer</span>()
+me.<span className="code-function">book_tutor</span>(<span className="code-string">"Python"</span>)</code></pre>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Stats Bar */}
+      <section className="stats-bar">
+        <div className="stats-container">
+          {stats.map((stat, index) => (
+            <div key={index} className="stat-item">
+              <div className="stat-number">{stat.number}</div>
+              <div className="stat-label">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Categories Section */}
-      <section className="categories" id="tutors">
+      <section className="categories" id="categories">
         <div className="container">
-          <h2 className="section-title">What You Can Learn</h2>
-          <p className="section-subtitle">Expert instruction in the most in-demand tech skills</p>
+          <div className="section-header">
+            <h2 className="section-title">What You Can Learn</h2>
+            <p className="section-subtitle">
+              Expert instruction in the most in-demand tech skills
+            </p>
+          </div>
           
           <div className="categories-grid">
-            {tutorCategories.map((category, index) => (
-              <div key={index} className="category-card" style={{ borderTopColor: category.color }}>
-                <div className="category-icon" style={{ backgroundColor: category.color + '20', color: category.color }}>
-                  {category.icon}
+            {categories.map((category, index) => (
+              <div 
+                key={index} 
+                className="category-card"
+                style={{ '--accent-color': category.color }}
+              >
+                <div className="category-icon-wrapper">
+                  <span className="category-icon">{category.icon}</span>
                 </div>
-                <h3>{category.title}</h3>
-                <p>{category.description}</p>
+                <h3 className="category-title">{category.title}</h3>
+                <p className="category-description">{category.description}</p>
+                <div className="category-skills">
+                  {category.skills.map((skill, idx) => (
+                    <span key={idx} className="skill-tag">{skill}</span>
+                  ))}
+                </div>
                 <button 
-                  className="btn btn-link"
-                  onClick={() => navigate(`/tutors?category=${category.title.toLowerCase()}`)}
+                  className="btn btn-category"
+                  onClick={() => navigate(`/tutors?category=${encodeURIComponent(category.title)}`)}
                 >
-                  Find Tutors →
+                  Browse Tutors →
                 </button>
               </div>
             ))}
@@ -189,186 +233,145 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="features" id="features">
+      <section className="features" id="how-it-works">
         <div className="container">
-          <h2 className="section-title">Why Choose TutorHub?</h2>
+          <div className="section-header">
+            <h2 className="section-title">Why Students Love TutorHub</h2>
+            <p className="section-subtitle">Everything you need for successful learning</p>
+          </div>
           
           <div className="features-grid">
             {features.map((feature, index) => (
               <div key={index} className="feature-card">
                 <div className="feature-icon">{feature.icon}</div>
-                <h3>{feature.title}</h3>
-                <p>{feature.description}</p>
+                <h3 className="feature-title">{feature.title}</h3>
+                <p className="feature-description">{feature.description}</p>
               </div>
             ))}
-          </div>
-
-          <div className="features-highlight">
-            <div className="highlight-item">
-              <div className="highlight-number">500+</div>
-              <p>Qualified Tutors</p>
-            </div>
-            <div className="highlight-item">
-              <div className="highlight-number">10K+</div>
-              <p>Happy Students</p>
-            </div>
-            <div className="highlight-item">
-              <div className="highlight-number">98%</div>
-              <p>Satisfaction Rate</p>
-            </div>
-            <div className="highlight-item">
-              <div className="highlight-number">£15-60</div>
-              <p>Per Hour Rate</p>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="how-it-works">
+      {/* How It Works */}
+      <section className="how-it-works-section">
         <div className="container">
-          <h2 className="section-title">How It Works</h2>
-          
-          <div className="steps-container">
-            <div className="step">
-              <div className="step-number">1</div>
-              <h3>Browse Tutors</h3>
-              <p>View profiles of vetted tutors with their expertise, experience, and hourly rates.</p>
-            </div>
-            <div className="step-arrow">→</div>
-            <div className="step">
-              <div className="step-number">2</div>
-              <h3>Select & Book</h3>
-              <p>Choose your preferred tutor and book lessons at times that work for you.</p>
-            </div>
-            <div className="step-arrow">→</div>
-            <div className="step">
-              <div className="step-number">3</div>
-              <h3>Pay Securely</h3>
-              <p>Complete payment via PayPal. Safe, secure, and instant confirmation.</p>
-            </div>
-            <div className="step-arrow">→</div>
-            <div className="step">
-              <div className="step-number">4</div>
-              <h3>Learn & Grow</h3>
-              <p>Start your personalized lessons and track your progress with expert guidance.</p>
-            </div>
+          <div className="section-header">
+            <h2 className="section-title">How It Works</h2>
+            <p className="section-subtitle">Get started in 4 simple steps</p>
           </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="testimonials">
-        <div className="container">
-          <h2 className="section-title">What Students Say</h2>
           
-          <div className="testimonials-grid">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="testimonial-card">
-                <div className="testimonial-avatar">{testimonial.avatar}</div>
-                <p className="testimonial-text">"{testimonial.text}"</p>
-                <p className="testimonial-author">{testimonial.name}</p>
-                <p className="testimonial-role">{testimonial.role}</p>
-                <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
+          <div className="steps-timeline">
+            <div className="step-card">
+              <div className="step-number">01</div>
+              <div className="step-content">
+                <h3>Create Your Account</h3>
+                <p>Sign up for free in seconds. No credit card required to browse tutors.</p>
               </div>
-            ))}
+            </div>
+
+            <div className="step-connector"></div>
+
+            <div className="step-card">
+              <div className="step-number">02</div>
+              <div className="step-content">
+                <h3>Find Your Perfect Tutor</h3>
+                <p>Browse profiles, read reviews, and compare rates. Filter by subject and availability.</p>
+              </div>
+            </div>
+
+            <div className="step-connector"></div>
+
+            <div className="step-card">
+              <div className="step-number">03</div>
+              <div className="step-content">
+                <h3>Book & Pay Securely</h3>
+                <p>Select a time slot that works for you and pay securely with PayPal.</p>
+              </div>
+            </div>
+
+            <div className="step-connector"></div>
+
+            <div className="step-card">
+              <div className="step-number">04</div>
+              <div className="step-content">
+                <h3>Start Learning</h3>
+                <p>Attend your lesson, get homework, track progress, and achieve your goals!</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section className="pricing" id="pricing">
+      <section className="pricing-section" id="pricing">
         <div className="container">
-          <h2 className="section-title">Flexible Pricing</h2>
-          <p className="section-subtitle">Tutors set their own rates. Find quality lessons at affordable prices.</p>
+          <div className="section-header">
+            <h2 className="section-title">Transparent Pricing</h2>
+            <p className="section-subtitle">Find tutors at rates that fit your budget</p>
+          </div>
           
           <div className="pricing-grid">
             <div className="pricing-card">
-              <h3>Beginner</h3>
-              <p className="price">£15-25<span>/hour</span></p>
-              <ul className="pricing-features">
-                <li>✓ New to tutoring</li>
-                <li>✓ Building experience</li>
-                <li>✓ Great for fundamentals</li>
-              </ul>
-            </div>
-            <div className="pricing-card featured">
-              <div className="badge">Most Popular</div>
-              <h3>Intermediate</h3>
-              <p className="price">£25-45<span>/hour</span></p>
-              <ul className="pricing-features">
-                <li>✓ 2-5 years experience</li>
-                <li>✓ Advanced topics</li>
-                <li>✓ Industry expertise</li>
-              </ul>
-            </div>
-            <div className="pricing-card">
-              <h3>Expert</h3>
-              <p className="price">£45-60<span>/hour</span></p>
-              <ul className="pricing-features">
-                <li>✓ 5+ years experience</li>
-                <li>✓ Specialized knowledge</li>
-                <li>✓ Career mentoring</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="cta-final">
-        <div className="container">
-          <h2>Ready to Start Learning?</h2>
-          <p>Join thousands of students learning from expert tutors today.</p>
-          <button 
-            className="btn btn-primary btn-lg"
-            onClick={() => navigate(user ? '/tutors' : '/signup')}
-          >
-            Get Started Free
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-section">
-              <h4>TutorHub</h4>
-              <p>Connect with expert tutors. Learn tech skills. Achieve your goals.</p>
-            </div>
-            <div className="footer-section">
-              <h4>Quick Links</h4>
-              <ul>
-                <li><a href="#tutors">Find Tutors</a></li>
-                <li><a href="#features">Why Us</a></li>
-                <li><a href="#pricing">Pricing</a></li>
-                <li><a href="/become-tutor">Become a Tutor</a></li>
-              </ul>
-            </div>
-            <div className="footer-section">
-              <h4>Support</h4>
-              <ul>
-                <li><a href="/help">Help Center</a></li>
-                <li><a href="/contact">Contact Us</a></li>
-                <li><a href="/privacy">Privacy Policy</a></li>
-                <li><a href="/terms">Terms of Service</a></li>
-              </ul>
-            </div>
-            <div className="footer-section">
-              <h4>Connect</h4>
-              <div className="social-links">
-                <a href="#" className="social-icon">f</a>
-                <a href="#" className="social-icon">𝕏</a>
-                <a href="#" className="social-icon">in</a>
+              <div className="pricing-header">
+                <h3>Entry Level</h3>
+                <p className="pricing-subtitle">Great for beginners</p>
               </div>
+              <div className="pricing-price">
+                <span className="currency">£</span>
+                <span className="amount">15-25</span>
+                <span className="period">/hour</span>
+              </div>
+              <ul className="pricing-features">
+                <li><span className="check">✓</span> Foundational topics</li>
+                <li><span className="check">✓</span> New tutors building experience</li>
+                <li><span className="check">✓</span> Perfect for learning basics</li>
+                <li><span className="check">✓</span> Homework support included</li>
+              </ul>
+              <button 
+                className="btn btn-pricing"
+                onClick={() => navigate('/tutors?rate=15-25')}
+              >
+                Find Tutors
+              </button>
             </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2026 TutorHub. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
+
+            <div className="pricing-card featured">
+              <div className="popular-badge">Most Popular</div>
+              <div className="pricing-header">
+                <h3>Professional</h3>
+                <p className="pricing-subtitle">Best value for money</p>
+              </div>
+              <div className="pricing-price">
+                <span className="currency">£</span>
+                <span className="amount">25-40</span>
+                <span className="period">/hour</span>
+              </div>
+              <ul className="pricing-features">
+                <li><span className="check">✓</span> Advanced topics covered</li>
+                <li><span className="check">✓</span> 2-5 years teaching experience</li>
+                <li><span className="check">✓</span> Industry best practices</li>
+                <li><span className="check">✓</span> Project guidance included</li>
+              </ul>
+              <button 
+                className="btn btn-pricing-featured"
+                onClick={() => navigate('/tutors?rate=25-40')}
+              >
+                Find Tutors
+              </button>
+            </div>
+
+            <div className="pricing-card">
+              <div className="pricing-header">
+                <h3>Expert</h3>
+                <p className="pricing-subtitle">Premium instruction</p>
+              </div>
+              <div className="pricing-price">
+                <span className="currency">£</span>
+                <span className="amount">40-60</span>
+                <span className="period">/hour</span>
+              </div>
+              <ul className="pricing-features">
+                <li><span className="check">✓</span> Specialized knowledge</li>
+                <li><span className="check">✓</span> 5+ years experience</li>
+                <li><span className="check">✓</span> Career mentoring</li>
+                <li><span className="check">✓</span>
