@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/auth'
+import { useNavigate } from 'react-router-dom'
 import StudentLessons from './Lessons'
 import StudentPayments from './Payments'
 import HomeworkSubmission from './HomeworkSubmission'
 import './StudentDashboard.css'
-import { useNavigate } from 'react-router-dom'
 
 export default function StudentDashboard() {
   const { user, profile } = useAuth()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('bookings')
 
   return (
@@ -51,25 +52,36 @@ export default function StudentDashboard() {
       </div>
 
       <div className="dashboard-content">
-        {activeTab === 'bookings' && <div><h2>My Bookings</h2><p>Booking management coming soon</p></div>
-        <button 
-          onClick={() => navigate('/student/tutors')} 
-          className="btn-primary"
-          style={{
-            padding: '1rem 2rem',
-            backgroundColor: '#7c3aed',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            cursor: 'pointer'
-            }}>
-  Book a New Lesson
-</button>}
+        {activeTab === 'bookings' && (
+          <div>
+            <h2>My Bookings</h2>
+            <p>View and manage your upcoming lessons</p>
+            <button 
+              onClick={() => navigate('/student/tutors')} 
+              className="btn-primary"
+              style={{
+                padding: '1rem 2rem',
+                backgroundColor: '#7c3aed',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginTop: '1rem'
+              }}
+            >
+              Book a New Lesson
+            </button>
+          </div>
+        )}
+        
         {activeTab === 'lessons' && <StudentLessons />}
+        
         {activeTab === 'payments' && <StudentPayments />}
+        
         {activeTab === 'homework' && <HomeworkSubmission />}
+        
         {activeTab === 'profile' && (
           <div className="profile-section">
             <h2>My Profile</h2>
