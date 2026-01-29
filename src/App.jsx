@@ -51,7 +51,7 @@ function ProtectedRoute({ children, allowedRole }) {
 }
 
 function App() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return <div style={{ padding: "2rem", color: "#fff" }}>Loading...</div>;
