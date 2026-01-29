@@ -131,12 +131,6 @@ export default function HomePage() {
               >
                 Find Your Tutor →
               </button>
-              <button 
-                className="btn btn-outline-white btn-hero"
-                onClick={() => navigate('/become-tutor')}
-              >
-                Become a Tutor
-              </button>
             </div>
             <div className="hero-trust">
               <div className="trust-item">
@@ -322,8 +316,8 @@ me.book_tutor("Python")`}</pre>
             
             <div className="footer-section">
               <h4>Contact</h4>
-              <p>Email: info@tutorhub.com</p>
-              <p>Phone: +44 (0)20 1234 5678</p>
+              <p>Email: scott@scott-hw.online</p>
+              <p>Phone: +44 (0)7858 575 621</p>
             </div>
           </div>
           
