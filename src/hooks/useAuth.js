@@ -1,2 +1,2 @@
-// This file is deprecated. Use useAuth from '../context/AuthContext' instead.
-export {}
+// Re-export useAuth from the auth context for backwards compatibility
+export { useAuth } from '../contexts/auth.jsx'
