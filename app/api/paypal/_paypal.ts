@@ -1,29 +1,16 @@
 export const runtime = 'nodejs';
 
-// 1. Dynamic Base URL
 const base =
   (process.env.PAYPAL_ENV || 'sandbox').toLowerCase() === 'live'
     ? 'https://api-m.paypal.com'
     : 'https://api-m.sandbox.paypal.com';
 
-// 2. Safe Env Getter
-function assertEnv(name: string): string {
-  const v = process.env[name];
-  if (!v) {
-    // Return empty string instead of throwing to prevent hard crashes
-    // We will handle the error in the logic
-    return "";
-  }
-  return v;
-}
-
-// 3. Get Access Token
 export async function getAccessToken(): Promise<{ access_token: string; expires_in: number }> {
-  const clientId = assertEnv('PAYPAL_CLIENT_ID');
-  const secret = assertEnv('PAYPAL_CLIENT_SECRET');
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const secret = process.env.PAYPAL_CLIENT_SECRET;
 
   if (!clientId || !secret) {
-    throw new Error("Missing PayPal Credentials in Environment Variables");
+    throw new Error("PayPal Client ID or Secret is missing in Environment Variables.");
   }
 
   const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
@@ -45,7 +32,12 @@ export async function getAccessToken(): Promise<{ access_token: string; expires_
   return res.json();
 }
 
-// 4. Create Order (Updated to accept reference_id)
+/**
+ * Creates a PayPal order.
+ * @param value - The string amount (e.g. "30.00")
+ * @param currency_code - e.g. "GBP"
+ * @param reference_id - The Booking ID (UUID)
+ */
 export async function createOrder(value: string, currency_code = 'GBP', reference_id?: string) {
   const { access_token } = await getAccessToken();
 
@@ -57,7 +49,7 @@ export async function createOrder(value: string, currency_code = 'GBP', referenc
     application_context: { shipping_preference: 'NO_SHIPPING' },
   };
 
-  // Attach Booking ID if provided
+  // Important: Pass the booking ID so we know what this payment is for later
   if (reference_id) {
     payload.purchase_units[0].reference_id = reference_id;
   }
@@ -79,7 +71,6 @@ export async function createOrder(value: string, currency_code = 'GBP', referenc
   return data;
 }
 
-// 5. Capture Order
 export async function captureOrder(orderID: string) {
   const { access_token } = await getAccessToken();
 

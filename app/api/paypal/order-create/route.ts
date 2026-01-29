@@ -2,51 +2,48 @@ import { NextResponse } from 'next/server';
 import { createOrder } from '../_paypal';
 import { createClient } from '@supabase/supabase-js';
 
-// Force dynamic to prevent static generation errors
+// Prevent Vercel from caching this route, which causes issues with POST bodies
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  try {
-    console.log("--- Starting Create Order Request ---");
+  console.log("--- Payment Initiation Started ---");
 
-    // 1. Validate Environment Variables Manually
+  try {
+    // 1. Safe Environment Variable Access
+    // We check these inside the function to avoid global scope crashes
     const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!sbUrl || !sbKey) {
-      console.error("CRITICAL: Missing Supabase Environment Variables");
+      console.error("Server Error: Missing Supabase Env Vars");
       return NextResponse.json({ 
-        error: "Server Configuration Error: Missing Supabase URL or Service Key" 
+        error: "Server configuration error: Database credentials missing." 
       }, { status: 500 });
     }
 
-    // 2. Initialize Supabase (Service Role for Admin Access)
-    // We do this here to avoid global scope crashes
+    // 2. Initialize Supabase Admin Client
     const supabase = createClient(sbUrl, sbKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
+      auth: { persistSession: false }
     });
 
-    // 3. Parse Body
+    // 3. Parse and Validate Request Body
     let body;
     try {
       body = await req.json();
     } catch (e) {
-      console.error("Failed to parse JSON body");
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON body provided." }, { status: 400 });
     }
 
-    const { reference_id } = body;
-    console.log(`Received Booking ID: ${reference_id}`);
+    const { reference_id } = body; // This corresponds to the bookingId
 
     if (!reference_id) {
-      return NextResponse.json({ error: 'Missing reference_id (Booking ID)' }, { status: 400 });
+      console.warn("Request missing reference_id");
+      return NextResponse.json({ error: "Missing booking ID (reference_id)." }, { status: 400 });
     }
 
     // 4. Fetch Booking Details
+    console.log(`Looking up booking: ${reference_id}`);
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .select('tutor_id, duration_minutes')
@@ -54,14 +51,12 @@ export async function POST(req: Request) {
       .single();
 
     if (bookingError || !booking) {
-      console.error("Booking Lookup Error:", bookingError);
-      return NextResponse.json({ error: 'Booking not found in database' }, { status: 404 });
+      console.error("Booking lookup failed:", bookingError);
+      return NextResponse.json({ error: "Booking not found." }, { status: 404 });
     }
 
-    console.log(`Found Booking. Tutor ID: ${booking.tutor_id}, Duration: ${booking.duration_minutes}`);
-
-    // 5. Fetch Tutor Hourly Rate
-    // Default to £30.00 if nothing is found
+    // 5. Determine Hourly Rate
+    // Default to 30.00 if the tutor hasn't set a rate or profile is missing
     let hourlyRate = 30.00;
 
     if (booking.tutor_id) {
@@ -73,33 +68,28 @@ export async function POST(req: Request) {
       
       if (!profileError && tutorProfile?.hourly_rate) {
         hourlyRate = Number(tutorProfile.hourly_rate);
-        console.log(`Found custom hourly rate: £${hourlyRate}`);
-      } else {
-        console.log("Using default hourly rate: £30.00 (Profile not found or no rate set)");
       }
     }
 
-    // 6. Calculate Price
-    const duration = booking.duration_minutes || 60;
-    const priceValue = ((duration / 60) * hourlyRate).toFixed(2);
-    
-    console.log(`Final Calculated Price: £${priceValue}`);
+    console.log(`Rate for Tutor ${booking.tutor_id}: £${hourlyRate}/hr`);
 
-    // 7. Create PayPal Order
-    try {
-      const order = await createOrder(priceValue, 'GBP', reference_id);
-      console.log("PayPal Order Created Successfully:", order.id);
-      return NextResponse.json(order);
-    } catch (paypalError: any) {
-      console.error("PayPal API Failed:", paypalError.message);
-      return NextResponse.json({ error: "PayPal Creation Failed: " + paypalError.message }, { status: 500 });
-    }
+    // 6. Calculate Final Price
+    const duration = booking.duration_minutes || 60;
+    // Calculation: (Minutes / 60) * Rate
+    const calculatedPrice = ((duration / 60) * hourlyRate).toFixed(2);
+
+    console.log(`Creating PayPal order for £${calculatedPrice}`);
+
+    // 7. Create Order via PayPal API
+    const order = await createOrder(calculatedPrice, 'GBP', reference_id);
+
+    return NextResponse.json(order);
 
   } catch (err: any) {
-    // 8. Catch-all for any other crashes
-    console.error("Unhandled Server Error:", err.message);
+    console.error("CRITICAL API ERROR:", err.message);
+    // Return a JSON error so the frontend doesn't get the "Unexpected token" HTML error
     return NextResponse.json(
-      { error: "Internal Server Error: " + err.message }, 
+      { error: `Payment initialization failed: ${err.message}` }, 
       { status: 500 }
     );
   }
