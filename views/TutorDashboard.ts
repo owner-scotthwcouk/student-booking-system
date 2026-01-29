@@ -9,18 +9,29 @@ class TutorDashboard {
 	}
 
 	initializeAvailabilitySection() {
-		const availabilitySection = document.getElementById('availability-section');
-		if (availabilitySection) {
-			this.addHourlyRateField(availabilitySection);
+		let availabilitySection = document.getElementById('availability-section');
+		if (!availabilitySection) {
+			// Fallback: create the section if it doesn't exist
+			availabilitySection = document.createElement('div');
+			availabilitySection.id = 'availability-section';
+			document.body.appendChild(availabilitySection);
 		}
+		this.addHourlyRateField(availabilitySection);
 	}
 
 	addHourlyRateField(section: HTMLElement) {
+		// Clear existing hourly rate field to avoid duplicates
+		const existing = document.getElementById('hourly-rate-field');
+		if (existing) {
+			existing.remove();
+		}
+
 		const fieldContainer = document.createElement('div');
 		fieldContainer.id = 'hourly-rate-field';
 		fieldContainer.style.padding = '10px';
-		fieldContainer.style.border = '1px solid #ccc';
+		fieldContainer.style.border = '2px solid #007bff';
 		fieldContainer.style.marginTop = '10px';
+		fieldContainer.style.backgroundColor = '#f0f0f0';
 
 		const label = document.createElement('label');
 		label.innerText = 'Hourly Rate: ';
