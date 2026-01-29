@@ -1,27 +1,30 @@
-const BASE = process.env.PAYPAL_BASE || 'https://api-m.paypal.com'; // sandbox: https://api-m.sandbox.paypal.com
-const CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
-const CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
+// api/paypal/_client.js
+export async function fetchPayPalToken() {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const secret   = process.env.PAYPAL_CLIENT_SECRET;
 
-if (!CLIENT_ID || !CLIENT_SECRET) {
-  console.warn('Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET env vars');
-}
+  if (!clientId || !secret) {
+    return {
+      ok: false,
+      status: 500,
+      json: { error: 'missing_env', message: 'PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET not set' }
+    };
+  }
 
-async function getAccessToken() {
-  const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
-  const res = await fetch(`${BASE}/v1/oauth2/token`, {
+  const basic = Buffer.from(`${clientId}:${secret}`).toString('base64');
+
+  const resp = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${auth}`,
+      Authorization: `Basic ${basic}`,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
     body: 'grant_type=client_credentials'
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`token ${res.status}: ${text}`);
-  }
-  const json = await res.json();
-  return json.access_token;
-}
 
-export { BASE, getAccessToken };
+  const text = await resp.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+  return { ok: resp.ok, status: resp.status, json: data };
+}
