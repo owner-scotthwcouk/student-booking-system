@@ -157,6 +157,24 @@ export async function updateBookingStatus(bookingId, status) {
   }
 }
 
+// Cancel a booking (student initiated)
+export async function cancelBooking(bookingId) {
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('id', bookingId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error cancelling booking:', error)
+    return { data: null, error }
+  }
+}
+
 // Get tutor availability
 export async function getTutorAvailability(tutorId) {
   try {

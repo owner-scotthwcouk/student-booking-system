@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../contexts/auth'
 import { getStudentBookings } from '../../lib/bookingAPI'
 import { getAllTutors } from '../../lib/profileAPI'
 import Profile from './Profile'
@@ -75,6 +75,20 @@ export default function StudentDashboard() {
     
     // Show tutor selection
     setShowTutorSelection(true)
+  }
+
+  const handleCancel = async (bookingId) => {
+    if (!confirm('Cancel this booking?')) return
+    try {
+      const { cancelBooking } = await import('../../lib/bookingAPI')
+      const { error } = await cancelBooking(bookingId)
+      if (error) throw error
+      // reload
+      loadBookings()
+    } catch (err) {
+      console.error('Failed to cancel booking', err)
+      alert('Failed to cancel booking')
+    }
   }
 
   const handleTutorSelect = (tutorId) => {
@@ -212,6 +226,13 @@ export default function StudentDashboard() {
                             <Link to={`/payment/${booking.id}`} className="pay-link">
                               Pay Now
                             </Link>
+                          )}
+                        </td>
+                        <td>
+                          {booking.status !== 'cancelled' && (
+                            <button onClick={() => handleCancel(booking.id)} className="btn-secondary">
+                              Cancel
+                            </button>
                           )}
                         </td>
                       </tr>
