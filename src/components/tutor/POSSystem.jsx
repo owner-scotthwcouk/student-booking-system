@@ -161,7 +161,7 @@ export default function POSSystem() {
         padding: '12px',
         border: '2px solid #333'
       }}>
->
+
             <h3>Booking Details</h3>
             
             <div className="form-group">
