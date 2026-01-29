@@ -12,7 +12,6 @@ export default function Register() {
     email: '',
     password: '',
     fullName: '',
-    role: 'student',
     dateOfBirth: '',
   })
 
@@ -34,7 +33,6 @@ export default function Register() {
     try {
       const profileData = {
         full_name: formData.fullName,
-        role: formData.role,
         date_of_birth: formData.dateOfBirth || null,
       }
 
@@ -61,7 +59,6 @@ export default function Register() {
             id: user.id,
             email: formData.email,
             full_name: formData.fullName,
-            role: formData.role,
             date_of_birth: formData.dateOfBirth || null,
           },
           { onConflict: 'id' },
@@ -134,19 +131,6 @@ export default function Register() {
               required
               style={{ width: '100%', padding: '0.5rem' }}
             />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Role</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
-              <option value="student">Student</option>
-              <option value="tutor">Tutor</option>
-            </select>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
