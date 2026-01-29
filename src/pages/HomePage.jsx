@@ -100,7 +100,7 @@ export default function HomePage() {
                 <button className="btn btn-text" onClick={() => navigate('/login')}>
                   Log In
                 </button>
-                <button className="btn btn-primary" onClick={() => navigate('/signup')}>
+                <button className="btn btn-primary" onClick={() => navigate('/register')}>
                   Get Started
                 </button>
               </div>
@@ -127,7 +127,7 @@ export default function HomePage() {
             <div className="hero-cta">
               <button 
                 className="btn btn-primary btn-hero"
-                onClick={() => navigate('/signup')}>
+                onClick={() => navigate('/register')}>
                 Find Your Tutor →
               </button>
             </div>
