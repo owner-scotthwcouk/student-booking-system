@@ -1,0 +1,296 @@
+.tutor-dashboard {
+  background-color: #000;
+  color: #fff;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.dashboard-header {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-header p {
+  color: #aaa;
+  font-size: 1rem;
+}
+
+.dashboard-tabs {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  color: #aaa;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #fff;
+}
+
+.tab-button.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.dashboard-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #1a1a1a;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  border: 1px solid #333;
+}
+
+/* Availability Manager */
+.availability-manager h2,
+.booking-management h2,
+.lesson-editor h2,
+.pos-system h2 {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: #fff;
+}
+
+.rate-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #333;
+}
+
+.rate-section h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #667eea;
+}
+
+.rate-input-group {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.rate-input-group label {
+  display: block;
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.rate-input {
+  display: flex;
+  align-items: center;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.rate-input span {
+  color: #667eea;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.rate-input input {
+  background: none;
+  border: none;
+  color: #fff;
+  width: 100px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.availability-section h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #667eea;
+}
+
+.availability-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.availability-item {
+  background-color: #2a2a2a;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border-left: 3px solid #667eea;
+}
+
+.availability-item p {
+  margin: 0.5rem 0;
+  color: #aaa;
+}
+
+/* Booking Management */
+.bookings-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.booking-card {
+  background-color: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #444;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.booking-card:hover {
+  border-color: #667eea;
+  transform: translateX(5px);
+}
+
+.booking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.booking-header h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.status-badge.pending {
+  background-color: #ff9800;
+  color: #000;
+}
+
+.status-badge.confirmed {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.status-badge.cancelled {
+  background-color: #f44336;
+  color: #fff;
+}
+
+.booking-card p {
+  margin: 0.5rem 0;
+  color: #aaa;
+  font-size: 0.95rem;
+}
+
+.booking-detail-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #1a1a1a;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  border: 1px solid #667eea;
+  max-width: 500px;
+  width: 90%;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: #667eea;
+}
+
+.modal-content p {
+  margin: 0.5rem 0;
+  color: #aaa;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #667eea;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: #764ba2;
+}
+
+.btn-success {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.btn-success:hover {
+  background-color: #45a049;
+}
+
+.btn-danger {
+  background-color: #f44336;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background-color: #da190b;
+}
+
+.btn-secondary {
+  background-color: #333;
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background-color: #444;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #aaa;
+}
