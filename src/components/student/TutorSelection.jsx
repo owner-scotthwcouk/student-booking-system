@@ -99,12 +99,9 @@ export default function TutorSelection() {
         }
 
         .tutor-card {
-          background: #ffffff;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 1.5rem;
-          transition: all 0.2s;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          background: #1a1a1a;
+          border: 2px solid #3a3a3a;
+          color: #ffffff;
         }
 
         .tutor-card:hover {

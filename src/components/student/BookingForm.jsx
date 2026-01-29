@@ -648,6 +648,16 @@ function BookingForm() {
           margin-bottom: 1.5rem;
           border: 1px solid #fca5a5;
         }
+          .form-input, select, input {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border: 2px solid #3a3a3a !important;
+}
+
+.form-section {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
       `}</style>
     </div>
   )
