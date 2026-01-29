@@ -1,30 +1,48 @@
 // api/paypal/_client.js
+let cachedToken = null;
+let tokenExpiry = 0;
+
+function getBase() {
+  const env = (process.env.PAYPAL_ENV || 'live').toLowerCase();
+  const domain = (process.env.PAYPAL_API_DOMAIN || 'api-m').toLowerCase(); // 'api-m' (default) or 'api'
+  const host = domain === 'api' ? 'api.paypal.com' : 'api-m.paypal.com';
+  return env === 'sandbox' ? `https://${host.replace('.paypal.com', '.sandbox.paypal.com')}` : `https://${host}`;
+}
+
 export async function fetchPayPalToken() {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const secret   = process.env.PAYPAL_CLIENT_SECRET;
+  const now = Date.now();
+  if (cachedToken && now < tokenExpiry - 60_000) return cachedToken;
 
-  if (!clientId || !secret) {
-    return {
-      ok: false,
-      status: 500,
-      json: { error: 'missing_env', message: 'PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET not set' }
-    };
-  }
+  const base = getBase();
+  const id = process.env.PAYPAL_CLIENT_ID;
+  const secret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!id || !secret) throw new Error('Missing PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET');
 
-  const basic = Buffer.from(`${clientId}:${secret}`).toString('base64');
+  const creds = Buffer.from(`${id}:${secret}`).toString('base64');
 
-  const resp = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+  const res = await fetch(`${base}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${basic}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      Authorization: `Basic ${creds}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+      'Accept-Language': 'en_GB',
+      'User-Agent': (process.env.APP_NAME || 'student-booking-system') + ' / token',
     },
-    body: 'grant_type=client_credentials'
+    body: 'grant_type=client_credentials',
   });
 
-  const text = await resp.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`TOKEN_FAILED ${res.status}: ${text}`);
+  }
 
-  return { ok: resp.ok, status: resp.status, json: data };
+  const json = JSON.parse(text);
+  cachedToken = json.access_token;
+  tokenExpiry = now + (json.expires_in ? json.expires_in * 1000 : 9 * 60 * 60 * 1000);
+  return cachedToken;
+}
+
+export function getPayPalBase() {
+  return getBase();
 }

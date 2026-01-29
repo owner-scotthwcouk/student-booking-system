@@ -1,66 +1,41 @@
-export const config = { runtime: 'edge' };
+// api/paypal/orders/create.js
+import { fetchPayPalToken, getPayPalBase } from '../_client.js';
 
-const PAYPAL_BASE =
-  (process.env.PAYPAL_ENV || 'live').toLowerCase() === 'sandbox'
-    ? 'https://api-m.sandbox.paypal.com'
-    : 'https://api-m.paypal.com';
-
-function cors(h = {}) {
-  return {
-    'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'POST, OPTIONS',
-    'access-control-allow-headers': 'content-type, authorization',
-    ...h,
-  };
+function setCors(res) {
+  res.setHeader('access-control-allow-origin', '*');
+  res.setHeader('access-control-allow-methods', 'POST, OPTIONS');
+  res.setHeader('access-control-allow-headers', 'content-type, authorization');
 }
 
-export default async function handler(request) {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: cors() });
-  }
+export default async function handler(req, res) {
+  setCors(res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   try {
-    if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', {
-        status: 405,
-        headers: cors(),
-      });
-    }
-
-    let body = {};
-    try {
-      body = await request.json();
-    } catch (e) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON body', detail: String(e) }),
-        { status: 400, headers: cors({ 'content-type': 'application/json' }) }
-      );
-    }
-
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const {
       amount,
       currency_code = 'GBP',
       intent = 'CAPTURE',
       reference_id,
       description,
-    } = body || {};
+    } = body;
 
     if (!amount) {
-      return new Response(JSON.stringify({ error: 'amount is required' }), {
-        status: 400,
-        headers: cors({ 'content-type': 'application/json' }),
-      });
+      return res.status(400).json({ error: 'amount is required' });
     }
 
-    // Import the same token helper your /api/paypal/token route uses.
-    const { fetchPayPalToken } = await import('../_client.js');
     const accessToken = await fetchPayPalToken();
+    const base = getPayPalBase();
 
-    const paypalRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
+    const ppRes = await fetch(`${base}/v2/checkout/orders`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'User-Agent': (process.env.APP_NAME || 'student-booking-system') + ' / orders-create',
       },
       body: JSON.stringify({
         intent,
@@ -78,48 +53,33 @@ export default async function handler(request) {
       }),
     });
 
-    // Read raw text first so we can handle non-JSON bodies too.
-    const raw = await paypalRes.text();
-    let parsed;
-    try {
-      parsed = raw ? JSON.parse(raw) : null;
-    } catch {
-      parsed = null;
+    const raw = await ppRes.text();
+    let parsed = null;
+    try { parsed = raw ? JSON.parse(raw) : null; } catch {}
+
+    // Success
+    if (ppRes.ok && parsed) {
+      return res.status(ppRes.status).json(parsed);
     }
 
-    // On success, return PayPal’s JSON as-is.
-    if (paypalRes.ok && parsed) {
-      return new Response(JSON.stringify(parsed), {
-        status: paypalRes.status,
-        headers: cors({ 'content-type': 'application/json' }),
-      });
-    }
-
-    // On error, surface diagnostics (status, key headers, and raw body).
+    // Diagnostics when blocked or error
     const diagHeaders = {};
-    for (const h of ['paypal-debug-id', 'www-authenticate', 'content-type']) {
-      const v = paypalRes.headers.get(h);
+    for (const h of ['paypal-debug-id', 'www-authenticate', 'content-type', 'server']) {
+      const v = ppRes.headers.get(h);
       if (v) diagHeaders[h] = v;
     }
 
-    return new Response(
-      JSON.stringify({
-        error: 'PAYPAL_CREATE_ORDER_FAILED',
-        status: paypalRes.status,
-        ok: paypalRes.ok,
-        headers: diagHeaders,
-        body: parsed ?? raw,
-      }),
-      { status: paypalRes.status, headers: cors({ 'content-type': 'application/json' }) }
-    );
+    return res.status(ppRes.status).json({
+      error: 'PAYPAL_CREATE_ORDER_FAILED',
+      status: ppRes.status,
+      ok: ppRes.ok,
+      headers: diagHeaders,
+      body: parsed ?? raw,
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({
-        error: 'CREATE_ORDER_FUNCTION_FAILED',
-        message: String(err?.message || err),
-        stack: err?.stack,
-      }),
-      { status: 500, headers: cors({ 'content-type': 'application/json' }) }
-    );
+    return res.status(500).json({
+      error: 'CREATE_ORDER_FUNCTION_FAILED',
+      message: String(err?.message || err),
+    });
   }
 }
