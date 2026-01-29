@@ -142,14 +142,14 @@ export async function uploadProfilePicture(userId, file) {
 
 // --- NEW FUNCTIONS FOR HOURLY RATE ---
 
-// Get tutor hourly rate from user_profiles table
+// Get tutor hourly rate from profiles table
 export async function getTutorHourlyRate(userId) {
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('hourly_rate')
       .eq('id', userId)
-      .maybeSingle()
+      .single()
     
     if (error) throw error
     return { data, error: null }
@@ -159,16 +159,16 @@ export async function getTutorHourlyRate(userId) {
   }
 }
 
-// Update tutor hourly rate in user_profiles table
+// Update tutor hourly rate in profiles table
 export async function updateTutorHourlyRate(userId, rate) {
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
-      .upsert({ 
-        id: userId, 
+      .from('profiles')
+      .update({ 
         hourly_rate: rate,
         updated_at: new Date().toISOString()
       })
+      .eq('id', userId)
       .select()
       .single()
     
