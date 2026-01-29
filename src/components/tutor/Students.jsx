@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { getAllStudents, getProfile } from '../../lib/profileAPI'
 import { getStudentPayments } from '../../lib/paymentsAPI'
@@ -13,11 +13,7 @@ export default function TutorStudents() {
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    if (user) loadStudents()
-  }, [user])
-
-  async function loadStudents() {
+  const loadStudents = useCallback(async () => {
     try {
       const { data, error: studentsError } = await getAllStudents()
       if (studentsError) throw studentsError
@@ -27,9 +23,9 @@ export default function TutorStudents() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  async function loadStudentDetails(studentId) {
+  const loadStudentDetails = useCallback(async (studentId) => {
     if (!studentId) return
     setDetailsLoading(true)
     setError(null)
@@ -50,7 +46,11 @@ export default function TutorStudents() {
     } finally {
       setDetailsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (user) loadStudents()
+  }, [user, loadStudents])
 
   const totalPaid = payments
     .filter(p => p.status === 'completed')

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../../context/AuthContext'
+import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../../contexts/auth'
 import { getStudentPayments } from '../../lib/paymentsAPI'
 
 export default function StudentPayments() {
@@ -8,11 +8,7 @@ export default function StudentPayments() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all') // all, paid, outstanding
 
-  useEffect(() => {
-    if (user) loadPayments()
-  }, [user])
-
-  async function loadPayments() {
+  const loadPayments = useCallback(async () => {
     try {
       const { data, error } = await getStudentPayments(user.id)
       if (error) throw error
@@ -22,7 +18,13 @@ export default function StudentPayments() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
+
+  useEffect(() => {
+    if (user) {
+      loadPayments()
+    }
+  }, [user, loadPayments])
 
   const filteredPayments = payments.filter((payment) => {
     if (filter === 'paid') return payment.status === 'completed'

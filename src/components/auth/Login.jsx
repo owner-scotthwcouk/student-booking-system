@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../contexts/auth'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -9,7 +9,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   
-  const navigate = useNavigate() // Initialize hook
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()

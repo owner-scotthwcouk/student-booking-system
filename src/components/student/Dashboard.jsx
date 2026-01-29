@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getStudentBookings } from '../../lib/bookingAPI'
@@ -17,14 +17,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true)
   const [tutorLoadingError, setTutorLoadingError] = useState(null)
 
-  useEffect(() => {
-    if (user) {
-      loadBookings()
-      loadTutors()
-    }
-  }, [user])
-
-  async function loadBookings() {
+  const loadBookings = useCallback(async () => {
     try {
       const { data, error } = await getStudentBookings(user.id)
       if (error) throw error
@@ -34,9 +27,9 @@ export default function StudentDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
-  async function loadTutors() {
+  const loadTutors = useCallback(async () => {
     try {
       const { data, error } = await getAllTutors()
       if (error) {
@@ -54,7 +47,14 @@ export default function StudentDashboard() {
       console.error("Failed to load tutors", err)
       setTutorLoadingError(err.message || "Failed to load tutors")
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (user) {
+      loadBookings()
+      loadTutors()
+    }
+  }, [user, loadBookings, loadTutors])
 
   const handleBookLesson = () => {
     if (tutorLoadingError) {

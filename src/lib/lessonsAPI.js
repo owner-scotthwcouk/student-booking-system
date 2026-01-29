@@ -41,37 +41,16 @@ export async function getStudentLessons(studentId) {
 // Get lessons for a tutor
 export async function getTutorLessons(tutorId) {
   try {
-    // First get lessons
-    const { data: lessons, error: lessonsError } = await supabase
+    const { data, error } = await supabase
       .from('lessons')
       .select('*')
       .eq('tutor_id', tutorId)
       .order('lesson_date', { ascending: false })
     
-    if (lessonsError) throw lessonsError
-    
-    // Then get student profiles for each lesson
-    if (lessons && lessons.length > 0) {
-      const studentIds = [...new Set(lessons.map(l => l.student_id))]
-      const { data: students, error: studentsError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', studentIds)
-      
-      if (studentsError) throw studentsError
-      
-      // Merge student data into lessons
-      const lessonsWithStudents = lessons.map(lesson => ({
-        ...lesson,
-        student: students?.find(s => s.id === lesson.student_id) || null
-      }))
-      
-      return { data: lessonsWithStudents, error: null }
-    }
-    
-    return { data: lessons || [], error: null }
+    if (error) throw error
+    return { data, error: null }
   } catch (error) {
-    console.error('Error fetching tutor lessons:', error)
+    console.error('Error fetching lessons:', error)
     return { data: null, error }
   }
 }
@@ -118,7 +97,6 @@ export async function createLesson(lessonData) {
       .insert({
         student_id: lessonData.studentId,
         tutor_id: lessonData.tutorId,
-        booking_id: lessonData.bookingId || null,
         lesson_date: lessonData.lessonDate,
         lesson_time: lessonData.lessonTime,
         duration_minutes: lessonData.duration || 60,
@@ -193,10 +171,10 @@ export async function deleteLesson(lessonId) {
       .eq('id', lessonId)
     
     if (error) throw error
-    return { error: null }
+    return { data: null, error: null }
   } catch (error) {
     console.error('Error deleting lesson:', error)
-    return { error }
+    return { data: null, error }
   }
 }
 

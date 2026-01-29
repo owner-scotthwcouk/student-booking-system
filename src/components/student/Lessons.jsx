@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../hooks/useAuth'
-import { getStudentLessons, getLessonActivities } from '../../lib/lessonsAPI'
-import { getLessonHomework } from '../../lib/homeworkAPI'
+import { useAuth } from '../../contexts/auth'
+import { supabase } from '../../lib/supabaseClient'
 import HomeworkSubmission from './HomeworkSubmission'
 
-export default function StudentLessons() {
+export default function Lessons() {
   const { user } = useAuth()
   const [lessons, setLessons] = useState([])
   const [selectedLesson, setSelectedLesson] = useState(null)
@@ -13,16 +12,21 @@ export default function StudentLessons() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) loadLessons()
+    loadLessons()
   }, [user])
 
   async function loadLessons() {
     try {
-      const { data, error } = await getStudentLessons(user.id)
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('student_id', user.id)
+        .order('lesson_date', { ascending: false })
+
       if (error) throw error
       setLessons(data || [])
-    } catch (err) {
-      console.error('Failed to load lessons', err)
+    } catch (error) {
+      console.error('Error loading lessons:', error)
     } finally {
       setLoading(false)
     }

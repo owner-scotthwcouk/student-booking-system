@@ -1,17 +1,16 @@
 // src/components/auth/Register.jsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
-
+import { useAuth } from '../../contexts/auth'
 export default function Register() {
   const navigate = useNavigate()
-  const { signUp } = useAuth()
 
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     fullName: '',
+    role: 'student',
     dateOfBirth: '',
   })
 
@@ -31,15 +30,16 @@ export default function Register() {
     setError(null)
 
     try {
-      const profileData = {
-        full_name: formData.fullName,
-        date_of_birth: formData.dateOfBirth || null,
-      }
-
-      const { user, error: signUpError } = await signUp({
+      const { user, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        profileData,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            role: formData.role,
+            date_of_birth: formData.dateOfBirth || null,
+          },
+        },
       })
 
       if (signUpError) {
@@ -47,33 +47,25 @@ export default function Register() {
       }
 
       if (!user?.id) {
-        // This can happen in edge cases; treat as failure
         throw new Error('User creation failed')
       }
 
-      // Create or update profile row. This is resilient if you already have a trigger.
+      // Create profile row
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert(
-          {
-            id: user.id,
-            email: formData.email,
-            full_name: formData.fullName,
-            date_of_birth: formData.dateOfBirth || null,
-          },
-          { onConflict: 'id' },
-        )
+        .upsert({
+          id: user.id,
+          email: formData.email,
+          full_name: formData.fullName,
+          role: formData.role,
+          date_of_birth: formData.dateOfBirth || null,
+        })
 
-      // If RLS prevents this insert, you must fix policies or use a trigger/server function.
-      // We show a useful message rather than silently ignoring it.
       if (profileError) {
-        // Do not hard-fail account creation; user exists
-        // but let them know profile setup needs attention.
-        // eslint-disable-next-line no-console
         console.error('Profile upsert error:', profileError)
       }
 
-      alert('Registration successful. If email confirmation is enabled, please confirm your email before logging in.')
+      alert('Registration successful. Please check your email to confirm your account.')
       navigate('/login')
     } catch (err) {
       setError(err.message || 'Registration failed')
@@ -87,7 +79,7 @@ export default function Register() {
       <div className="card">
         <h2>Create an Account</h2>
         <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-          Join Edumaxim
+          Join TutorHub
         </p>
 
         {error && (
@@ -131,6 +123,19 @@ export default function Register() {
               required
               style={{ width: '100%', padding: '0.5rem' }}
             />
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>I am a...</label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '0.5rem' }}
+            >
+              <option value="student">Student</option>
+              <option value="tutor">Tutor</option>
+            </select>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>

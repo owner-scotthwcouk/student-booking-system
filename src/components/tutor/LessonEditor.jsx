@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getTutorLessons, createLesson, updateLesson, archiveLesson, deleteLesson } from '../../lib/lessonsAPI'
 import { getAllStudents } from '../../lib/profileAPI'
-
+import { useAuth } from '../../contexts/auth'
 export default function LessonEditor({ tutorId }) {
   const [lessons, setLessons] = useState([])
   const [students, setStudents] = useState([])
@@ -23,12 +23,7 @@ export default function LessonEditor({ tutorId }) {
     status: 'scheduled'
   })
 
-  useEffect(() => {
-    loadLessons()
-    loadStudents()
-  }, [tutorId])
-
-  async function loadLessons() {
+  const loadLessons = useCallback(async () => {
     try {
       const { data, error } = await getTutorLessons(tutorId)
       if (error) throw error
@@ -38,16 +33,21 @@ export default function LessonEditor({ tutorId }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [tutorId])
 
-  async function loadStudents() {
+  const loadStudents = useCallback(async () => {
     try {
       const { data } = await getAllStudents()
       setStudents(data || [])
     } catch (err) {
       console.error('Failed to load students', err)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadLessons()
+    loadStudents()
+  }, [loadLessons, loadStudents])
 
   const handleChange = (e) => {
     setFormData({

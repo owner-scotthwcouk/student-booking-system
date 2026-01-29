@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { getAllStudents, getTutorHourlyRate } from '../../lib/profileAPI'
 import { createBooking } from '../../lib/bookingAPI'
@@ -26,23 +26,16 @@ export default function POSSystem() {
     postCode: ''
   })
 
-  useEffect(() => {
-    if (user) {
-      loadStudents()
-      loadRate()
-    }
-  }, [user])
-
-  async function loadStudents() {
+  const loadStudents = useCallback(async () => {
     try {
       const { data } = await getAllStudents()
       setStudents(data || [])
     } catch (err) {
       console.error('Failed to load students', err)
     }
-  }
+  }, [])
 
-  async function loadRate() {
+  const loadRate = useCallback(async () => {
     try {
       const { data } = await getTutorHourlyRate(user.id)
       if (data && data.hourly_rate) {
@@ -51,7 +44,14 @@ export default function POSSystem() {
     } catch (err) {
       console.error('Failed to load rate', err)
     }
-  }
+  }, [user.id])
+
+  useEffect(() => {
+    if (user) {
+      loadStudents()
+      loadRate()
+    }
+  }, [user, loadStudents, loadRate])
 
   const handleStudentChange = (e) => {
     const studentId = e.target.value

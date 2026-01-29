@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { recordPayment } from '../../lib/paymentsAPI'
+import { useAuth } from '../../contexts/auth'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
 
@@ -113,11 +114,7 @@ export default function StripePayment() {
   const [booking, setBooking] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchBooking()
-  }, [bookingId])
-
-  async function fetchBooking() {
+  const fetchBooking = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('bookings')
@@ -132,7 +129,11 @@ export default function StripePayment() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [bookingId])
+
+  useEffect(() => {
+    fetchBooking()
+  }, [fetchBooking])
 
   if (loading) return <div>Loading...</div>
   if (!booking) return <div>Booking not found</div>

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../contexts/auth'
 
 export default function AvailabilityManager({ tutorId }) {
   const [hourlyRate, setHourlyRate] = useState(30.00)
@@ -8,15 +9,10 @@ export default function AvailabilityManager({ tutorId }) {
   const [success, setSuccess] = useState(false)
   const [availability, setAvailability] = useState([])
 
-  useEffect(() => {
-    loadHourlyRate()
-    loadAvailability()
-  }, [tutorId])
-
-  async function loadHourlyRate() {
+  const loadHourlyRate = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('hourly_rate')
         .eq('id', tutorId)
         .single()
@@ -28,9 +24,9 @@ export default function AvailabilityManager({ tutorId }) {
     } catch (err) {
       console.error('Error loading hourly rate:', err)
     }
-  }
+  }, [tutorId])
 
-  async function loadAvailability() {
+  const loadAvailability = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('tutor_availability')
@@ -43,16 +39,21 @@ export default function AvailabilityManager({ tutorId }) {
     } catch (err) {
       console.error('Error loading availability:', err)
     }
-  }
+  }, [tutorId])
 
-  async function saveHourlyRate() {
+  useEffect(() => {
+    loadHourlyRate()
+    loadAvailability()
+  }, [loadHourlyRate, loadAvailability])
+
+  const saveHourlyRate = async () => {
     setLoading(true)
     setError(null)
     setSuccess(false)
 
     try {
       const { error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .update({ hourly_rate: parseFloat(hourlyRate) })
         .eq('id', tutorId)
 

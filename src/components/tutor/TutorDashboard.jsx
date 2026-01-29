@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../contexts/auth'
 import POSSystem from './POSSystem'
 import AvailabilityManager from './AvailabilityManager'
 import LessonEditor from './LessonEditor'

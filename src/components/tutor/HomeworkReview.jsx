@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { getTutorHomework, updateHomeworkFeedback } from '../../lib/homeworkAPI'
 import { downloadFile } from '../../lib/fileUploadAPI'
@@ -14,21 +14,21 @@ export default function HomeworkReview() {
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all') // all, submitted, marked
 
-  useEffect(() => {
-    if (user) loadHomework()
-  }, [user])
-
-  async function loadHomework() {
+  const loadHomework = useCallback(async () => {
     try {
       const { data, error } = await getTutorHomework(user.id)
       if (error) throw error
       setHomework(data || [])
     } catch (err) {
-      console.error('Failed to load homework', err)
+      setError(err.message || 'Failed to load homework')
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
+
+  useEffect(() => {
+    loadHomework()
+  }, [loadHomework])
 
   const handleSelectHomework = (hw) => {
     setSelectedHomework(hw)
@@ -62,35 +62,29 @@ export default function HomeworkReview() {
     }
   }
 
-  const handleSubmitFeedback = async (e) => {
-    e.preventDefault()
-    if (!selectedHomework) return
-
-    setSaving(true)
-    setError(null)
-
+  const handleSubmitFeedback = useCallback(async (homeworkId) => {
     try {
       const markedDateTime = markedAt ? new Date(markedAt).toISOString() : new Date().toISOString()
       
-      const { error: updateError } = await updateHomeworkFeedback(
-        selectedHomework.id,
+      const { error } = await updateHomeworkFeedback(
+        homeworkId,
         feedback,
         markedDateTime,
         user.id
       )
       
-      if (updateError) throw updateError
+      if (error) throw error
 
-      setSelectedHomework(null)
       setFeedback('')
       setMarkedAt('')
+      setSelectedHomework(null)
       loadHomework()
     } catch (err) {
       setError(err.message || 'Failed to save feedback')
     } finally {
       setSaving(false)
     }
-  }
+  }, [feedback, markedAt, user.id, loadHomework])
 
   const filteredHomework = homework.filter((hw) => {
     if (filter === 'submitted') return hw.status === 'submitted'
@@ -171,7 +165,7 @@ export default function HomeworkReview() {
               Download Homework
             </button>
 
-            <form onSubmit={handleSubmitFeedback} className="feedback-form">
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmitFeedback(selectedHomework.id) }} className="feedback-form">
               <div className="form-group">
                 <label htmlFor="feedback">Feedback</label>
                 <textarea
