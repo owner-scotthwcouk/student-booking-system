@@ -162,19 +162,19 @@ export default function HomePage() {
                 <div className="window-title">lesson.py</div>
               </div>
               <div className="code-content">
-                <pre>de><span className="code-comment"># Your journey starts here</span>
-<span className="code-keyword">class</span> <span className="code-class">TechCareer</span>:
-    <span className="code-keyword">def</span> <span className="code-function">__init__</span>(self):
+                <pre>{`# Your journey starts here
+class TechCareer:
+    def __init__(self):
         self.skills = []
         
-    <span className="code-keyword">def</span> <span className="code-function">book_tutor</span>(self, subject):
-        tutor = <span className="code-function">find_expert</span>(subject)
-        self.skills.<span className="code-function">append</span>(subject)
-        <span className="code-keyword">return</span> <span className="code-string">"Learning started! 🚀"</span>
+    def book_tutor(self, subject):
+        tutor = find_expert(subject)
+        self.skills.append(subject)
+        return "Learning started! 🚀"
 
-<span className="code-comment"># Start your success story</span>
-me = <span className="code-class">TechCareer</span>()
-me.<span className="code-function">book_tutor</span>(<span className="code-string">"Python"</span>)</code></pre>
+# Start your success story
+me = TechCareer()
+me.book_tutor("Python")`}</pre>
               </div>
             </div>
           </div>
@@ -374,4 +374,76 @@ me.<span className="code-function">book_tutor</span>(<span className="code-strin
                 <li><span className="check">✓</span> Specialized knowledge</li>
                 <li><span className="check">✓</span> 5+ years experience</li>
                 <li><span className="check">✓</span> Career mentoring</li>
-                <li><span className="check">✓</span>
+                <li><span className="check">✓</span> Comprehensive resources</li>
+              </ul>
+              <button 
+                className="btn btn-pricing"
+                onClick={() => navigate('/tutors?rate=40-60')}
+              >
+                Find Tutors
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="testimonials" id="testimonials">
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">What Students Say</h2>
+            <p className="section-subtitle">Real feedback from our learners</p>
+          </div>
+          
+          <div className="testimonials-slider">
+            {/* Slider content will be dynamically generated */}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+      <section className="cta-section">
+        <div className="container">
+          <div className="cta-content">
+            <h2>Ready to Start Your Learning Journey?</h2>
+            <p>Sign up now and get your first lesson at a discounted rate!</p>
+            <button className="btn btn-primary btn-cta" onClick={() => navigate('/signup')}>
+              Get Started Today
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="container">
+          <div className="footer-top">
+            <div className="footer-logo">
+              <span className="logo-icon">🎓</span>
+              <span className="logo-text">TutorHub</span>
+            </div>
+            <div className="footer-links">
+              <a href="#categories" className="footer-link">Subjects</a>
+              <a href="#how-it-works" className="footer-link">How It Works</a>
+              <a href="#pricing" className="footer-link">Pricing</a>
+              <a href="/about" className="footer-link">About Us</a>
+              <a href="/contact" className="footer-link">Contact</a>
+            </div>
+          </div>
+
+          <div className="footer-bottom">
+            <div className="social-links">
+              <a href="#" className="social-link">Facebook</a>
+              <a href="#" className="social-link">Twitter</a>
+              <a href="#" className="social-link">Instagram</a>
+              <a href="#" className="social-link">LinkedIn</a>
+            </div>
+            <div className="footer-text">
+              &copy; 2023 TutorHub. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
