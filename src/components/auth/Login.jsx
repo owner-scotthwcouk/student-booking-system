@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate, Link } from 'react-router-dom' // Import useNavigate
+import { supabase } from '../../lib/supabaseClient'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -8,7 +9,6 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   
-  const { signIn } = useAuth()
   const navigate = useNavigate() // Initialize hook
 
   const handleSubmit = async (e) => {
@@ -17,14 +17,36 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const { error } = await signIn({ email, password })
-      if (error) throw error
-      
-      // FIX: Use navigate() instead of window.location.href
-      // This prevents the browser from requesting '/dashboard' from the server (which 404s)
-      navigate('/dashboard') 
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) throw signInError
+
+      if (!data.user?.id) {
+        throw new Error('Login failed')
+      }
+
+      // Fetch user profile to determine role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profileError) throw profileError
+
+      // Redirect based on role
+      if (profile.role === 'tutor') {
+        navigate('/tutor-dashboard')
+      } else if (profile.role === 'student') {
+        navigate('/student-dashboard')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (error) {
-      setError(error.message)
+      setError(error.message || 'Login failed')
     } finally {
       setLoading(false)
     }
