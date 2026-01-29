@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./contexts/auth";
+import TutorSelection from './components/student/TutorSelection'
+import BookingForm from './components/student/BookingForm'
 
 // Pages
 import HomePage from "./pages/HomePage";
@@ -44,7 +46,8 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
+        <Route path="/student/tutors" element={<TutorSelection />} />
+        <Route path="/student/book/:tutorId" element={<BookingForm />} />
         {/* Protected Routes */}
         <Route
           path="/student-dashboard"

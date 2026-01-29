@@ -4,6 +4,7 @@ import StudentLessons from './Lessons'
 import StudentPayments from './Payments'
 import HomeworkSubmission from './HomeworkSubmission'
 import './StudentDashboard.css'
+import { useNavigate } from 'react-router-dom'
 
 export default function StudentDashboard() {
   const { user, profile } = useAuth()
@@ -50,7 +51,22 @@ export default function StudentDashboard() {
       </div>
 
       <div className="dashboard-content">
-        {activeTab === 'bookings' && <div><h2>My Bookings</h2><p>Booking management coming soon</p></div>}
+        {activeTab === 'bookings' && <div><h2>My Bookings</h2><p>Booking management coming soon</p></div>
+        <button 
+          onClick={() => navigate('/student/tutors')} 
+          className="btn-primary"
+          style={{
+            padding: '1rem 2rem',
+            backgroundColor: '#7c3aed',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            cursor: 'pointer'
+            }}>
+  Book a New Lesson
+</button>}
         {activeTab === 'lessons' && <StudentLessons />}
         {activeTab === 'payments' && <StudentPayments />}
         {activeTab === 'homework' && <HomeworkSubmission />}
