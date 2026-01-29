@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { getTutorAvailability, setTutorAvailability as setAvailability, deleteTutorAvailability, getBlockedTimeSlots, blockTimeSlot, deleteBlockedTimeSlot } from '../../lib/availabilityAPI'
+import { getTutorHourlyRate, updateTutorHourlyRate } from '../../lib/profileAPI'
 
 export default function AvailabilityManager() {
   const { user } = useAuth()
@@ -9,6 +10,10 @@ export default function AvailabilityManager() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  
+  // New state for hourly rate
+  const [hourlyRate, setHourlyRate] = useState('')
+
   const [showAvailabilityForm, setShowAvailabilityForm] = useState(false)
   const [showBlockForm, setShowBlockForm] = useState(false)
 
@@ -33,6 +38,7 @@ export default function AvailabilityManager() {
     if (user) {
       loadAvailability()
       loadBlockedSlots()
+      loadHourlyRate()
     }
   }, [user])
 
@@ -58,6 +64,36 @@ export default function AvailabilityManager() {
       setBlockedSlots(data || [])
     } catch (err) {
       console.error('Failed to load blocked slots', err)
+    }
+  }
+
+  // New function to load hourly rate
+  async function loadHourlyRate() {
+    try {
+      const { data, error } = await getTutorHourlyRate(user.id)
+      if (error) throw error
+      if (data) {
+        setHourlyRate(data.hourly_rate)
+      }
+    } catch (err) {
+      console.error('Failed to load hourly rate', err)
+    }
+  }
+
+  // New handler for hourly rate submission
+  const handleRateSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    
+    try {
+      const { error } = await updateTutorHourlyRate(user.id, parseFloat(hourlyRate))
+      if (error) throw error
+      alert('Hourly rate updated successfully')
+    } catch (err) {
+      setError(err.message || 'Failed to update hourly rate')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -146,6 +182,34 @@ export default function AvailabilityManager() {
       <h2>Availability Management</h2>
 
       {error && <div className="error-message">{error}</div>}
+
+      {/* NEW: Hourly Rate Section */}
+      <div className="availability-section">
+        <div className="section-header">
+          <h3>Hourly Rate</h3>
+        </div>
+        <div style={{ padding: '1.5rem' }}>
+          <form onSubmit={handleRateSubmit} style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="hourlyRate">Rate per Hour (£)</label>
+              <input
+                type="number"
+                id="hourlyRate"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                required
+                style={{ width: '150px' }}
+              />
+            </div>
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving ? 'Saving...' : 'Update Rate'}
+            </button>
+          </form>
+        </div>
+      </div>
 
       {/* Weekly Availability */}
       <div className="availability-section">
@@ -373,4 +437,3 @@ export default function AvailabilityManager() {
     </div>
   )
 }
-

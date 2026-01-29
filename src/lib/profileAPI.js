@@ -139,3 +139,43 @@ export async function uploadProfilePicture(userId, file) {
     return { url: null, error }
   }
 }
+
+// --- NEW FUNCTIONS FOR HOURLY RATE ---
+
+// Get tutor hourly rate from user_profiles table
+export async function getTutorHourlyRate(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('hourly_rate')
+      .eq('id', userId)
+      .maybeSingle()
+    
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error fetching hourly rate:', error)
+    return { data: null, error }
+  }
+}
+
+// Update tutor hourly rate in user_profiles table
+export async function updateTutorHourlyRate(userId, rate) {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert({ 
+        id: userId, 
+        hourly_rate: rate,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+    
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error updating hourly rate:', error)
+    return { data: null, error }
+  }
+}
