@@ -54,7 +54,7 @@ class TutorDashboard {
 		section.appendChild(fieldContainer);
 	}
 
-	saveHourlyRate(value: string) {
+	async saveHourlyRate(value: string) {
 		const rate = parseFloat(value);
 		if (isNaN(rate) || rate < 0) {
 			alert('Please enter a valid hourly rate');
@@ -62,6 +62,7 @@ class TutorDashboard {
 		}
 		const tutor = getCurrentTutor();
 		tutor.setHourlyRate(rate);
+		await tutor.saveHourlyRateToDatabase(getCurrentUserId());
 		alert('Hourly rate updated successfully');
 	}
 

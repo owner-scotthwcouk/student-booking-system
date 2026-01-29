@@ -1,0 +1,1 @@
+ALTER TABLE auth.users ADD COLUMN hourly_rate DECIMAL(10, 2) DEFAULT 0;
