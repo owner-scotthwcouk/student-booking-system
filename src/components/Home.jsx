@@ -139,32 +139,6 @@ export default function Home() {
           >
             Get Started as Student
           </button>
-          <button
-            onClick={() => navigate('/register')}
-            style={{
-              padding: '1.25rem 3rem',
-              backgroundColor: 'transparent',
-              color: '#e5e5e5',
-              border: '2px solid #7c3aed',
-              borderRadius: '12px',
-              fontSize: '1.25rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#7c3aed'
-              e.target.style.color = '#ffffff'
-              e.target.style.transform = 'translateY(-2px)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent'
-              e.target.style.color = '#e5e5e5'
-              e.target.style.transform = 'translateY(0)'
-            }}
-          >
-            Become a Tutor
-          </button>
         </div>
 
         {/* Features */}
@@ -187,9 +161,9 @@ export default function Home() {
           onMouseEnter={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
           onMouseLeave={(e) => e.currentTarget.style.borderColor = '#3a3a3a'}
           >
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Expert Tutors</h3>
-            <p style={{ color: '#a0a0a0' }}>Connect with qualified tutors across various subjects</p>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎓</div>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Customised Learning Journey</h3>
+            <p style={{ color: '#a0a0a0' }}>Personalised lessons tailored to your pace, style, and learning goals</p>
           </div>
 
           <div style={{
