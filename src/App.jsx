@@ -1,83 +1,31 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
-import "./App.css";
+
+// Pages
+import HomePage from "./pages/HomePage";
 
 // Components
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
-import ProtectedRoute from "./components/shared/ProtectedRoute";
-import StudentDashboard from "./components/student/StudentDashboard";
-import TutorDashboard from "./components/tutor/Dashboard";
-import BookingForm from "./components/student/BookingForm";
-import PayNow from "./components/PayNow";
-import PaymentPage from "./pages/PaymentPage";
-import HomePage from "./pages/HomePage";
 
 function App() {
-  const { user, isTutor, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (loading) return <div className="loading">Loading App...</div>;
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
 
   return (
     <Router>
-      <div className="app-container">
-        <nav className="navbar">
-          <Link to="/" className="nav-logo">
-            Edumaxim
-          </Link>
-          <div className="nav-links">
-            {user ? (
-              <>
-                <Link to="/dashboard">Dashboard</Link>
-                <button onClick={signOut} className="btn-signout">
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <Link to="/login">Login</Link>
-            )}
-          </div>
-        </nav>
-
-        <main className="main-content">
-          <Routes>
-            {/* Home page - new marketing landing page */}
-            <Route path="/" element={<HomePage />} />
-            
-            {/* Auth routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  {isTutor ? <TutorDashboard /> : <StudentDashboard />}
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/book/:tutorId"
-              element={
-                <ProtectedRoute>
-                  <BookingForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment/:bookingId"
-              element={
-                <ProtectedRoute>
-                  <PaymentPage />
-                </ProtectedRoute>
-              }
-            />
-            {/* Catch all - redirect to home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Router>
   );
 }
