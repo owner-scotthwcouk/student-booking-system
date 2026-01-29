@@ -235,7 +235,16 @@ export default function POSSystem() {
           </div>
 
           {/* Section 2: Payment Details */}
-          <div className="form-section">
+          <div className="form-section"
+          style={{
+            backgroundColor: '#ffffff',
+            color: '#000000',
+            fontSize: '16px',
+            padding: '12px',
+            border: '2px solid #333'
+          }}
+>
+
             <h3>Card Details</h3>
             
             <div className="form-group">
