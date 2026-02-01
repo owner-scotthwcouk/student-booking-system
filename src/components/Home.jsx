@@ -215,7 +215,7 @@ export default function Home() {
         <button
           onClick={() => {
             // Option 1: Trigger mailto link on click
-            window.location.href = "mailto:scott@scott-hw.online?subject=I would like to become a tutor with your platform&body=Hi%20Edumaxim%20Team%2C%0D%0A%0D%0AI%20would%20like%20to%20enquire%20about%20becoming%20a%20tutor%20with%20Edumaxim.%2C%0D%0A%0D%0AHere%20are%20my%20details:%2C%0D%0A%0D%0AFull%20Name:%2C%0D%0A%0D%0AEmail%20Address:%2C%0D%0A%0D%0Country%20of%20residence:%2C%0D%0A%0D%0Subject%20I%20teach:%2C%0D%0A%0D%0AOther%20Details%20I%20would%20like%20to%20include%20are:"
+            window.location.href = "mailto:scott@scott-hw.online?subject=I%20would%20like%20to%20become%20a%20tutor%20with%20Edumaxim&body=Hi%20Edumaxim%20Team%2C%0D%0A%0D%0AI%20would%20like%20to%20enquire%20about%20becoming%20a%20tutor%20with%20Edumaxim.%0D%0A%0D%0AHere%20are%20my%20details%3A%0D%0A%0D%0AFull%20Name%3A%0D%0A%0D%0AEmail%20Address%3A%0D%0A%0D%0ACountry%20of%20residence%3A%0D%0A%0D%0ASubject%20I%20teach%3A%0D%0A%0D%0AOther%20Details%20I%20would%20like%20to%20include%20are%3A"
           }}
           style={{
             padding: '0.75rem 2rem',
