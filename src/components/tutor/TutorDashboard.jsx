@@ -1,10 +1,5 @@
-// Remove this:
-// import HourlyRateSettings from './HourlyRateSettings'
-
-// Add this:
-import SettingsPage from './Settings'
 import { useState } from 'react'
-import { useAuth } from '../../contexts/auth' //
+import { useAuth } from '../../contexts/auth'
 import { 
   CalendarDays, 
   Users, 
@@ -25,7 +20,7 @@ import LessonEditor from './LessonEditor'
 import BookingManagement from './BookingManagement'
 import TutorPayments from './Payments'
 import Students from './Students'
-import SettingsPage from './Settings' // Ensure this file exists!
+import SettingsPage from './Settings' // This import should now work
 import './TutorDashboard.css'
 
 export default function TutorDashboard() {
