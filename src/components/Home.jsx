@@ -139,6 +139,38 @@ export default function Home() {
           >
             Get Started as Student
           </button>
+          
+          <button
+            onClick={() => {
+              window.location.href = "mailto:scott@scott-hw.online?subject=I%20would%20like%20to%20become%20a%20tutor%20with%20Edumaxim&body=Hi%20Edumaxim%20Team%2C%0D%0A%0D%0AI%20would%20like%20to%20enquire%20about%20becoming%20a%20tutor%20with%20Edumaxim.%0D%0A%0D%0AHere%20are%20my%20details%3A%0D%0A%0D%0AFull%20Name%3A%0D%0A%0D%0AEmail%20Address%3A%0D%0A%0D%0ACountry%20of%20residence%3A%0D%0A%0D%0ASubject%20I%20teach%3A%0D%0A%0D%0AOther%20Details%20I%20would%20like%20to%20include%20are%3A"
+            }}
+            style={{
+              padding: '1.25rem 3rem',
+              backgroundColor: '#1a1a1a', 
+              color: '#e5e5e5',
+              border: '2px solid #3a3a3a',
+              borderRadius: '12px',
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = '#7c3aed'
+              e.target.style.color = '#ffffff'
+              e.target.style.backgroundColor = '#2a2a2a'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = '#3a3a3a'
+              e.target.style.color = '#e5e5e5'
+              e.target.style.backgroundColor = '#1a1a1a'
+            }}
+          >
+            Become a Tutor
+          </button>
         </div>
 
         {/* Features */}
@@ -214,8 +246,7 @@ export default function Home() {
         {/* Contact Button */}
         <button
           onClick={() => {
-            // Option 1: Trigger mailto link on click
-            window.location.href = "mailto:scott@scott-hw.online?subject=I%20would%20like%20to%20become%20a%20tutor%20with%20Edumaxim&body=Hi%20Edumaxim%20Team%2C%0D%0A%0D%0AI%20would%20like%20to%20enquire%20about%20becoming%20a%20tutor%20with%20Edumaxim.%0D%0A%0D%0AHere%20are%20my%20details%3A%0D%0A%0D%0AFull%20Name%3A%0D%0A%0D%0AEmail%20Address%3A%0D%0A%0D%0ACountry%20of%20residence%3A%0D%0A%0D%0ASubject%20I%20teach%3A%0D%0A%0D%0AOther%20Details%20I%20would%20like%20to%20include%20are%3A"
+            window.location.href = "mailto:scott@scott-hw.online?subject=Enquiry%20from%20Edumaxim%20Website&body=Hi%20Edumaxim%20Team%2C%0D%0A%0D%0AI%20would%20like%20to%20enquire%20about..."
           }}
           style={{
             padding: '0.75rem 2rem',
@@ -242,10 +273,16 @@ export default function Home() {
             e.currentTarget.style.backgroundColor = '#2a2a2a'
           }}
         >
-          👨🏻‍💻Become a Tutor👨🏻‍💻
+          ✉️ Contact Support
         </button>
 
-        <p>© 2026 Edumaxim. All rights reserved.</p>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '1.5rem' }}>
+          <a href="/policies" style={{ color: '#a0a0a0', textDecoration: 'none', fontSize: '0.9rem' }}>Privacy Policy</a>
+          <a href="/policies" style={{ color: '#a0a0a0', textDecoration: 'none', fontSize: '0.9rem' }}>Terms of Service</a>
+          <a href="/policies" style={{ color: '#a0a0a0', textDecoration: 'none', fontSize: '0.9rem' }}>FAQ</a>
+        </div>
+
+        <p style={{ marginTop: '0.5rem' }}>© 2026 Edumaxim. All rights reserved.</p>
       </footer>
     </div>
   )
