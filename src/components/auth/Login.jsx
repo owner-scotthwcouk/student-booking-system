@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { Mail, Lock, LogIn, Loader2 } from 'lucide-react'
+import { Mail, Lock, LogIn, Loader2, AlertCircle, ShieldCheck } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -56,11 +56,19 @@ export default function Login() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
+          <div className="header-icon">
+            <ShieldCheck size={32} strokeWidth={1.5} />
+          </div>
           <h2>Welcome Back</h2>
           <p>Sign in to continue to TutorHub</p>
         </div>
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && (
+          <div className="auth-error">
+            <AlertCircle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
