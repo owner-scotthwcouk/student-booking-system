@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { Mail, Lock, LogIn, Loader2, AlertCircle, ShieldCheck } from 'lucide-react'
+import { Mail, Lock, LogIn, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -28,7 +28,6 @@ export default function Login() {
         throw new Error('Login failed')
       }
 
-      // Fetch user profile to determine role
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -37,7 +36,6 @@ export default function Login() {
 
       if (profileError) throw profileError
 
-      // Redirect based on role
       if (profile.role === 'tutor') {
         navigate('/tutor-dashboard')
       } else if (profile.role === 'student') {
@@ -57,7 +55,7 @@ export default function Login() {
       <div className="auth-card">
         <div className="auth-header">
           <div className="header-icon">
-            <ShieldCheck size={32} strokeWidth={1.5} />
+            <ShieldCheck size={32} />
           </div>
           <h2>Welcome Back</h2>
           <p>Sign in to continue to TutorHub</p>
@@ -74,7 +72,6 @@ export default function Login() {
           <div className="input-group">
             <label htmlFor="email">Email Address</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
               <input
                 id="email"
                 type="email"
@@ -83,13 +80,13 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <Mail className="input-icon" size={18} />
             </div>
           </div>
           
           <div className="input-group">
             <label htmlFor="password">Password</label>
             <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
               <input
                 id="password"
                 type="password"
@@ -98,6 +95,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <Lock className="input-icon" size={18} />
             </div>
           </div>
 
