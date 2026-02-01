@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
+import { getSystemSetting } from '../../lib/settingsAPI' //
 import { Mail, Lock, LogIn, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
-import { getSystemSetting } from '../../lib/settingsAPI'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -29,6 +29,7 @@ export default function Login() {
         throw new Error('Login failed')
       }
 
+      // Fetch user profile to determine role
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -37,12 +38,27 @@ export default function Login() {
 
       if (profileError) throw profileError
 
+      // --- MAINTENANCE MODE CHECK START ---
+      // If the user is a student, check if maintenance mode is active
+      if (profile.role === 'student') {
+        const { data: setting } = await getSystemSetting('maintenance_mode')
+        
+        if (setting && setting.value === 'true') {
+          // Log them out immediately so they don't stay in a half-logged-in state
+          await supabase.auth.signOut()
+          
+          throw new Error("⚠️ Maintenance: We are currently upgrading the system. Please try again later.")
+        }
+      }
+      // --- MAINTENANCE MODE CHECK END ---
+
+      // Redirect based on role
       if (profile.role === 'tutor') {
-        navigate('/tutor-dashboard')
+        navigate('/tutor') // Updated to match your App.jsx routes
       } else if (profile.role === 'student') {
-        navigate('/student-dashboard')
+        navigate('/student') // Updated to match your App.jsx routes
       } else {
-        navigate('/dashboard')
+        navigate('/')
       }
     } catch (error) {
       setError(error.message || 'Login failed')
@@ -59,7 +75,7 @@ export default function Login() {
             <ShieldCheck size={32} />
           </div>
           <h2>Welcome Back</h2>
-          <p>Sign in to continue to TutorHub</p>
+          <p>Sign in to continue to Edumaxim</p>
         </div>
 
         {error && (
