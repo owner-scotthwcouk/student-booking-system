@@ -1,3 +1,8 @@
+I have updated the **Home** screen (`src/components/Home.jsx`) to display **Edumaxim** in the navigation header and the footer, replacing the previous "TutorBooking" branding.
+
+### `src/components/Home.jsx`
+
+```jsx
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth'
 import { useEffect } from 'react'
@@ -34,7 +39,7 @@ export default function Home() {
           color: '#7c3aed',
           fontWeight: 'bold'
         }}>
-          TutorBooking
+          Edumaxim
         </h1>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
@@ -207,8 +212,10 @@ export default function Home() {
         textAlign: 'center',
         color: '#a0a0a0'
       }}>
-        <p>© 2026 TutorBooking. All rights reserved.</p>
+        <p>© 2026 Edumaxim. All rights reserved.</p>
       </footer>
     </div>
   )
 }
+
+```
