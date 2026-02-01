@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { User, Mail, Lock, Calendar, BookOpen, Loader2 } from 'lucide-react'
+import { User, Mail, Lock, Calendar, BookOpen, Loader2, AlertCircle, UserPlus } from 'lucide-react'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -70,11 +70,19 @@ export default function Register() {
     <div className="auth-container">
       <div className="auth-card register-card">
         <div className="auth-header">
+          <div className="header-icon">
+            <UserPlus size={32} strokeWidth={1.5} />
+          </div>
           <h2>Create Account</h2>
           <p>Join TutorHub as a Student or Tutor</p>
         </div>
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && (
+          <div className="auth-error">
+            <AlertCircle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleRegister} className="auth-form">
           <div className="input-group">
