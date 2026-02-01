@@ -20,6 +20,8 @@ export default function Settings() {
   }, [])
 
   async function loadSettings() {
+    if (!user) return
+
     // Load Rate
     const { data: rateData } = await getTutorHourlyRate(user.id)
     if (rateData?.hourly_rate) setRate(rateData.hourly_rate)
