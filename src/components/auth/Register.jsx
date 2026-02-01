@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { User, Mail, Lock, Calendar, BookOpen, Loader2, UserPlus, AlertCircle } from 'lucide-react'
+import { User, Mail, Lock, Calendar, Loader2, UserPlus, AlertCircle } from 'lucide-react'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -10,7 +10,7 @@ export default function Register() {
     email: '',
     password: '',
     fullName: '',
-    role: 'student',
+    role: 'student', // Default role is hidden but still active
     dateOfBirth: '',
   })
 
@@ -74,7 +74,7 @@ export default function Register() {
             <UserPlus size={32} />
           </div>
           <h2>Create Account</h2>
-          <p>Join TutorHub as a Student or Tutor</p>
+          <p>Join TutorHub today</p>
         </div>
 
         {error && (
@@ -130,33 +130,16 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="input-group">
-              <label>I am a...</label>
-              <div className="input-wrapper">
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                >
-                  <option value="student">Student</option>
-                  <option value="tutor">Tutor</option>
-                </select>
-                <BookOpen className="input-icon" size={18} />
-              </div>
-            </div>
-
-            <div className="input-group">
-              <label>Date of Birth</label>
-              <div className="input-wrapper">
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                />
-                <Calendar className="input-icon" size={18} />
-              </div>
+          <div className="input-group">
+            <label>Date of Birth</label>
+            <div className="input-wrapper">
+              <input
+                type="date"
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+              />
+              <Calendar className="input-icon" size={18} />
             </div>
           </div>
 
