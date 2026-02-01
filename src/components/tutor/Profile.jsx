@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { updateProfile, uploadProfilePicture } from '../../lib/profileAPI'
+import { User, Camera, Save, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 export default function TutorProfile() {
   const { user, profile } = useAuth()
+  
+  // States
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     phone_number: '',
     address: '',
     date_of_birth: '',
-    subjects: '' // [NEW] Added subjects field
+    subjects: ''
   })
   const [profilePicture, setProfilePicture] = useState(null)
+  
+  // UI States
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -26,17 +31,14 @@ export default function TutorProfile() {
         phone_number: profile.phone_number || '',
         address: profile.address || '',
         date_of_birth: profile.date_of_birth || '',
-        subjects: profile.subjects || '' // [NEW] Load existing subject
+        subjects: profile.subjects || ''
       })
       setProfilePicture(profile.profile_picture_url)
     }
   }, [profile])
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleProfilePictureChange = async (e) => {
@@ -57,6 +59,8 @@ export default function TutorProfile() {
       
       setProfilePicture(url)
       await updateProfile(user.id, { profile_picture_url: url }, true)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
       setError(err.message || 'Failed to upload profile picture')
     } finally {
@@ -71,7 +75,6 @@ export default function TutorProfile() {
     setSuccess(false)
 
     try {
-      // Pass 'true' to indicate this is a tutor update
       const { error: updateError } = await updateProfile(user.id, formData, true)
       if (updateError) throw updateError
 
@@ -84,118 +87,277 @@ export default function TutorProfile() {
     }
   }
 
-  if (!profile) return <div>Loading profile...</div>
+  if (!profile) return <div style={{ padding: '2rem', color: '#fff' }}>Loading profile...</div>
+
+  // --- Styles ---
+  const containerStyle = {
+    backgroundColor: '#1e293b',
+    borderRadius: '16px',
+    border: '1px solid #334155',
+    overflow: 'hidden',
+    maxWidth: '1000px',
+    margin: '0 auto'
+  }
+
+  const headerStyle = {
+    padding: '1.5rem 2rem',
+    borderBottom: '1px solid #334155',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    backgroundColor: '#0f172a'
+  }
+
+  const bodyStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(250px, 300px) 1fr', // Sidebar | Content
+    gap: '0',
+    '@media (max-width: 768px)': {
+      gridTemplateColumns: '1fr'
+    }
+  }
+
+  const sidebarStyle = {
+    padding: '2rem',
+    borderRight: '1px solid #334155',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.3)'
+  }
+
+  const contentStyle = {
+    padding: '2rem'
+  }
+
+  const inputGroupStyle = {
+    marginBottom: '1.5rem'
+  }
+
+  const labelStyle = {
+    display: 'block',
+    color: '#94a3b8',
+    marginBottom: '0.5rem',
+    fontSize: '0.9rem',
+    fontWeight: '500'
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    backgroundColor: '#0f172a',
+    border: '1px solid #334155',
+    borderRadius: '8px',
+    color: '#f8fafc',
+    fontSize: '1rem',
+    transition: 'border-color 0.2s',
+    outline: 'none'
+  }
 
   return (
-    <div className="profile-container">
-      <h2>My Profile</h2>
+    <div style={containerStyle}>
+      {/* Header */}
+      <div style={headerStyle}>
+        <User size={24} color="#818cf8" />
+        <h2 style={{ margin: 0, color: '#fff', fontSize: '1.5rem' }}>Tutor Profile</h2>
+      </div>
 
-      {success && (
-        <div className="success-message">Profile updated successfully!</div>
+      {/* Messages */}
+      {error && (
+        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5', padding: '1rem', borderBottom: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', gap: '0.5rem' }}>
+          <AlertCircle size={20} /> {error}
+        </div>
       )}
-      {error && <div className="error-message">{error}</div>}
+      {success && (
+        <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#6ee7b7', padding: '1rem', borderBottom: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', gap: '0.5rem' }}>
+          <CheckCircle size={20} /> Changes saved successfully!
+        </div>
+      )}
 
-      <div className="profile-section">
-        <div className="profile-picture-section">
-          <div className="profile-picture-container">
+      <div className="profile-grid-layout" style={{ display: 'flex', flexWrap: 'wrap' }}>
+        
+        {/* Left Column: Photo */}
+        <div style={{ ...sidebarStyle, flex: '1 1 300px', borderRight: '1px solid #334155' }}>
+          <div style={{ 
+            width: '150px', 
+            height: '150px', 
+            borderRadius: '50%', 
+            backgroundColor: '#6366f1', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#fff',
+            overflow: 'hidden',
+            marginBottom: '1.5rem',
+            border: '4px solid #1e293b',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+          }}>
             {profilePicture ? (
-              <img src={profilePicture} alt="Profile" className="profile-picture" />
+              <img src={profilePicture} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div className="profile-picture-placeholder">
-                {profile.full_name?.charAt(0).toUpperCase()}
-              </div>
+              profile.full_name?.charAt(0).toUpperCase()
             )}
           </div>
-          <div className="profile-picture-upload">
-            <label htmlFor="profile-picture">
-              {uploading ? 'Uploading...' : 'Change Picture'}
-            </label>
+          
+          <label 
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              padding: '0.75rem 1.5rem', 
+              backgroundColor: '#334155', 
+              color: '#fff', 
+              borderRadius: '8px', 
+              cursor: uploading ? 'wait' : 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '500',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#475569'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#334155'}
+          >
+            <Camera size={18} />
+            {uploading ? 'Uploading...' : 'Change Photo'}
             <input
               type="file"
-              id="profile-picture"
               accept="image/*"
               onChange={handleProfilePictureChange}
               disabled={uploading}
               style={{ display: 'none' }}
             />
-          </div>
+          </label>
+          <p style={{ marginTop: '1rem', color: '#64748b', fontSize: '0.85rem' }}>
+            Recommended: Square JPG/PNG, max 2MB
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="profile-form">
-          <div className="form-group">
-            <label htmlFor="full_name">Full Name *</label>
-            <input
-              type="text"
-              id="full_name"
-              name="full_name"
-              value={formData.full_name}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        {/* Right Column: Form */}
+        <div style={{ ...contentStyle, flex: '2 1 400px' }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              
+              <div style={inputGroupStyle}>
+                <label htmlFor="full_name" style={labelStyle}>Full Name</label>
+                <input
+                  type="text"
+                  id="full_name"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleChange}
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                  onBlur={(e) => e.target.style.borderColor = '#334155'}
+                />
+              </div>
 
-          {/* [NEW] Subject I Teach Field */}
-          <div className="form-group">
-            <label htmlFor="subjects">Subject I Teach</label>
-            <input
-              type="text"
-              id="subjects"
-              name="subjects"
-              placeholder="e.g. Mathematics, English, Science"
-              value={formData.subjects}
-              onChange={handleChange}
-            />
-          </div>
+              <div style={inputGroupStyle}>
+                <label htmlFor="email" style={labelStyle}>Email Address</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                  onBlur={(e) => e.target.style.borderColor = '#334155'}
+                />
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="date_of_birth">Date of Birth</label>
-            <input
-              type="date"
-              id="date_of_birth"
-              name="date_of_birth"
-              value={formData.date_of_birth}
-              onChange={handleChange}
-            />
-          </div>
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email Address *</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+            <div style={inputGroupStyle}>
+              <label htmlFor="subjects" style={{...labelStyle, color: '#818cf8'}}>Subject(s) I Teach</label>
+              <input
+                type="text"
+                id="subjects"
+                name="subjects"
+                placeholder="e.g. Mathematics, English Literature, Science (GCSE)"
+                value={formData.subjects}
+                onChange={handleChange}
+                style={{...inputStyle, borderColor: '#4338ca', backgroundColor: 'rgba(67, 56, 202, 0.1)'}}
+                onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                onBlur={(e) => e.target.style.borderColor = '#4338ca'}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="phone_number">Phone Number</label>
-            <input
-              type="tel"
-              id="phone_number"
-              name="phone_number"
-              value={formData.phone_number}
-              onChange={handleChange}
-            />
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={inputGroupStyle}>
+                <label htmlFor="phone_number" style={labelStyle}>Phone Number</label>
+                <input
+                  type="tel"
+                  id="phone_number"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                  onBlur={(e) => e.target.style.borderColor = '#334155'}
+                />
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="address">Address</label>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              rows="3"
-            />
-          </div>
+              <div style={inputGroupStyle}>
+                <label htmlFor="date_of_birth" style={labelStyle}>Date of Birth</label>
+                <input
+                  type="date"
+                  id="date_of_birth"
+                  name="date_of_birth"
+                  value={formData.date_of_birth}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                  onBlur={(e) => e.target.style.borderColor = '#334155'}
+                />
+              </div>
+            </div>
 
-          <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </form>
+            <div style={inputGroupStyle}>
+              <label htmlFor="address" style={labelStyle}>Address / Bio</label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                rows="4"
+                style={{...inputStyle, resize: 'vertical'}}
+                onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                onBlur={(e) => e.target.style.borderColor = '#334155'}
+              />
+            </div>
+
+            <div style={{ paddingTop: '1rem', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                type="submit" 
+                disabled={saving}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 2rem',
+                  backgroundColor: '#6366f1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '1rem',
+                  cursor: saving ? 'wait' : 'pointer',
+                  opacity: saving ? 0.7 : 1,
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => !saving && (e.target.style.backgroundColor = '#4f46e5')}
+                onMouseLeave={(e) => !saving && (e.target.style.backgroundColor = '#6366f1')}
+              >
+                {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
