@@ -9,7 +9,8 @@ export default function TutorProfile() {
     email: '',
     phone_number: '',
     address: '',
-    date_of_birth: ''
+    date_of_birth: '',
+    subjects: '' // [NEW] Added subjects field
   })
   const [profilePicture, setProfilePicture] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -24,7 +25,8 @@ export default function TutorProfile() {
         email: profile.email || '',
         phone_number: profile.phone_number || '',
         address: profile.address || '',
-        date_of_birth: profile.date_of_birth || ''
+        date_of_birth: profile.date_of_birth || '',
+        subjects: profile.subjects || '' // [NEW] Load existing subject
       })
       setProfilePicture(profile.profile_picture_url)
     }
@@ -69,6 +71,7 @@ export default function TutorProfile() {
     setSuccess(false)
 
     try {
+      // Pass 'true' to indicate this is a tutor update
       const { error: updateError } = await updateProfile(user.id, formData, true)
       if (updateError) throw updateError
 
@@ -131,6 +134,19 @@ export default function TutorProfile() {
             />
           </div>
 
+          {/* [NEW] Subject I Teach Field */}
+          <div className="form-group">
+            <label htmlFor="subjects">Subject I Teach</label>
+            <input
+              type="text"
+              id="subjects"
+              name="subjects"
+              placeholder="e.g. Mathematics, English, Science"
+              value={formData.subjects}
+              onChange={handleChange}
+            />
+          </div>
+
           <div className="form-group">
             <label htmlFor="date_of_birth">Date of Birth</label>
             <input
@@ -184,4 +200,3 @@ export default function TutorProfile() {
     </div>
   )
 }
-
