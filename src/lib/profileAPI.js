@@ -30,6 +30,8 @@ export async function updateProfile(userId, profileData, isTutor = false) {
       if (profileData.phone_number !== undefined) updateData.phone_number = profileData.phone_number
       if (profileData.address !== undefined) updateData.address = profileData.address
       if (profileData.profile_picture_url !== undefined) updateData.profile_picture_url = profileData.profile_picture_url
+      // [NEW] Allow updating subjects
+      if (profileData.subjects !== undefined) updateData.subjects = profileData.subjects
     } else {
       // Students can only update email, phone, address, profile picture
       if (profileData.email) updateData.email = profileData.email
@@ -53,14 +55,12 @@ export async function updateProfile(userId, profileData, isTutor = false) {
   }
 }
 
-// Update student details (tutors only) - UPDATED TO INCLUDE CONTACT INFO
+// Update student details (tutors only)
 export async function updateStudentProfile(studentId, profileData) {
   try {
-    // Whitelist fields that can be updated
     const updateData = {}
     if (profileData.full_name !== undefined) updateData.full_name = profileData.full_name
     if (profileData.date_of_birth !== undefined) updateData.date_of_birth = profileData.date_of_birth
-    // Added these fields so Tutors can update them:
     if (profileData.email !== undefined) updateData.email = profileData.email
     if (profileData.phone_number !== undefined) updateData.phone_number = profileData.phone_number
     if (profileData.address !== undefined) updateData.address = profileData.address
@@ -80,7 +80,7 @@ export async function updateStudentProfile(studentId, profileData) {
   }
 }
 
-// Get all students (for tutors to select when booking)
+// Get all students
 export async function getAllStudents() {
   try {
     const { data, error } = await supabase
@@ -97,12 +97,13 @@ export async function getAllStudents() {
   }
 }
 
-// Get all tutors (for students to select when booking)
+// Get all tutors - [UPDATED] to fetch subjects
 export async function getAllTutors() {
   try {
+    // We added 'subjects' to the select query here so it's available for booking later
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name, email, subjects') 
       .eq('role', 'tutor')
       .order('full_name', { ascending: true })
     
@@ -144,7 +145,7 @@ export async function uploadProfilePicture(userId, file) {
   }
 }
 
-// Get tutor hourly rate from profiles table
+// Get tutor hourly rate
 export async function getTutorHourlyRate(userId) {
   try {
     const { data, error } = await supabase
@@ -161,7 +162,7 @@ export async function getTutorHourlyRate(userId) {
   }
 }
 
-// Update tutor hourly rate in profiles table
+// Update tutor hourly rate
 export async function updateTutorHourlyRate(userId, rate) {
   try {
     const { data, error } = await supabase
