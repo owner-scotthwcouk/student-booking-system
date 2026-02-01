@@ -1,179 +1,127 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAllTutors, getTutorHourlyRate } from '../../lib/profileAPI'
+import { getAllTutors } from '../../lib/profileAPI'
+import { User, BookOpen, Loader2 } from 'lucide-react'
 
 export default function TutorSelection() {
-  const navigate = useNavigate()
   const [tutors, setTutors] = useState([])
-  const [tutorRates, setTutorRates] = useState({})
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
+    async function loadTutors() {
+      try {
+        const { data } = await getAllTutors()
+        if (data) setTutors(data)
+      } catch (error) {
+        console.error("Failed to load tutors", error)
+      } finally {
+        setLoading(false)
+      }
+    }
     loadTutors()
   }, [])
 
-  async function loadTutors() {
-    try {
-      const { data, error } = await getAllTutors()
-      if (error) throw error
-
-      setTutors(data || [])
-
-      // Load hourly rates for each tutor
-      const rates = {}
-      for (const tutor of data || []) {
-        const { data: rateData } = await getTutorHourlyRate(tutor.id)
-        rates[tutor.id] = rateData?.hourly_rate || 30.00
-      }
-      setTutorRates(rates)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   if (loading) {
-    return <div className="loading">Loading tutors...</div>
-  }
-
-  if (error) {
-    return <div className="error">Error: {error}</div>
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <Loader2 className="animate-spin" size={32} color="#7c3aed" />
+      </div>
+    )
   }
 
   return (
-    <div className="tutor-selection-container">
-      <h2>Select Your Tutor</h2>
-      <p className="description">Choose a tutor to view their availability and book a lesson.</p>
-
-      {tutors.length === 0 ? (
-        <div className="empty-state">
-          <p>No tutors available at the moment.</p>
-        </div>
-      ) : (
-        <div className="tutor-grid">
-          {tutors.map((tutor) => (
-            <div key={tutor.id} className="tutor-card">
-              <div className="tutor-info">
-                <h3>{tutor.full_name}</h3>
-                <p className="tutor-email">{tutor.email}</p>
-                <div className="tutor-rate">
-                  <span className="rate-label">Hourly Rate:</span>
-                  <span className="rate-amount">£{Number(tutorRates[tutor.id] || 30).toFixed(2)}</span>
-                </div>
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <h1 style={{ marginBottom: '2rem', color: '#fff' }}>Select a Tutor</h1>
+      
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+        gap: '1.5rem' 
+      }}>
+        {tutors.map((tutor) => (
+          <div key={tutor.id} style={{
+            backgroundColor: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            transition: 'transform 0.2s',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ 
+                width: '50px', 
+                height: '50px', 
+                backgroundColor: '#7c3aed', 
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '1.25rem'
+              }}>
+                {tutor.full_name ? tutor.full_name.charAt(0).toUpperCase() : 'T'}
               </div>
-              <button
-                className="btn-primary"
-                onClick={() => navigate(`/student/book/${tutor.id}`)}
-              >
-                View Availability
-              </button>
+              <div>
+                <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.1rem' }}>
+                  {tutor.full_name || 'Tutor'}
+                </h3>
+                <p style={{ margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.9rem' }}>
+                  Professional Tutor
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
 
-      <style jsx>{`
-        .tutor-selection-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 2rem;
-        }
+            {/* Display Subjects */}
+            <div style={{ 
+              backgroundColor: '#0f172a', 
+              padding: '0.75rem', 
+              borderRadius: '8px',
+              border: '1px solid #334155'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#818cf8', fontSize: '0.85rem', fontWeight: '600' }}>
+                <BookOpen size={14} /> 
+                <span>SUBJECTS</span>
+              </div>
+              <p style={{ margin: 0, color: '#cbd5e1', fontSize: '0.95rem' }}>
+                {tutor.subjects ? tutor.subjects : "General Tuition"}
+              </p>
+            </div>
 
-        .tutor-selection-container h2 {
-          color: #1a1a1a;
-          margin-bottom: 0.5rem;
-          font-size: 2rem;
-        }
-
-        .description {
-          color: #666666;
-          margin-bottom: 2rem;
-        }
-
-        .tutor-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .tutor-card {
-          background: #1a1a1a;
-          border: 2px solid #3a3a3a;
-          color: #ffffff;
-        }
-
-        .tutor-card:hover {
-          border-color: #7c3aed;
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
-          transform: translateY(-2px);
-        }
-
-        .tutor-info {
-          margin-bottom: 1.5rem;
-        }
-
-        .tutor-info h3 {
-          color: #1a1a1a;
-          margin: 0 0 0.5rem 0;
-          font-size: 1.25rem;
-        }
-
-        .tutor-email {
-          color: #666666;
-          font-size: 0.875rem;
-          margin: 0 0 1rem 0;
-        }
-
-        .tutor-rate {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0.75rem;
-          background: #f0f9ff;
-          border-radius: 6px;
-          border: 1px solid #bfdbfe;
-        }
-
-        .rate-label {
-          color: #1e40af;
-          font-weight: 600;
-          font-size: 0.875rem;
-        }
-
-        .rate-amount {
-          color: #1e40af;
-          font-weight: bold;
-          font-size: 1.25rem;
-        }
-
-        .btn-primary {
-          width: 100%;
-          padding: 0.875rem 1.5rem;
-          background-color: #7c3aed;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .btn-primary:hover {
-          background-color: #6d28d9;
-        }
-
-        .loading, .error, .empty-state {
-          text-align: center;
-          padding: 3rem;
-          color: #666666;
-        }
-
-        .error {
-          color: #dc2626;
-        }
-      `}</style>
+            <button 
+              onClick={() => navigate(`/student/book/${tutor.id}`)}
+              style={{
+                marginTop: 'auto',
+                width: '100%',
+                padding: '0.875rem',
+                backgroundColor: '#7c3aed',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#6d28d9'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#7c3aed'}
+            >
+              Book Lesson
+            </button>
+          </div>
+        ))}
+        
+        {tutors.length === 0 && (
+          <p style={{ color: '#94a3b8' }}>No tutors found.</p>
+        )}
+      </div>
     </div>
   )
 }
