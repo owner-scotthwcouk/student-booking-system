@@ -4,12 +4,11 @@
 :root {
   --bg-dark: #0f172a;       /* Deep blue/black background */
   --bg-card: #1e293b;       /* Lighter blue/gray for cards */
-  --bg-hover: #334155;      /* Hover state */
   --primary: #6366f1;       /* Modern Indigo */
   --primary-hover: #4f46e5;
   --text-main: #f8fafc;     /* White/Off-white */
   --text-muted: #94a3b8;    /* Gray text */
-  --border-color: #334155;  /* Border color */
+  --border-color: #334155;
   --danger: #ef4444;
   --success: #22c55e;
 }
@@ -23,7 +22,48 @@ body {
   min-height: 100vh;
 }
 
-/* --- 2. Modern Authentication Styles (Hover Card) --- */
+/* --- 2. Dashboard Tables (Preserving existing styles) --- */
+.table-responsive { overflow-x: auto; }
+.bookings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+}
+.bookings-table th, .bookings-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.bookings-table th {
+  background-color: #2a3855;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+.status-badge.pending { background: #422006; color: #fdba74; border: 1px solid #fdba74; }
+.status-badge.confirmed { background: #052e16; color: #86efac; border: 1px solid #86efac; }
+.status-badge.completed { background: #083344; color: #67e8f9; border: 1px solid #67e8f9; }
+.status-badge.cancelled { background: #450a0a; color: #fca5a5; border: 1px solid #fca5a5; }
+.text-success { color: var(--success); font-weight: bold; }
+.pay-link { color: var(--primary); text-decoration: none; font-weight: 500; }
+.pay-link:hover { text-decoration: underline; color: var(--primary-hover); }
+
+/* --- 3. Enhanced Hover Card Authentication Styles --- */
 
 .auth-container {
   min-height: 100vh;
@@ -32,7 +72,7 @@ body {
   align-items: center;
   justify-content: center;
   background-color: var(--bg-dark);
-  /* vibrant gradient background */
+  /* Dynamic gradient background */
   background-image: 
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
@@ -42,16 +82,16 @@ body {
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
-  background: rgba(30, 41, 59, 0.65); /* Glassmorphism transparency */
-  backdrop-filter: blur(16px);        /* Blur effect behind the card */
+  max-width: 400px;
+  background: rgba(30, 41, 59, 0.65); /* Translucent background */
+  backdrop-filter: blur(16px);        /* Frosted glass effect */
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   padding: 2.5rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   
-  /* Animation properties */
+  /* Smooth transitions for the hover effect */
   transform: translateY(0);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
               box-shadow 0.4s ease, 
@@ -61,11 +101,11 @@ body {
   animation: fadeInDown 0.6s ease-out forwards;
 }
 
-/* The "Hover Card" Effect */
+/* THE HOVER EFFECT */
 .auth-card:hover {
-  transform: translateY(-8px); /* Lifts the card up */
-  box-shadow: 0 30px 60px -15px rgba(99, 102, 241, 0.3); /* Purple glow shadow */
-  border-color: rgba(99, 102, 241, 0.4); /* Highlight border */
+  transform: translateY(-8px); /* Lifts the card */
+  box-shadow: 0 30px 60px -15px rgba(99, 102, 241, 0.35); /* Glowing purple shadow */
+  border-color: rgba(99, 102, 241, 0.4);
 }
 
 .register-card {
@@ -77,18 +117,23 @@ body {
   margin-bottom: 2rem;
 }
 
+/* Icon container styles */
 .auth-header .header-icon {
-  color: var(--primary);
   background: rgba(99, 102, 241, 0.1);
-  padding: 12px;
+  color: var(--primary);
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  margin-bottom: 1rem;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem auto;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
 }
 
 .auth-header h2 {
   color: #fff;
-  font-size: 1.75rem;
+  font-size: 1.8rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.025em;
@@ -108,7 +153,6 @@ body {
   border-radius: 8px;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
-  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -125,10 +169,7 @@ body {
   display: flex;
   gap: 1rem;
 }
-
-.form-row .input-group {
-  flex: 1;
-}
+.form-row .input-group { flex: 1; }
 
 .input-group label {
   display: block;
@@ -150,13 +191,13 @@ body {
   color: #64748b;
   pointer-events: none;
   transition: color 0.2s;
-  z-index: 1;
+  z-index: 2;
 }
 
 .input-wrapper input,
 .input-wrapper select {
   width: 100%;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.6); /* Dark slot background */
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 0.875rem 1rem 0.875rem 2.75rem; /* Space for icon */
@@ -171,11 +212,10 @@ body {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 23, 42, 0.9);
 }
 
-.input-wrapper input:focus + .input-icon,
-.input-wrapper:focus-within .input-icon {
+.input-wrapper input:focus + .input-icon {
   color: var(--primary);
 }
 
@@ -203,14 +243,9 @@ body {
   box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
 }
 
-.btn-auth:active {
-  transform: translateY(0);
-}
-
 .btn-auth:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
 }
 
 .auth-footer {
@@ -230,20 +265,7 @@ body {
 }
 
 .auth-footer a:hover {
-  text-decoration: underline;
   color: #a5b4fc;
-}
-
-/* Animations */
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .animate-spin {
@@ -255,14 +277,12 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Mobile Responsiveness */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 480px) {
-  .auth-card {
-    padding: 1.5rem;
-  }
-  
-  .form-row {
-    flex-direction: column;
-    gap: 1.25rem;
-  }
+  .auth-card { padding: 1.5rem; }
+  .form-row { flex-direction: column; gap: 1.25rem; }
 }
