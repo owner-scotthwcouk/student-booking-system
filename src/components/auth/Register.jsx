@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { User, Mail, Lock, Calendar, BookOpen, Loader2, AlertCircle, UserPlus } from 'lucide-react'
+import { User, Mail, Lock, Calendar, BookOpen, Loader2, UserPlus, AlertCircle } from 'lucide-react'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -71,7 +71,7 @@ export default function Register() {
       <div className="auth-card register-card">
         <div className="auth-header">
           <div className="header-icon">
-            <UserPlus size={32} strokeWidth={1.5} />
+            <UserPlus size={32} />
           </div>
           <h2>Create Account</h2>
           <p>Join TutorHub as a Student or Tutor</p>
@@ -88,7 +88,6 @@ export default function Register() {
           <div className="input-group">
             <label>Full Name</label>
             <div className="input-wrapper">
-              <User className="input-icon" size={18} />
               <input
                 type="text"
                 name="fullName"
@@ -97,13 +96,13 @@ export default function Register() {
                 onChange={handleChange}
                 required
               />
+              <User className="input-icon" size={18} />
             </div>
           </div>
 
           <div className="input-group">
             <label>Email Address</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
               <input
                 type="email"
                 name="email"
@@ -112,13 +111,13 @@ export default function Register() {
                 onChange={handleChange}
                 required
               />
+              <Mail className="input-icon" size={18} />
             </div>
           </div>
 
           <div className="input-group">
             <label>Password</label>
             <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
               <input
                 type="password"
                 name="password"
@@ -127,6 +126,7 @@ export default function Register() {
                 onChange={handleChange}
                 required
               />
+              <Lock className="input-icon" size={18} />
             </div>
           </div>
 
@@ -134,7 +134,6 @@ export default function Register() {
             <div className="input-group">
               <label>I am a...</label>
               <div className="input-wrapper">
-                <BookOpen className="input-icon" size={18} />
                 <select
                   name="role"
                   value={formData.role}
@@ -143,19 +142,20 @@ export default function Register() {
                   <option value="student">Student</option>
                   <option value="tutor">Tutor</option>
                 </select>
+                <BookOpen className="input-icon" size={18} />
               </div>
             </div>
 
             <div className="input-group">
               <label>Date of Birth</label>
               <div className="input-wrapper">
-                <Calendar className="input-icon" size={18} />
                 <input
                   type="date"
                   name="dateOfBirth"
                   value={formData.dateOfBirth}
                   onChange={handleChange}
                 />
+                <Calendar className="input-icon" size={18} />
               </div>
             </div>
           </div>
