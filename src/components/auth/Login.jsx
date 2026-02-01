@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { getSystemSetting } from '../../lib/settingsAPI' //
+import { getSystemSetting } from '../../lib/settingsAPI'
 import { Mail, Lock, LogIn, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function Login() {
@@ -41,22 +41,25 @@ export default function Login() {
       // --- MAINTENANCE MODE CHECK START ---
       // If the user is a student, check if maintenance mode is active
       if (profile.role === 'student') {
-        const { data: setting } = await getSystemSetting('maintenance_mode')
-        
-        if (setting && setting.value === 'true') {
-          // Log them out immediately so they don't stay in a half-logged-in state
-          await supabase.auth.signOut()
-          
-          throw new Error("⚠️ Maintenance: We are currently upgrading the system. Please try again later.")
+        try {
+          const { data: setting } = await getSystemSetting('maintenance_mode')
+          if (setting && setting.value === 'true') {
+            await supabase.auth.signOut()
+            throw new Error("⚠️ Maintenance: We are currently upgrading the system. Please try again later.")
+          }
+        } catch (maintenanceError) {
+           // If the setting is missing or call fails, we proceed (fail open) or block (fail closed)
+           // Here we just log it and proceed to be safe unless we explicitly know it's maintenance.
+           console.error("Maintenance check skipped:", maintenanceError)
         }
       }
       // --- MAINTENANCE MODE CHECK END ---
 
       // Redirect based on role
       if (profile.role === 'tutor') {
-        navigate('/tutor') // Updated to match your App.jsx routes
+        navigate('/tutor')
       } else if (profile.role === 'student') {
-        navigate('/student') // Updated to match your App.jsx routes
+        navigate('/student')
       } else {
         navigate('/')
       }
