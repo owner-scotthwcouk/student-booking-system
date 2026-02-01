@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { Mail, Lock, LogIn, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
+import { getSystemSetting } from '../../lib/settingsAPI'
 
 export default function Login() {
   const [email, setEmail] = useState('')
