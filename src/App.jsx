@@ -7,6 +7,7 @@ import StudentDashboard from './components/student/StudentDashboard'
 import TutorDashboard from './components/tutor/TutorDashboard'
 import TutorSelection from './components/student/TutorSelection'
 import BookingForm from './components/student/BookingForm'
+import Policies from './pages/Policies' //
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, profile, loading } = useAuth()
@@ -90,6 +91,7 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/policies" element={<Policies />} />
       
       <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/tutors" element={<ProtectedRoute allowedRole="student"><TutorSelection /></ProtectedRoute>} />
