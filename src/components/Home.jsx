@@ -1,8 +1,3 @@
-I have updated the **Home** screen (`src/components/Home.jsx`) to display **Edumaxim** in the navigation header and the footer, replacing the previous "TutorBooking" branding.
-
-### `src/components/Home.jsx`
-
-```jsx
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth'
 import { useEffect } from 'react'
@@ -207,15 +202,51 @@ export default function Home() {
 
       {/* Footer */}
       <footer style={{
-        padding: '2rem 3rem',
+        padding: '3rem 3rem 2rem 3rem',
         borderTop: '2px solid #3a3a3a',
         textAlign: 'center',
-        color: '#a0a0a0'
+        color: '#a0a0a0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1.5rem'
       }}>
+        {/* Contact Button */}
+        <button
+          onClick={() => {
+            // Option 1: Trigger mailto link on click
+            window.location.href = "mailto:scott@scott-hw.online?subject=I would like to become a tutor with your platform&body=Hi%20Edumaxim%20Team%2C%0D%0A%0D%0AI%20would%20like%20to%20enquire%20about%20becoming%20a%20tutor%20with%20Edumaxim.%2C%0D%0A%0D%0AHere%20are%20my%20details:%2C%0D%0A%0D%0AFull%20Name:%2C%0D%0A%0D%0AEmail%20Address:%2C%0D%0A%0D%0Country%20of%20residence:%2C%0D%0A%0D%0Subject%20I%20teach:%2C%0D%0A%0D%0AOther%20Details%20I%20would%20like%20to%20include%20are:"
+          }}
+          style={{
+            padding: '0.75rem 2rem',
+            backgroundColor: '#2a2a2a',
+            color: '#e5e5e5',
+            border: '1px solid #3a3a3a',
+            borderRadius: '8px',
+            fontSize: '1rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#7c3aed'
+            e.currentTarget.style.color = '#ffffff'
+            e.currentTarget.style.backgroundColor = '#3a3a3a'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#3a3a3a'
+            e.currentTarget.style.color = '#e5e5e5'
+            e.currentTarget.style.backgroundColor = '#2a2a2a'
+          }}
+        >
+          ✉️ Contact Support
+        </button>
+
         <p>© 2026 Edumaxim. All rights reserved.</p>
       </footer>
     </div>
   )
 }
-
-```
