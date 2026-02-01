@@ -1,130 +1,90 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../../contexts/auth'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabaseClient'
 import { getStudentPayments } from '../../lib/paymentsAPI'
+import { CreditCard, AlertCircle } from 'lucide-react'
 
-export default function StudentPayments() {
-  const { user } = useAuth()
+export default function StudentPayments({ studentId }) {
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all') // all, paid, outstanding
+  const [error, setError] = useState(null)
 
-  const loadPayments = useCallback(async () => {
+  useEffect(() => {
+    if (studentId) {
+      loadPayments()
+    }
+  }, [studentId])
+
+  async function loadPayments() {
     try {
-      const { data, error } = await getStudentPayments(user.id)
+      setLoading(true)
+      const { data, error } = await getStudentPayments(studentId)
       if (error) throw error
       setPayments(data || [])
     } catch (err) {
-      console.error('Failed to load payments', err)
+      setError(err.message)
     } finally {
       setLoading(false)
     }
-  }, [user.id])
-
-  useEffect(() => {
-    if (user) {
-      loadPayments()
-    }
-  }, [user, loadPayments])
-
-  const filteredPayments = payments.filter((payment) => {
-    if (filter === 'paid') return payment.status === 'completed'
-    if (filter === 'outstanding') return payment.status === 'pending' || payment.status === 'failed'
-    return true
-  })
+  }
 
   const totalPaid = payments
     .filter(p => p.status === 'completed')
-    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
-
-  const totalOutstanding = payments
-    .filter(p => p.status === 'pending' || p.status === 'failed')
-    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
-
-  if (loading) return <div>Loading payment history...</div>
+    .reduce((sum, p) => sum + Number(p.amount), 0)
 
   return (
     <div className="payments-container">
-      <h2>Finance & Payments</h2>
-
-      <div className="payment-summary">
-        <div className="summary-card">
-          <h3>Total Paid</h3>
-          <p className="amount paid">£{totalPaid.toFixed(2)}</p>
+      {/* Summary Cards */}
+      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ background: 'rgba(34, 197, 94, 0.1)', padding: '1rem', borderRadius: '50%' }}>
+           <CreditCard size={32} color="#22c55e" />
         </div>
-        <div className="summary-card">
-          <h3>Outstanding</h3>
-          <p className="amount outstanding">£{totalOutstanding.toFixed(2)}</p>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Total Spent</h3>
+          <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)' }}>
+            £{totalPaid.toFixed(2)}
+          </p>
         </div>
       </div>
 
-      <div className="filter-tabs">
-        <button
-          className={filter === 'all' ? 'active' : ''}
-          onClick={() => setFilter('all')}
-        >
-          All Payments
-        </button>
-        <button
-          className={filter === 'paid' ? 'active' : ''}
-          onClick={() => setFilter('paid')}
-        >
-          Paid
-        </button>
-        <button
-          className={filter === 'outstanding' ? 'active' : ''}
-          onClick={() => setFilter('outstanding')}
-        >
-          Outstanding
-        </button>
-      </div>
-
-      {filteredPayments.length === 0 ? (
-        <div className="empty-state">
-          <p>No payments found.</p>
-        </div>
-      ) : (
-        <div className="payments-table-container">
-          <table className="payments-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Lesson Date</th>
-                <th>Amount</th>
-                <th>Payment Method</th>
-                <th>Status</th>
-                <th>Transaction ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td>
-                    {payment.payment_date
-                      ? new Date(payment.payment_date).toLocaleDateString()
-                      : 'N/A'}
-                  </td>
-                  <td>
-                    {payment.booking?.lesson_date
-                      ? new Date(payment.booking.lesson_date).toLocaleDateString()
-                      : 'N/A'}
-                  </td>
-                  <td>£{parseFloat(payment.amount || 0).toFixed(2)}</td>
-                  <td>{payment.payment_method === 'stripe' ? 'Stripe Card' : payment.payment_method || 'Unknown'}</td>
-                  <td>
-                    <span className={`status-badge ${payment.status}`}>
-                      {payment.status}
-                    </span>
-                  </td>
-                  <td>
-                    <small>{payment.stripe_payment_intent_id || 'N/A'}</small>
-                  </td>
+      <div className="card">
+        <h3>Payment History</h3>
+        {error && <div className="error-message"><AlertCircle size={16}/> {error}</div>}
+        
+        {loading ? (
+          <p>Loading payments...</p>
+        ) : payments.length === 0 ? (
+          <p className="text-muted">No payments found.</p>
+        ) : (
+          <div className="table-responsive">
+            <table className="bookings-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
+                    <td>Lesson Booking</td>
+                    <td style={{ fontWeight: 'bold' }}>£{Number(payment.amount).toFixed(2)}</td>
+                    <td style={{ textTransform: 'capitalize' }}>{payment.payment_method?.replace(/_/g, ' ') || 'Card'}</td>
+                    <td>
+                      <span className={`status-badge ${payment.status}`}>
+                        {payment.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
-

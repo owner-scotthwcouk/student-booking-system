@@ -1,4 +1,34 @@
-/* Dashboard Tables */
+/* src/App.css */
+
+/* --- 1. Global Variables & Reset --- */
+:root {
+  --bg-dark: #0f172a;       /* Deep blue/black background */
+  --bg-card: #1e293b;       /* Lighter blue/gray for cards */
+  --bg-hover: #334155;      /* Hover state */
+  --primary: #6366f1;       /* Modern Indigo */
+  --primary-hover: #4f46e5;
+  --text-main: #f8fafc;     /* White/Off-white */
+  --text-muted: #94a3b8;    /* Gray text */
+  --border: #334155;        /* Border color */
+  --danger: #ef4444;
+  --success: #22c55e;
+  
+  /* Table specific vars (keeping your existing ones compatible) */
+  --card-bg: #1e293b;
+  --table-header-bg: #2a3855;
+  --border-color: #334155;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* --- 2. Dashboard Tables (Preserving your existing styles) --- */
 .table-responsive {
   overflow-x: auto;
 }
@@ -10,7 +40,8 @@
   background: var(--card-bg);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
+  border: 1px solid var(--border-color);
 }
 
 .bookings-table th, 
@@ -18,25 +49,228 @@
   padding: 1rem;
   text-align: left;
   border-bottom: 1px solid var(--border-color);
+  color: var(--text-main);
 }
 
 .bookings-table th {
   background-color: var(--table-header-bg);
   font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
 }
 
 .status-badge {
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 999px;
   font-size: 0.85em;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: capitalize;
+  display: inline-block;
 }
 
-.status-badge.pending { background: #fff3cd; color: #856404; }
-.status-badge.confirmed { background: #d4edda; color: #155724; }
-.status-badge.completed { background: #d1ecf1; color: #0c5460; }
-.status-badge.cancelled { background: #f8d7da; color: #721c24; }
+/* Updated badge colors for better contrast in dark mode */
+.status-badge.pending { background: #422006; color: #fdba74; border: 1px solid #fdba74; }
+.status-badge.confirmed { background: #052e16; color: #86efac; border: 1px solid #86efac; }
+.status-badge.completed { background: #083344; color: #67e8f9; border: 1px solid #67e8f9; }
+.status-badge.cancelled { background: #450a0a; color: #fca5a5; border: 1px solid #fca5a5; }
 
-.text-success { color: #28a745; font-weight: bold; }
-.pay-link { color: var(--primary); text-decoration: underline; }
+.text-success { color: var(--success); font-weight: bold; }
+.pay-link { color: var(--primary); text-decoration: none; font-weight: 500; }
+.pay-link:hover { text-decoration: underline; color: var(--primary-hover); }
+
+/* --- 3. Modern Authentication Styles (Login & Register) --- */
+
+.auth-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+  padding: 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(30, 41, 59, 0.7); /* Glassmorphism effect */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover Effect on the Card */
+.auth-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 30px 60px -12px rgba(99, 102, 241, 0.25); /* Subtle purple glow */
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.register-card {
+  max-width: 480px; /* Slightly wider for register form */
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-header h2 {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.auth-header p {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.auth-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger);
+  color: #fca5a5;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .input-group {
+  flex: 1;
+}
+
+.input-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  margin-bottom: 0.5rem;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.input-wrapper input,
+.input-wrapper select {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--bg-hover);
+  border-radius: 8px;
+  padding: 0.75rem 1rem 0.75rem 2.75rem; /* Space for icon */
+  color: #fff;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  appearance: none;
+}
+
+.input-wrapper input:focus,
+.input-wrapper select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  background: var(--bg-card);
+}
+
+.input-wrapper input::placeholder {
+  color: #475569;
+}
+
+.btn-auth {
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.btn-auth:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-auth:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.auth-footer a {
+  color: #818cf8;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+  color: #a5b4fc;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 1.5rem;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+}

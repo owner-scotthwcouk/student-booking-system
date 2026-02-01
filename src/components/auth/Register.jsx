@@ -1,8 +1,8 @@
-// src/components/auth/Register.jsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { useAuth } from '../../contexts/auth'
+import { User, Mail, Lock, Calendar, BookOpen, Loader2 } from 'lucide-react'
+
 export default function Register() {
   const navigate = useNavigate()
 
@@ -42,15 +42,9 @@ export default function Register() {
         },
       })
 
-      if (signUpError) {
-        throw new Error(signUpError.message || 'Sign up failed')
-      }
+      if (signUpError) throw new Error(signUpError.message || 'Sign up failed')
+      if (!user?.id) throw new Error('User creation failed')
 
-      if (!user?.id) {
-        throw new Error('User creation failed')
-      }
-
-      // Create profile row
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -61,9 +55,7 @@ export default function Register() {
           date_of_birth: formData.dateOfBirth || null,
         })
 
-      if (profileError) {
-        console.error('Profile upsert error:', profileError)
-      }
+      if (profileError) console.error('Profile upsert error:', profileError)
 
       alert('Registration successful. Please check your email to confirm your account.')
       navigate('/login')
@@ -75,88 +67,103 @@ export default function Register() {
   }
 
   return (
-    <div className="auth-container" style={{ maxWidth: '500px', margin: '2rem auto' }}>
-      <div className="card">
-        <h2>Create an Account</h2>
-        <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-          Join TutorHub
-        </p>
+    <div className="auth-container">
+      <div className="auth-card register-card">
+        <div className="auth-header">
+          <h2>Create Account</h2>
+          <p>Join TutorHub as a Student or Tutor</p>
+        </div>
 
-        {error && (
-          <div className="error" style={{ color: 'red', marginBottom: '1rem' }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="auth-error">{error}</div>}
 
-        <form onSubmit={handleRegister}>
-          <div style={{ marginBottom: '1rem' }}>
+        <form onSubmit={handleRegister} className="auth-form">
+          <div className="input-group">
             <label>Full Name</label>
-            <input
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
+            <div className="input-wrapper">
+              <User className="input-icon" size={18} />
+              <input
+                type="text"
+                name="fullName"
+                placeholder="John Doe"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
 
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
+          <div className="input-group">
+            <label>Email Address</label>
+            <div className="input-wrapper">
+              <Mail className="input-icon" size={18} />
+              <input
+                type="email"
+                name="email"
+                placeholder="john@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
 
-          <div style={{ marginBottom: '1rem' }}>
+          <div className="input-group">
             <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
+            <div className="input-wrapper">
+              <Lock className="input-icon" size={18} />
+              <input
+                type="password"
+                name="password"
+                placeholder="Create a password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
 
-          <div style={{ marginBottom: '1rem' }}>
-            <label>I am a...</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
-              <option value="student">Student</option>
-              <option value="tutor">Tutor</option>
-            </select>
+          <div className="form-row">
+            <div className="input-group">
+              <label>I am a...</label>
+              <div className="input-wrapper">
+                <BookOpen className="input-icon" size={18} />
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                >
+                  <option value="student">Student</option>
+                  <option value="tutor">Tutor</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Date of Birth</label>
+              <div className="input-wrapper">
+                <Calendar className="input-icon" size={18} />
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
           </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label>Date of Birth</label>
-            <input
-              type="date"
-              name="dateOfBirth"
-              value={formData.dateOfBirth}
-              onChange={handleChange}
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
-          </div>
-
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.75rem' }}>
-            {loading ? 'Creating account…' : 'Register'}
+          <button type="submit" disabled={loading} className="btn-auth">
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              'Create Account'
+            )}
           </button>
         </form>
 
-        <p style={{ marginTop: '1rem' }}>
-          Already have an account? <Link to="/login">Log in</Link>
-        </p>
+        <div className="auth-footer">
+          <p>Already have an account? <Link to="/login">Log in here</Link></p>
+        </div>
       </div>
     </div>
   )

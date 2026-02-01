@@ -10,14 +10,14 @@ export default function POSSystem() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
-  const [hourlyRate, setHourlyRate] = useState(30.00) // Default fallback
+  const [hourlyRate, setHourlyRate] = useState(30.00)
 
   // Form State
   const [formData, setFormData] = useState({
     studentId: '',
-    reason: 'Lesson', // Default reason
+    reason: 'Lesson',
     lessonDate: '',
-    lessonTime: '09:00', // Keeping time to ensure booking validity
+    lessonTime: '09:00',
     email: '',
     cardholderName: '',
     cardNumber: '',
@@ -60,7 +60,7 @@ export default function POSSystem() {
     setFormData(prev => ({
       ...prev,
       studentId,
-      email: student ? student.email : '' // Auto-fill email
+      email: student ? student.email : ''
     }))
   }
 
@@ -87,7 +87,7 @@ export default function POSSystem() {
 
       if (bookingError) throw bookingError
 
-      // 2. Mark Booking as Paid & Confirmed (Since we took payment via POS)
+      // 2. Mark Booking as Paid & Confirmed
       const { error: updateError } = await supabase
         .from('bookings')
         .update({ 
@@ -99,8 +99,7 @@ export default function POSSystem() {
 
       if (updateError) throw updateError
 
-      // 3. Record the Payment in the Database
-      // Note: We DO NOT store the card number/cvv for security (PCI) reasons.
+      // 3. Record the Payment
       const { error: paymentError } = await supabase
         .from('payments')
         .insert({
@@ -111,14 +110,12 @@ export default function POSSystem() {
           payment_method: 'pos_card_entry',
           status: 'completed',
           payment_date: new Date().toISOString(),
-          // We can optionally store the reason or cardholder name if we extend the table
-          paypal_transaction_id: `POS-${Date.now()}` // Fake ID for internal ref
+          paypal_transaction_id: `POS-${Date.now()}`
         })
 
       if (paymentError) throw paymentError
 
       setSuccess(true)
-      // Reset form (except rate)
       setFormData({
         studentId: '',
         reason: 'Lesson',
@@ -140,10 +137,7 @@ export default function POSSystem() {
   }
 
   return (
-
-
     <div className="pos-system-container">
-
       <h2>POS System</h2>
       <p className="description">Enter payment details manually to book and charge immediately.</p>
 
@@ -153,15 +147,7 @@ export default function POSSystem() {
       <form onSubmit={handleSubmit} className="pos-form">
         <div className="form-grid">
           {/* Section 1: Booking Details */}
-          <div className="form-section" 
-      style={{
-        backgroundColor: '#ffffff',
-        color: '#000000',
-        fontSize: '16px',
-        padding: '12px',
-        border: '2px solid #333'
-      }}>
-
+          <div className="form-section lilac-card">
             <h3>Booking Details</h3>
             
             <div className="form-group">
@@ -188,7 +174,7 @@ export default function POSSystem() {
                 id="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                readOnly // Auto-filled from student
+                readOnly
                 className="bg-gray"
               />
             </div>
@@ -235,16 +221,7 @@ export default function POSSystem() {
           </div>
 
           {/* Section 2: Payment Details */}
-          <div className="form-section"
-          style={{
-            backgroundColor: '#ffffff',
-            color: '#000000',
-            fontSize: '16px',
-            padding: '12px',
-            border: '2px solid #333'
-          }}
->
-
+          <div className="form-section lilac-card">
             <h3>Card Details</h3>
             
             <div className="form-group">
@@ -329,17 +306,35 @@ export default function POSSystem() {
           gap: 2rem;
           margin-bottom: 2rem;
         }
-        .form-section {
-          background: #f8f9fa;
+        .lilac-card {
+          background-color: #e6e6fa !important; /* Lilac */
+          color: #000000 !important;
+          border: 1px solid #dcdcdc;
           padding: 1.5rem;
           border-radius: 8px;
-          border: 1px solid #dee2e6;
         }
-        .form-section h3 {
+        .lilac-card h3 {
           margin-top: 0;
           margin-bottom: 1rem;
-          border-bottom: 2px solid #e9ecef;
+          border-bottom: 2px solid rgba(0,0,0,0.1);
           padding-bottom: 0.5rem;
+          color: #333;
+        }
+        .lilac-card label {
+          color: #333;
+          font-weight: 500;
+          margin-bottom: 4px;
+          display: block;
+        }
+        /* Ensure inputs inside lilac card are readable */
+        .lilac-card input, 
+        .lilac-card select {
+          background-color: #ffffff;
+          color: #000000;
+          border: 1px solid #ccc;
+          padding: 8px;
+          border-radius: 4px;
+          width: 100%;
         }
         .form-row {
           display: flex;
@@ -348,16 +343,21 @@ export default function POSSystem() {
         .form-row .form-group {
           flex: 1;
         }
+        .form-group {
+          margin-bottom: 1rem;
+        }
         .price-display {
           font-size: 1.5rem;
           font-weight: bold;
           color: #2c3e50;
         }
         .bg-gray {
-          background-color: #e9ecef;
+          background-color: #f0f0f0 !important;
         }
         .btn-block {
           width: 100%;
+          padding: 1rem;
+          font-size: 1.1rem;
         }
         @media (max-width: 768px) {
           .form-grid {

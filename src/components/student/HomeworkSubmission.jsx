@@ -1,163 +1,217 @@
-import { useState } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../../contexts/auth'
 import { supabase } from '../../lib/supabaseClient'
+import { 
+  UploadCloud, 
+  FileText, 
+  X, 
+  Send, 
+  CheckCircle2, 
+  AlertCircle, 
+  Loader2, 
+  BookOpen, 
+  MessageSquare 
+} from 'lucide-react'
 
-function HomeworkSubmission({ lessonId, onSubmissionSuccess }) {
+export default function HomeworkSubmission() {
   const { user } = useAuth()
+  const [lessons, setLessons] = useState([])
+  const [selectedLesson, setSelectedLesson] = useState('')
   const [file, setFile] = useState(null)
-  const [submissionDate, setSubmissionDate] = useState('')
-  const [submissionTime, setSubmissionTime] = useState('')
+  const [comments, setComments] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Fetch recent confirmed lessons
+  useEffect(() => {
+    async function loadLessons() {
+      if (!user) return
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('id, lesson_date, lesson_time, status')
+          .eq('student_id', user.id)
+          .eq('status', 'confirmed')
+          .order('lesson_date', { ascending: false })
+          .limit(10)
+
+        if (error) throw error
+        setLessons(data || [])
+      } catch (err) {
+        console.error('Error loading lessons:', err)
+      }
+    }
+    loadLessons()
+  }, [user])
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0]
-    
-    // Validate file type (ZIP only)
-    if (selectedFile && selectedFile.type !== 'application/zip' && !selectedFile.name.endsWith('.zip')) {
-      setError('Please select a ZIP file')
-      setFile(null)
-      return
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+      setError(null)
     }
-    
-    // Validate file size (max 50MB)
-    if (selectedFile && selectedFile.size > 50 * 1024 * 1024) {
-      setError('File size must be less than 50MB')
-      setFile(null)
-      return
-    }
-    
-    setFile(selectedFile)
-    setError(null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    if (!file) {
-      setError('Please select a file')
-      return
-    }
-    
-    if (!submissionDate || !submissionTime) {
-      setError('Please select submission date and time')
-      return
-    }
-    
+    if (!file) return setError('Please select a file to upload.')
+    if (!selectedLesson) return setError('Please select a lesson to link this homework to.')
+
     setLoading(true)
     setError(null)
     setSuccess(false)
-    
+
     try {
+      // 1. Upload File
+      setUploading(true)
       const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}/${lessonId}/${Date.now()}.${fileExt}`
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`
       
       const { error: uploadError } = await supabase.storage
-        .from('homework-submissions')
+        .from('homework-uploads')
         .upload(fileName, file)
-      
+
       if (uploadError) throw uploadError
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('homework-submissions')
-        .getPublicUrl(fileName)
-      
-      const { error: insertError } = await supabase
+
+      // 2. Save Database Record
+      const { error: dbError } = await supabase
         .from('homework_submissions')
         .insert({
-          lesson_id: lessonId,
           student_id: user.id,
-          submission_file_url: publicUrl,
-          submission_file_name: file.name,
-          submission_file_size: file.size,
+          booking_id: selectedLesson,
+          file_path: fileName,
+          comments: comments,
           submitted_at: new Date().toISOString(),
-          status: 'submitted'
+          status: 'pending_review'
         })
-      
-      if (insertError) throw insertError
-      
+
+      if (dbError) throw dbError
+
       setSuccess(true)
       setFile(null)
-      setSubmissionDate('')
-      setSubmissionTime('')
-      
-      // Reset form
-      e.target.reset()
-      
-      // Notify parent component to refresh data
-      if (onSubmissionSuccess) {
-        setTimeout(() => {
-          onSubmissionSuccess()
-        }, 1000)
-      }
+      setComments('')
+      setSelectedLesson('')
+      setTimeout(() => setSuccess(false), 5000)
+
     } catch (err) {
-      setError(err.message || 'Failed to upload homework')
+      console.error(err)
+      setError(err.message || 'Failed to submit homework.')
     } finally {
       setLoading(false)
+      setUploading(false)
     }
   }
 
   return (
-    <div className="homework-submission">
-      <h3>Submit Homework</h3>
-      
-      {success && (
-        <div className="success-message">
-          Homework submitted successfully!
+    <div className="homework-wrapper">
+      <div className="homework-card">
+        <div className="card-header-centered">
+          <div className="icon-circle">
+            <UploadCloud size={28} color="#6366f1" />
+          </div>
+          <h2>Submit Homework</h2>
+          <p>Upload your assignments for tutor review</p>
         </div>
-      )}
-      
-      {error && <div className="error-message">{error}</div>}
-      
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="file">
-            Upload Homework File:
-          </label>
-          <input
-            type="file"
-            id="file"
-            onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.zip,.txt"
-            required
-          />
-          {file && (
-            <p className="file-info">
-              Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-            </p>
-          )}
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="submission-date">Submission Date:</label>
-          <input
-            type="date"
-            id="submission-date"
-            value={submissionDate}
-            onChange={(e) => setSubmissionDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
-            required
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="submission-time">Submission Time:</label>
-          <input
-            type="time"
-            id="submission-time"
-            value={submissionTime}
-            onChange={(e) => setSubmissionTime(e.target.value)}
-            required
-          />
-        </div>
-        
-        <button type="submit" disabled={loading || !file}>
-          {loading ? 'Uploading...' : 'Submit Homework'}
-        </button>
-      </form>
+
+        {error && (
+          <div className="status-message error">
+            <AlertCircle size={18} /> {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="status-message success">
+            <CheckCircle2 size={18} />
+            <span>Homework submitted successfully!</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="homework-form">
+          {/* Lesson Select */}
+          <div className="form-group">
+            <label>Select Lesson</label>
+            <div className="input-wrapper">
+              <BookOpen className="input-icon" size={18} />
+              <select 
+                value={selectedLesson}
+                onChange={(e) => setSelectedLesson(e.target.value)}
+                required
+              >
+                <option value="">-- Choose a lesson --</option>
+                {lessons.map(l => (
+                  <option key={l.id} value={l.id}>
+                    {new Date(l.lesson_date).toLocaleDateString()} at {l.lesson_time.slice(0, 5)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* File Upload */}
+          <div className="form-group">
+            <label>Assignment File</label>
+            <div className={`file-drop-zone ${file ? 'active' : ''}`}>
+              <input 
+                type="file" 
+                id="file-upload" 
+                onChange={handleFileChange}
+                className="hidden-input"
+                accept=".pdf,.doc,.docx,.jpg,.png,.txt,.zip"
+              />
+              
+              {!file ? (
+                <label htmlFor="file-upload" className="drop-label">
+                  <UploadCloud size={32} className="upload-icon-large" />
+                  <span>Click to upload file</span>
+                  <small>PDF, Word, Images (Max 50MB)</small>
+                </label>
+              ) : (
+                <div className="file-preview-item">
+                  <div className="file-details">
+                    <FileText size={24} className="file-type-icon" />
+                    <div>
+                      <span className="name">{file.name}</span>
+                      <span className="size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setFile(null)} className="btn-remove">
+                    <X size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Comments */}
+          <div className="form-group">
+            <label>Comments (Optional)</label>
+            <div className="input-wrapper textarea-wrapper">
+              <MessageSquare className="input-icon textarea-icon" size={18} />
+              <textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                placeholder="Add any notes for your tutor..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading || !file} 
+            className="btn-submit-homework"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <>
+                <Send size={18} /> Submit Assignment
+              </>
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
-
-export default HomeworkSubmission

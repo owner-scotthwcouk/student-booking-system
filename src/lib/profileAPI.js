@@ -53,12 +53,17 @@ export async function updateProfile(userId, profileData, isTutor = false) {
   }
 }
 
-// Update student Name/DOB (tutors only)
+// Update student details (tutors only) - UPDATED TO INCLUDE CONTACT INFO
 export async function updateStudentProfile(studentId, profileData) {
   try {
+    // Whitelist fields that can be updated
     const updateData = {}
-    if (profileData.full_name) updateData.full_name = profileData.full_name
-    if (profileData.date_of_birth) updateData.date_of_birth = profileData.date_of_birth
+    if (profileData.full_name !== undefined) updateData.full_name = profileData.full_name
+    if (profileData.date_of_birth !== undefined) updateData.date_of_birth = profileData.date_of_birth
+    // Added these fields so Tutors can update them:
+    if (profileData.email !== undefined) updateData.email = profileData.email
+    if (profileData.phone_number !== undefined) updateData.phone_number = profileData.phone_number
+    if (profileData.address !== undefined) updateData.address = profileData.address
     
     const { data, error } = await supabase
       .from('profiles')
@@ -103,7 +108,6 @@ export async function getAllTutors() {
     
     if (error) {
       console.error('Error fetching tutors:', error)
-      // Return error so calling code can handle it
       return { data: null, error }
     }
     
@@ -139,8 +143,6 @@ export async function uploadProfilePicture(userId, file) {
     return { url: null, error }
   }
 }
-
-// --- NEW FUNCTIONS FOR HOURLY RATE ---
 
 // Get tutor hourly rate from profiles table
 export async function getTutorHourlyRate(userId) {

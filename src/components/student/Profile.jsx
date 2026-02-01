@@ -1,185 +1,149 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/auth'
-import { updateProfile, uploadProfilePicture } from '../../lib/profileAPI'
+import { getProfile, updateProfile } from '../../lib/profileAPI'
+import { User, Mail, Phone, MapPin, Save, Loader2 } from 'lucide-react'
 
 export default function StudentProfile() {
-  const { user, profile } = useAuth()
-  const [formData, setFormData] = useState({
-    email: '',
-    phone_number: '',
-    address: ''
-  })
-  const [profilePicture, setProfilePicture] = useState(null)
-  const [uploading, setUploading] = useState(false)
+  const { user } = useAuth()
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  const [formData, setFormData] = useState({
+    full_name: '',
+    phone_number: '',
+    address: '',
+    email: ''
+  })
 
   useEffect(() => {
-    if (profile) {
-      setFormData({
-        email: profile.email || '',
-        phone_number: profile.phone_number || '',
-        address: profile.address || ''
-      })
-      setProfilePicture(profile.profile_picture_url)
-    }
-  }, [profile])
+    if (user) loadProfile()
+  }, [user])
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
-
-  const handleProfilePictureChange = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file')
-      return
-    }
-
-    setUploading(true)
-    setError(null)
-
+  async function loadProfile() {
     try {
-      const { url, error: uploadError } = await uploadProfilePicture(user.id, file)
-      if (uploadError) throw uploadError
-      
-      setProfilePicture(url)
-      
-      // Update profile with new picture URL
-      await updateProfile(user.id, { profile_picture_url: url }, false)
+      const { data, error } = await getProfile(user.id)
+      if (error) throw error
+      setProfile(data)
+      setFormData({
+        full_name: data.full_name || '',
+        phone_number: data.phone_number || '',
+        address: data.address || '',
+        email: data.email || user.email
+      })
     } catch (err) {
-      setError(err.message || 'Failed to upload profile picture')
+      console.error(err)
     } finally {
-      setUploading(false)
+      setLoading(false)
     }
   }
 
-  const handleSubmit = async (e) => {
+  async function handleUpdate(e) {
     e.preventDefault()
     setSaving(true)
-    setError(null)
-    setSuccess(false)
-
+    setMessage(null)
     try {
-      const { error: updateError } = await updateProfile(user.id, formData, false)
-      if (updateError) throw updateError
-
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      const { error } = await updateProfile(user.id, formData)
+      if (error) throw error
+      setMessage({ type: 'success', text: 'Profile updated successfully!' })
     } catch (err) {
-      setError(err.message || 'Failed to update profile')
+      setMessage({ type: 'error', text: err.message })
     } finally {
       setSaving(false)
     }
   }
 
-  if (!profile) return <div>Loading profile...</div>
+  if (loading) return <div>Loading profile...</div>
 
   return (
-    <div className="profile-container">
-      <h2>My Profile</h2>
+    <div className="profile-container" style={{ maxWidth: '600px' }}>
+      <div className="card">
+        <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <User size={24} color="var(--primary)" /> My Profile
+        </h2>
 
-      {success && (
-        <div className="success-message">Profile updated successfully!</div>
-      )}
-      {error && <div className="error-message">{error}</div>}
-
-      <div className="profile-section">
-        <div className="profile-picture-section">
-          <div className="profile-picture-container">
-            {profilePicture ? (
-              <img src={profilePicture} alt="Profile" className="profile-picture" />
-            ) : (
-              <div className="profile-picture-placeholder">
-                {profile.full_name?.charAt(0).toUpperCase()}
-              </div>
-            )}
+        {message && (
+          <div className={`notification ${message.type}`} style={{ 
+            padding: '1rem', 
+            borderRadius: '8px', 
+            marginBottom: '1rem',
+            background: message.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+            color: message.type === 'success' ? '#4ade80' : '#fca5a5',
+            border: message.type === 'success' ? '1px solid #22c55e' : '1px solid #ef4444'
+          }}>
+            {message.text}
           </div>
-          <div className="profile-picture-upload">
-            <label htmlFor="profile-picture">
-              {uploading ? 'Uploading...' : 'Change Picture'}
-            </label>
-            <input
-              type="file"
-              id="profile-picture"
-              accept="image/*"
-              onChange={handleProfilePictureChange}
-              disabled={uploading}
-              style={{ display: 'none' }}
-            />
-          </div>
-        </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="profile-form">
-          <div className="form-group">
-            <label>Full Name (Read Only)</label>
-            <input
-              type="text"
-              value={profile.full_name || ''}
-              disabled
-              className="read-only-input"
-            />
-            <small>Name can only be changed by your tutor</small>
+        <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="input-group">
+            <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Full Name</label>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-dark)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+              <User size={18} color="var(--text-muted)" style={{ marginRight: '10px' }} />
+              <input 
+                value={formData.full_name}
+                onChange={e => setFormData({...formData, full_name: e.target.value})}
+                style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none' }}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Date of Birth (Read Only)</label>
-            <input
-              type="date"
-              value={profile.date_of_birth || ''}
-              disabled
-              className="read-only-input"
-            />
-            <small>Date of birth can only be changed by your tutor</small>
+          <div className="input-group">
+            <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Email</label>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-dark)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem', opacity: 0.7 }}>
+              <Mail size={18} color="var(--text-muted)" style={{ marginRight: '10px' }} />
+              <input 
+                value={formData.email}
+                readOnly
+                style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', cursor: 'not-allowed' }}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email Address *</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
+          <div className="input-group">
+            <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Phone Number</label>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-dark)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+              <Phone size={18} color="var(--text-muted)" style={{ marginRight: '10px' }} />
+              <input 
+                value={formData.phone_number}
+                onChange={e => setFormData({...formData, phone_number: e.target.value})}
+                style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none' }}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="phone_number">Phone Number</label>
-            <input
-              type="tel"
-              id="phone_number"
-              name="phone_number"
-              value={formData.phone_number}
-              onChange={handleChange}
-            />
+          <div className="input-group">
+            <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Address</label>
+            <div style={{ display: 'flex', alignItems: 'flex-start', background: 'var(--bg-dark)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+              <MapPin size={18} color="var(--text-muted)" style={{ marginRight: '10px', marginTop: '3px' }} />
+              <textarea 
+                value={formData.address}
+                onChange={e => setFormData({...formData, address: e.target.value})}
+                rows={3}
+                style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', resize: 'vertical' }}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="address">Address</label>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              rows="3"
-            />
-          </div>
-
-          <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Saving...' : 'Save Changes'}
+          <button 
+            type="submit" 
+            disabled={saving} 
+            className="btn-primary"
+            style={{ 
+              marginTop: '1rem', 
+              padding: '0.8rem', 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              gap: '0.5rem' 
+            }}
+          >
+            {saving ? <Loader2 className="animate-spin" /> : <Save size={18} />}
+            Save Changes
           </button>
         </form>
       </div>
     </div>
   )
 }
-
