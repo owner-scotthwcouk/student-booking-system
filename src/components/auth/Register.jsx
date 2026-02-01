@@ -74,7 +74,7 @@ export default function Register() {
             <UserPlus size={32} />
           </div>
           <h2>Create Account</h2>
-          <p>Join TutorHub today</p>
+          <p>Join Edumaxim today</p>
         </div>
 
         {error && (
