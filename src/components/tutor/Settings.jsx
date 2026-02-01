@@ -25,8 +25,12 @@ export default function Settings() {
     if (rateData?.hourly_rate) setRate(rateData.hourly_rate)
 
     // Load Maintenance Mode
-    const { data: settingData } = await getSystemSetting('maintenance_mode')
-    if (settingData) setMaintenanceMode(settingData.value === 'true')
+    try {
+      const { data: settingData } = await getSystemSetting('maintenance_mode')
+      if (settingData) setMaintenanceMode(settingData.value === 'true')
+    } catch (err) {
+      console.error("Could not load maintenance setting:", err)
+    }
   }
 
   const handleSave = async (e) => {
