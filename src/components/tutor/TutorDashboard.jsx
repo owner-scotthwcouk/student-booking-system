@@ -10,7 +10,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  User // [NEW] Added User icon
 } from 'lucide-react'
 
 // Sub-components
@@ -20,7 +21,8 @@ import LessonEditor from './LessonEditor'
 import BookingManagement from './BookingManagement'
 import TutorPayments from './Payments'
 import Students from './Students'
-import SettingsPage from './Settings' // This import should now work
+import SettingsPage from './Settings'
+import TutorProfile from './Profile' // [NEW] Imported Profile
 import './TutorDashboard.css'
 
 export default function TutorDashboard() {
@@ -35,6 +37,7 @@ export default function TutorDashboard() {
     { id: 'availability', label: 'Availability', icon: Clock },
     { id: 'pos', label: 'POS System', icon: Calculator },
     { id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'profile', label: 'My Profile', icon: User }, // [NEW] Added Profile Item
     { id: 'settings', label: 'Settings', icon: Settings },
   ]
 
@@ -108,6 +111,7 @@ export default function TutorDashboard() {
           {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
           {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
           {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
+          {activeTab === 'profile' && <TutorProfile />} 
           {activeTab === 'settings' && <SettingsPage />}
         </div>
       </main>
