@@ -242,7 +242,7 @@ export default function Home() {
             e.currentTarget.style.backgroundColor = '#2a2a2a'
           }}
         >
-          ✉️ Contact Support
+          👨🏻‍💻Become a Tutor👨🏻‍💻
         </button>
 
         <p>© 2026 Edumaxim. All rights reserved.</p>
