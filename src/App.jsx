@@ -100,11 +100,12 @@ function AppRoutes() {
       <Route path="/student/book/:tutorId" element={<ProtectedRoute allowedRole="student"><BookingForm /></ProtectedRoute>} />
       
       <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor"><TutorDashboard /></ProtectedRoute>} />
-      
-      <Route path="*" element={<Navigate to="/" />} />
-      <Route path="/meeting/:meetingId" element={<VideoRoom />} />
 
-    </Routes>
+           <Route path="/video-room/:meetingId" element={<VideoRoom />} />
+
+      <Route path="*" element={<Navigate to="/" />} />   
+       </Routes>
+ 
   )
 }
 
