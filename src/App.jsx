@@ -8,6 +8,8 @@ import TutorDashboard from './components/tutor/TutorDashboard'
 import TutorSelection from './components/student/TutorSelection'
 import BookingForm from './components/student/BookingForm'
 import Policies from './pages/Policies' //
+import VideoRoom from './components/VideoRoom/VideoRoom';
+
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, profile, loading } = useAuth()
@@ -100,6 +102,8 @@ function AppRoutes() {
       <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor"><TutorDashboard /></ProtectedRoute>} />
       
       <Route path="*" element={<Navigate to="/" />} />
+      <Route path="/meeting/:meetingId" element={<VideoRoom />} />
+
     </Routes>
   )
 }
