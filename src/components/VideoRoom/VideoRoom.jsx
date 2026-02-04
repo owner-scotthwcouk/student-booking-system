@@ -133,6 +133,22 @@ const VideoRoom = () => {
     setError(error.message);
   }
 };
+  
+  return (
+    <div className="video-room-container">
+      {loading && <div className="loading">Loading...</div>}
+      {error && <div className="error-message">{error}</div>}
+      {!loading && (
+        <>
+          <VideoDisplay localVideoRef={localVideoRef} participants={participants} />
+          <Controls isMuted={isMuted} setIsMuted={setIsMuted} cameraOff={cameraOff} setCameraOff={setCameraOff} onLeaveMeeting={handleLeaveMeeting} />
+          <ParticipantList participants={participants} />
+        </>
+      )}
+    </div>
+  );
+  
+}
 
 
 export default VideoRoom;
