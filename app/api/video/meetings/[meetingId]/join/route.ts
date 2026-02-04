@@ -22,7 +22,7 @@ export async function POST(
 
     if (!userId || !userName || !userType || !passcode) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        success: false, { error: 'Missing required fields' },
         { status: 400 }
       );
     }
@@ -36,7 +36,7 @@ export async function POST(
 
     if (meetingError || !meeting) {
       return NextResponse.json(
-        { error: 'Invalid meeting or passcode' },
+        success: false, { error: 'Invalid meeting or passcode' },
         { status: 401 }
       );
     }
@@ -63,12 +63,12 @@ export async function POST(
     if (error) {
       console.error('Error recording participant join:', error);
       return NextResponse.json(
-        { error: 'Failed to join meeting' },
-        { status: 500 }
+{ success: false, error: 'Failed to join meeting' }        { status: 500 }
       );
     }
 
     return NextResponse.json({
+          success: true,
       sessionId,
       participant,
       turn_servers: [
@@ -79,7 +79,7 @@ export async function POST(
   } catch (error) {
     console.error('Error in POST /api/video/meetings/:meetingId/join:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      success: false, { error: 'Internal server error' },
       { status: 500 }
     );
   }
