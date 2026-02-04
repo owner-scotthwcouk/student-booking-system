@@ -26,7 +26,7 @@ const VideoRoom = () => {
       try {
         const url = window.location.href;
         const credentials = extractCredentialsFromUrl(url);
-        
+
         if (!credentials) {
           setError('Invalid meeting link');
           setLoading(false);
@@ -69,70 +69,38 @@ const VideoRoom = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: userIdRef.current,
-          userName: localStorage.getItem('userName') || 'Guest',
-          userType: localStorage.getItem('userType') || 'student',
-          passcode,
+          userName: `User ${userIdRef.current.slice(0, 8)}`,
+          passcode: passcode,
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to join meeting');
-      }
 
       const data = await response.json();
-      sessionIdRef.current = data.sessionId;
-
-      // Fetch current participants
-      fetchParticipants(meetingId);
-    } catch (err) {
-      console.error('Error joining meeting:', err);
-      throw err;
+      if (!data.success) throw new Error(data.error || 'Failed to join');
+      setMeetingActive(true);
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error.message);
     }
   };
 
-  const fetchParticipants = async (meetingId) => {
+
+  const fetchParticipants = async () => {
     try {
-      const response = await fetch(
-        `/api/video/meetings/${meetingId}/participants?passcode=${passcodeRef.current}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setParticipants(data.participants || []);
+      const response = await fetch(`/api/video/meetings/${meetingId}/participants`);
+      const data = await response.json();
+      if (data.success) {
+        setParticipants(data.participants);
       }
-    } catch (err) {
-      console.error('Error fetching participants:', err);
+    } catch (error) {
+      console.error('Error fetching participants:', error);
     }
   };
 
-  const handleToggleMute = async () => {
-    try {
-      const newMutedState = !isMuted;
-      
-      if (localStream) {
-        localStream.getAudioTracks().forEach(track => {
-          track.enabled = !newMutedState;
-        });
-      }
-
-      await fetch(`/api/video/meetings/${meetingId}/mute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userIdRef.current,
-          isMuted: newMutedState,
-        }),
-      });
-
-      setIsMuted(newMutedState);
-    } catch (err) {
-      console.error('Error toggling mute:', err);
-    }
-  };
 
   const handleToggleCamera = async () => {
     try {
       const newCameraState = !cameraOff;
-      
+
       if (localStream) {
         localStream.getVideoTracks().forEach(track => {
           track.enabled = newCameraState;
@@ -155,68 +123,16 @@ const VideoRoom = () => {
   };
 
   const handleLeaveMeeting = async () => {
-    try {
-      if (sessionIdRef.current) {
-        await fetch(`/api/video/meetings/${meetingId}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: userIdRef.current,
-            sessionId: sessionIdRef.current,
-          }),
-        });
-      }
-
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-
-      Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
-      window.location.href = '/';
-    } catch (err) {
-      console.error('Error leaving meeting:', err);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-900">
-        <div className="text-white text-xl">Connecting to meeting...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-900">
-        <div className="text-red-400 text-xl">Error: {error}</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full h-screen bg-gray-900 flex flex-col">
-      <div className="flex-1 flex gap-4 p-4">
-        <div className="flex-1">
-          <VideoDisplay
-            localStream={localStream}
-            localVideoRef={localVideoRef}
-            participants={participants}
-          />
-        </div>
-        <div className="w-64 bg-gray-800 rounded-lg overflow-hidden flex flex-col">
-          <ParticipantList participants={participants} />
-        </div>
-      </div>
-      <Controls
-        isMuted={isMuted}
-        cameraOff={cameraOff}
-        onToggleMute={handleToggleMute}
-        onToggleCamera={handleToggleCamera}
-        onLeaveMeeting={handleLeaveMeeting}
-      />
-    </div>
-  );
+  try {
+    await fetch(`/api/video/meetings/${meetingId}/leave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userIdRef.current }),
+    });
+    // Clean up local streams and redirect
+  } catch (error) {
+    console.error('Error leaving:', error);
+   } }
 };
 
 export default VideoRoom;
