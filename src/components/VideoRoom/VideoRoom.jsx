@@ -63,76 +63,76 @@ const VideoRoom = () => {
   }, [meetingId]);
 
   const joinMeeting = async (meetingId, passcode, stream) => {
-    try {
-      const response = await fetch(`/api/video/meetings/${meetingId}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userIdRef.current,
-          userName: `User ${userIdRef.current.slice(0, 8)}`,
-          passcode: passcode,
-        }),
-      });
+  try {
+    console.log('Joining meeting:', meetingId);
+    
+    const response = await fetch(`/api/video/meetings/${meetingId}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: userIdRef.current,
+        userName: `User ${userIdRef.current.slice(0, 8)}`,
+        passcode: passcode,
+      }),
+    });
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to join');
-      setMeetingActive(true);
-    } catch (error) {
-      console.error('Error:', error);
-      setError(error.message);
+    const data = await response.json();
+    console.log('Join response:', data);
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to join meeting');
     }
-  };
+
+    setMeetingActive(true);
+    console.log('Successfully joined meeting');
+    
+  } catch (error) {
+    console.error('Error joining meeting:', error);
+    setError(error.message);
+    throw error;
+  }
+};
+
 
 
   const fetchParticipants = async () => {
-    try {
-      const response = await fetch(`/api/video/meetings/${meetingId}/participants`);
-      const data = await response.json();
-      if (data.success) {
-        setParticipants(data.participants);
-      }
-    } catch (error) {
-      console.error('Error fetching participants:', error);
+  try {
+    const response = await fetch(`/api/video/meetings/${meetingId}/participants`);
+    const data = await response.json();
+    
+    if (data.success && data.participants) {
+      console.log('Participants:', data.participants);
+      setParticipants(data.participants);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching participants:', error);
+  }
+};
 
-
-  const handleToggleCamera = async () => {
-    try {
-      const newCameraState = !cameraOff;
-
-      if (localStream) {
-        localStream.getVideoTracks().forEach(track => {
-          track.enabled = newCameraState;
-        });
-      }
-
-      await fetch(`/api/video/meetings/${meetingId}/mute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userIdRef.current,
-          cameraOff: newCameraState,
-        }),
-      });
-
-      setCameraOff(newCameraState);
-    } catch (err) {
-      console.error('Error toggling camera:', err);
-    }
-  };
 
   const handleLeaveMeeting = async () => {
   try {
-    await fetch(`/api/video/meetings/${meetingId}/leave`, {
+    const response = await fetch(`/api/video/meetings/${meetingId}/leave`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: userIdRef.current }),
     });
-    // Clean up local streams and redirect
+
+    const data = await response.json();
+    console.log('Leave response:', data);
+
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+
+    Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+    
+    window.location.href = '/';
   } catch (error) {
-    console.error('Error leaving:', error);
-   } }
+    console.error('Error leaving meeting:', error);
+    setError(error.message);
+  }
 };
+
 
 export default VideoRoom;
