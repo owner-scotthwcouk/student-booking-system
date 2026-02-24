@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { supabase } from '../../lib/supabaseClient'
 import HomeworkSubmission from './HomeworkSubmission'
+import { getLessonActivities } from '../../lib/lessonsAPI'
+import { getLessonHomework } from '../../lib/homeworkAPI'
+import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
 
 export default function Lessons() {
   const { user } = useAuth()
@@ -9,28 +12,63 @@ export default function Lessons() {
   const [selectedLesson, setSelectedLesson] = useState(null)
   const [activities, setActivities] = useState([])
   const [homework, setHomework] = useState([])
+  const [bookingRooms, setBookingRooms] = useState({})
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadLessons()
-  }, [user])
+  const loadBookingRooms = useCallback(async (lessonRows) => {
+    const bookingIds = lessonRows
+      .map((lesson) => lesson.booking_id)
+      .filter(Boolean)
 
-  async function loadLessons() {
+    if (bookingIds.length === 0) {
+      setBookingRooms({})
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id, video_room_token, video_room_passcode')
+      .in('id', bookingIds)
+
+    if (error) {
+      console.error('Error loading booking room links:', error)
+      return
+    }
+
+    const roomMap = {}
+    for (const booking of data || []) {
+      if (booking.video_room_token) {
+        roomMap[booking.id] = {
+          token: booking.video_room_token,
+          passcode: booking.video_room_passcode
+        }
+      }
+    }
+    setBookingRooms(roomMap)
+  }, [])
+
+  const loadLessons = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
-        .eq('student_id', user.id)
+        .eq('student_id', user?.id)
         .order('lesson_date', { ascending: false })
 
       if (error) throw error
       setLessons(data || [])
+      await loadBookingRooms(data || [])
     } catch (error) {
       console.error('Error loading lessons:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [loadBookingRooms, user?.id])
+
+  useEffect(() => {
+    if (!user?.id) return
+    loadLessons()
+  }, [user?.id, loadLessons])
 
   async function loadLessonDetails(lessonId) {
     try {
@@ -86,6 +124,15 @@ export default function Lessons() {
                 <p><strong>Date:</strong> {new Date(lesson.lesson_date).toLocaleDateString()}</p>
                 <p><strong>Time:</strong> {lesson.lesson_time.slice(0, 5)}</p>
                 <p><strong>Duration:</strong> {lesson.duration_minutes} minutes</p>
+                {lesson.booking_id && bookingRooms[lesson.booking_id]?.token && (
+                  <p>
+                    <strong>Video Room:</strong>{' '}
+                    <a href={buildVideoRoomUrl(bookingRooms[lesson.booking_id].token)}>
+                      Join now
+                    </a>
+                    {bookingRooms[lesson.booking_id]?.passcode ? ` (Passcode: ${bookingRooms[lesson.booking_id].passcode})` : ''}
+                  </p>
+                )}
               </div>
 
               {selectedLesson === lesson.id && (

@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { useEffect, useState, useCallback } from 'react'
 import { getStudentPayments } from '../../lib/paymentsAPI'
 import { CreditCard, AlertCircle } from 'lucide-react'
 
@@ -8,13 +7,7 @@ export default function StudentPayments({ studentId }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    if (studentId) {
-      loadPayments()
-    }
-  }, [studentId])
-
-  async function loadPayments() {
+  const loadPayments = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await getStudentPayments(studentId)
@@ -25,7 +18,13 @@ export default function StudentPayments({ studentId }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [studentId])
+
+  useEffect(() => {
+    if (studentId) {
+      loadPayments()
+    }
+  }, [studentId, loadPayments])
 
   const totalPaid = payments
     .filter(p => p.status === 'completed')

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getTutorLessons, createLesson, updateLesson, archiveLesson, deleteLesson } from '../../lib/lessonsAPI'
 import { getAllStudents } from '../../lib/profileAPI'
-import { useAuth } from '../../contexts/auth'
 export default function LessonEditor({ tutorId }) {
   const [lessons, setLessons] = useState([])
   const [students, setStudents] = useState([])

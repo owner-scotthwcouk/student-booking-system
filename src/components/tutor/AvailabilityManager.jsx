@@ -39,7 +39,6 @@ export default function AvailabilityManager({ tutorId }) {
 
   const [hourlyRate, setHourlyRate] = useState(30.0)
   const [availability, setAvailability] = useState([])
-  const [loading, setLoading] = useState(false)
   const [busySlotId, setBusySlotId] = useState(null)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -80,7 +79,6 @@ export default function AvailabilityManager({ tutorId }) {
 
   const loadData = useCallback(async () => {
     if (!effectiveTutorId) return
-    setLoading(true)
     try {
       // 1. Get Hourly Rate
       const { data: profile } = await supabase
@@ -104,8 +102,6 @@ export default function AvailabilityManager({ tutorId }) {
     } catch (err) {
       console.error(err)
       setError('Failed to load availability data')
-    } finally {
-      setLoading(false)
     }
   }, [effectiveTutorId])
 
