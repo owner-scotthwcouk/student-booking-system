@@ -183,7 +183,7 @@ test('shows an error for invalid room passcode', async ({ page }) => {
   await page.getByPlaceholder('6-digit passcode').fill('000000')
   await page.getByRole('button', { name: 'Verify' }).click()
 
-  await expect(page.getByText('Incorrect passcode or access denied.')).toBeVisible()
+  await expect(page.getByText('Incorrect passcode.')).toBeVisible()
   await expect(page.locator('iframe[title="Video Room"]')).toHaveCount(0)
 })
 
