@@ -405,6 +405,29 @@ export default function VideoRoomPage() {
 
   const chatEvents = events.filter((event) => event.event_type === 'chat')
   const attendanceEvents = events.filter((event) => event.event_type === 'joined' || event.event_type === 'left')
+  const panelStyle = {
+    background: '#fff',
+    border: '1px solid #d1d5db',
+    borderRadius: '10px',
+    padding: '0.8rem',
+    color: '#111827'
+  }
+  const headingStyle = { marginTop: 0, color: '#111827' }
+  const inputStyle = {
+    flex: 1,
+    padding: '0.5rem',
+    color: '#111827',
+    background: '#fff',
+    border: '1px solid #9ca3af',
+    borderRadius: '6px'
+  }
+  const buttonStyle = {
+    padding: '0.6rem 1rem',
+    color: '#ffffff',
+    background: '#2563eb',
+    border: '1px solid #1d4ed8',
+    borderRadius: '6px'
+  }
 
   return (
     <div style={{ padding: '1rem', minHeight: '100vh', background: '#f3f4f6' }}>
@@ -418,17 +441,17 @@ export default function VideoRoomPage() {
         </div>
 
         {!verified && (
-          <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>Enter Room Passcode</h3>
+          <div style={{ ...panelStyle, padding: '1rem', marginBottom: '1rem' }}>
+            <h3 style={headingStyle}>Enter Room Passcode</h3>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <input
                 type="text"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 placeholder="6-digit passcode"
-                style={{ flex: 1, padding: '0.6rem' }}
+                style={inputStyle}
               />
-              <button type="button" onClick={handleVerifyPasscode} style={{ padding: '0.6rem 1rem' }}>
+              <button type="button" onClick={handleVerifyPasscode} style={buttonStyle}>
                 Verify
               </button>
             </div>
@@ -439,10 +462,10 @@ export default function VideoRoomPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
             <div>
               {isStudent && lobbyEnabled && !admissionApproved && (
-                <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
-                  <h3 style={{ marginTop: 0 }}>Waiting Room</h3>
+                <div style={{ ...panelStyle, padding: '1rem', marginBottom: '1rem' }}>
+                  <h3 style={headingStyle}>Waiting Room</h3>
                   {!admissionRequested ? (
-                    <button type="button" onClick={handleRequestAdmission} style={{ padding: '0.6rem 1rem' }}>
+                    <button type="button" onClick={handleRequestAdmission} style={buttonStyle}>
                       Request to Join
                     </button>
                   ) : (
@@ -463,8 +486,8 @@ export default function VideoRoomPage() {
                   </div>
 
                   {whiteboardOpen && (
-                    <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.75rem', marginBottom: '0.75rem' }}>
-                      <h3 style={{ marginTop: 0 }}>Whiteboard</h3>
+                    <div style={{ ...panelStyle, padding: '0.75rem', marginBottom: '0.75rem' }}>
+                      <h3 style={headingStyle}>Whiteboard</h3>
                       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem' }}>
                         <label>
                           Color{' '}
@@ -514,15 +537,15 @@ export default function VideoRoomPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {isTutor && lobbyEnabled && (
-                <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.8rem' }}>
-                  <h3 style={{ marginTop: 0 }}>Lobby Requests</h3>
+                <div style={panelStyle}>
+                  <h3 style={headingStyle}>Lobby Requests</h3>
                   {pendingAdmissions.length === 0 ? (
                     <p>No pending requests.</p>
                   ) : (
                     pendingAdmissions.map((admission) => (
                       <div key={admission.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                         <span>{admission.student_id.slice(0, 8)}</span>
-                        <button type="button" onClick={() => handleApprove(admission.id)}>
+                        <button type="button" onClick={() => handleApprove(admission.id)} style={buttonStyle}>
                           Admit
                         </button>
                       </div>
@@ -531,14 +554,14 @@ export default function VideoRoomPage() {
                 </div>
               )}
 
-              <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.8rem' }}>
-                <h3 style={{ marginTop: 0 }}>Chat</h3>
-                <div style={{ maxHeight: '220px', overflowY: 'auto', marginBottom: '0.5rem' }}>
+              <div style={panelStyle}>
+                <h3 style={headingStyle}>Chat</h3>
+                <div style={{ maxHeight: '220px', overflowY: 'auto', marginBottom: '0.5rem', color: '#111827' }}>
                   {chatEvents.length === 0 ? (
                     <p>No chat messages yet.</p>
                   ) : (
                     chatEvents.map((event) => (
-                      <div key={event.id} style={{ marginBottom: '0.5rem' }}>
+                      <div key={event.id} style={{ marginBottom: '0.5rem', color: '#111827' }}>
                         <strong>{event.display_name || 'User'}:</strong> {event.message}
                       </div>
                     ))
@@ -549,20 +572,20 @@ export default function VideoRoomPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Type a message"
-                    style={{ flex: 1, padding: '0.5rem' }}
+                    style={inputStyle}
                   />
-                  <button type="submit">Send</button>
+                  <button type="submit" style={buttonStyle}>Send</button>
                 </form>
               </div>
 
-              <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', padding: '0.8rem' }}>
-                <h3 style={{ marginTop: 0 }}>Attendance Log</h3>
-                <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+              <div style={panelStyle}>
+                <h3 style={headingStyle}>Attendance Log</h3>
+                <div style={{ maxHeight: '220px', overflowY: 'auto', color: '#111827' }}>
                   {attendanceEvents.length === 0 ? (
                     <p>No attendance events yet.</p>
                   ) : (
                     attendanceEvents.map((event) => (
-                      <div key={event.id} style={{ marginBottom: '0.5rem' }}>
+                      <div key={event.id} style={{ marginBottom: '0.5rem', color: '#111827' }}>
                         <strong>{event.display_name || 'User'}</strong> {event.event_type} at {formatDateTime(event.created_at)}
                       </div>
                     ))
