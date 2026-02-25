@@ -20,7 +20,6 @@ export default function HomeworkSubmission() {
   const [file, setFile] = useState(null)
   const [comments, setComments] = useState('')
   const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(null)
 
@@ -64,7 +63,6 @@ export default function HomeworkSubmission() {
 
     try {
       // 1. Upload File
-      setUploading(true)
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}/${Date.now()}.${fileExt}`
       
@@ -99,7 +97,6 @@ export default function HomeworkSubmission() {
       setError(err.message || 'Failed to submit homework.')
     } finally {
       setLoading(false)
-      setUploading(false)
     }
   }
 

@@ -213,26 +213,49 @@ export default function TutorStudents() {
                   key={student.id}
                   className={`student-item btn-secondary ${selectedStudentId === student.id ? 'active' : ''}`}
                   onClick={() => handleStudentSelect(student)}
-                  style={{ 
-                    display: 'flex', 
+                  style={{
+                    display: 'flex',
                     flexDirection: 'column',
-                    width: '100%', 
-                    textAlign: 'left', 
+                    width: '100%',
+                    textAlign: 'left',
                     padding: '1rem',
                     gap: '0.5rem',
-                    backgroundColor: selectedStudentId === student.id ? 'var(--primary)' : 'var(--bg-card)',
-                    color: selectedStudentId === student.id ? '#fff' : 'var(--text-main)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '0.5rem',
+                    background: selectedStudentId === student.id
+                      ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.15))'
+                      : 'linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08))',
+                    color: '#e5e5e5',
+                    border: selectedStudentId === student.id
+                      ? '1px solid rgba(99, 102, 241, 0.5)'
+                      : '1px solid rgba(255,255,255,0.25)',
+                    borderRadius: '12px',
+                    backdropFilter: 'blur(14px)',
+                    WebkitBackdropFilter: 'blur(14px)',
+                    boxShadow: selectedStudentId === student.id
+                      ? '0 8px 20px rgba(99, 102, 241, 0.2)'
+                      : '0 4px 12px rgba(15, 23, 42, 0.15)',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedStudentId !== student.id) {
+                      e.currentTarget.style.transform = 'translateY(-3px)'
+                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.22)'
+                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedStudentId !== student.id) {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.15)'
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
+                    }
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <strong style={{ fontSize: '1.05rem' }}>{student.full_name}</strong>
+                    <strong style={{ fontSize: '1.05rem', color: '#fff' }}>{student.full_name}</strong>
                   </div>
-                  
-                  <div style={{ fontSize: '0.85rem', opacity: 0.8, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+
+                  <div style={{ fontSize: '0.85rem', opacity: 0.9, display: 'flex', flexDirection: 'column', gap: '4px', color: '#e5e5e5' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Mail size={14} /> {student.email}
                     </div>
@@ -245,12 +268,12 @@ export default function TutorStudents() {
 
                   <div className="status-tags" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                     {student.hasFuture && (
-                      <span className="tag-future" style={{ fontSize: '0.7rem', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+                      <span className="tag-future" style={{ fontSize: '0.7rem', backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#86efac', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
                         Active
                       </span>
                     )}
                     {student.hasPast && !student.hasFuture && (
-                      <span className="tag-past" style={{ fontSize: '0.7rem', backgroundColor: '#f3f4f6', color: '#4b5563', padding: '2px 8px', borderRadius: '12px' }}>
+                      <span className="tag-past" style={{ fontSize: '0.7rem', backgroundColor: 'rgba(107, 114, 128, 0.2)', color: '#d1d5db', padding: '2px 8px', borderRadius: '12px' }}>
                         Past History
                       </span>
                     )}

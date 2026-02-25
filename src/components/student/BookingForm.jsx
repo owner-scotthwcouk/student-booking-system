@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { useAuth } from '../../hooks/useAuth'
@@ -7,6 +7,7 @@ import { getTutorAvailability } from '../../lib/availabilityAPI'
 import { getTutorHourlyRate, getProfile } from '../../lib/profileAPI'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
+import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
@@ -133,7 +134,7 @@ function BookingPaymentForm({
             payment_date: new Date().toISOString()
           })
 
-        onSuccess()
+        onSuccess(booking)
       }
     } catch (err) {
       setError(err.message || 'Payment failed')
@@ -352,7 +353,6 @@ function BookingPaymentForm({
 // Main Booking Form Component
 function BookingForm() {
   const { tutorId } = useParams()
-  const { user } = useAuth()
   const navigate = useNavigate()
   
   const [selectedDate, setSelectedDate] = useState('')
@@ -360,20 +360,12 @@ function BookingForm() {
   const [availability, setAvailability] = useState([])
   const [blockedSlots, setBlockedSlots] = useState([])
   const [availableTimes, setAvailableTimes] = useState([])
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showPayment, setShowPayment] = useState(false)
   const [hourlyRate, setHourlyRate] = useState(30.00)
   const [tutorName, setTutorName] = useState('')
 
-  useEffect(() => {
-    if (tutorId) {
-      loadAvailability()
-      loadTutorInfo()
-    }
-  }, [tutorId])
-
-  async function loadTutorInfo() {
+  const loadTutorInfo = useCallback(async () => {
     const { data: profile } = await getProfile(tutorId)
     if (profile) {
       setTutorName(profile.full_name)
@@ -383,14 +375,24 @@ function BookingForm() {
     if (rateData?.hourly_rate) {
       setHourlyRate(rateData.hourly_rate)
     }
-  }
+  }, [tutorId])
 
-  async function loadAvailability() {
+  const loadAvailability = useCallback(async () => {
     const { data, error } = await getTutorAvailability(tutorId)
     if (!error && data) {
       setAvailability(data)
     }
-  }
+  }, [tutorId])
+
+  useEffect(() => {
+    if (tutorId) {
+      const initTimer = setTimeout(() => {
+        loadAvailability()
+        loadTutorInfo()
+      }, 0)
+      return () => clearTimeout(initTimer)
+    }
+  }, [tutorId, loadAvailability, loadTutorInfo])
 
   const selectedDayOfWeek = useMemo(() => {
     if (!selectedDate) return null
@@ -416,16 +418,16 @@ function BookingForm() {
 
   useEffect(() => {
     if (!selectedDate || selectedDayOfWeek === null) {
-      setAvailableTimes([])
-      return
+      const resetTimer = setTimeout(() => setAvailableTimes([]), 0)
+      return () => clearTimeout(resetTimer)
     }
 
     const dayAvailability = availability
       .filter((slot) => slot.is_available && slot.day_of_week === selectedDayOfWeek)
 
     if (dayAvailability.length === 0) {
-      setAvailableTimes([])
-      return
+      const resetTimer = setTimeout(() => setAvailableTimes([]), 0)
+      return () => clearTimeout(resetTimer)
     }
 
     const toMinutes = (time) => {
@@ -465,10 +467,13 @@ function BookingForm() {
       }
     }
 
-    setAvailableTimes(times)
-    if (times.length === 0) {
-      setSelectedTime('')
-    }
+    const applyTimer = setTimeout(() => {
+      setAvailableTimes(times)
+      if (times.length === 0) {
+        setSelectedTime('')
+      }
+    }, 0)
+    return () => clearTimeout(applyTimer)
   }, [availability, blockedSlots, selectedDate, selectedDayOfWeek])
 
   const handleContinueToPayment = (e) => {
@@ -482,8 +487,13 @@ function BookingForm() {
     setShowPayment(true)
   }
 
-  const handlePaymentSuccess = () => {
-    navigate('/student/lessons')
+  const handlePaymentSuccess = (booking) => {
+    if (booking?.video_room_token) {
+      const joinUrl = buildVideoRoomUrl(booking.video_room_token)
+      const passcodeText = booking?.video_room_passcode ? `\nPasscode: ${booking.video_room_passcode}` : ''
+      window.alert(`Booking confirmed. Video room link:\n${joinUrl}${passcodeText}`)
+    }
+    navigate('/student')
   }
 
   if (showPayment) {
@@ -552,7 +562,7 @@ function BookingForm() {
 
         <button 
           type="submit" 
-          disabled={loading || availableTimes.length === 0 || !selectedTime}
+          disabled={availableTimes.length === 0 || !selectedTime}
           className="btn-primary btn-large"
         >
           Continue to Payment

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { getTutorBookings, updateBookingStatus } from '../../lib/bookingAPI'
+import { cancelBooking, getTutorBookings, updateBookingStatus } from '../../lib/bookingAPI'
 import Profile from './Profile'
 import LessonEditor from './LessonEditor'
 import HomeworkReview from './HomeworkReview'
@@ -14,11 +14,8 @@ export default function TutorDashboard() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (user) loadBookings()
-  }, [user])
-
-  async function loadBookings() {
+  const loadBookings = useCallback(async () => {
+    if (!user?.id) return
     try {
       const { data, error } = await getTutorBookings(user.id)
       if (error) throw error
@@ -28,13 +25,23 @@ export default function TutorDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (user) loadBookings()
+  }, [user, loadBookings])
 
   const handleStatusChange = async (bookingId, newStatus) => {
     if(!confirm(`Mark lesson as ${newStatus}?`)) return;
     
     const { error } = await updateBookingStatus(bookingId, newStatus)
     if (!error) loadBookings() // Reload list
+  }
+
+  const handleCancelBooking = async (bookingId) => {
+    if (!confirm('Cancel this booking?')) return
+    const { error } = await cancelBooking(bookingId)
+    if (!error) loadBookings()
   }
 
   return (
@@ -135,6 +142,11 @@ export default function TutorDashboard() {
                                 Complete
                               </button>
                             )}
+                            {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                              <button onClick={() => handleCancelBooking(booking.id)} className="btn-danger">
+                                Cancel
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -146,7 +158,7 @@ export default function TutorDashboard() {
           </div>
         )}
 
-        {activeTab === 'lessons' && <LessonEditor />}
+        {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
         {activeTab === 'homework' && <HomeworkReview />}
         {activeTab === 'pos' && <POSSystem />}
         {activeTab === 'students' && <Students />}

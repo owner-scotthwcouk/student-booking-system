@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { getTutorHourlyRate, updateTutorHourlyRate } from '../../lib/profileAPI'
 import { getSystemSetting, updateSystemSetting } from '../../lib/settingsAPI'
@@ -15,12 +15,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState({ type: '', text: '' })
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
-  async function loadSettings() {
-    if (!user) return
+  const loadSettings = useCallback(async () => {
+    if (!user?.id) return
 
     // Load Rate
     const { data: rateData } = await getTutorHourlyRate(user.id)
@@ -33,7 +29,11 @@ export default function Settings() {
     } catch (err) {
       console.error("Could not load maintenance setting:", err)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
   const handleSave = async (e) => {
     e.preventDefault()
