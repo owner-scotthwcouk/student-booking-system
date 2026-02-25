@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth'
+import BrandLogo from '../components/shared/BrandLogo'
 import {
   approveAdmission,
   getAdmissionStatus,
@@ -791,14 +792,17 @@ export default function VideoRoomPage() {
   const buttonStyle = {
     padding: '0.6rem 1rem',
     color: '#ffffff',
-    background: '#2563eb',
-    border: '1px solid #1d4ed8',
+    background: 'linear-gradient(135deg, #45d5e8 0%, #9e65ec 100%)',
+    border: '1px solid #4f8adf',
     borderRadius: '6px'
   }
 
   return (
-    <div style={{ padding: '1rem', minHeight: '100vh', background: '#f3f4f6' }}>
+    <div style={{ padding: '1rem', minHeight: '100vh', background: 'linear-gradient(180deg, #f2fbff 0%, #f7f3ff 100%)' }}>
       <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <BrandLogo size={44} wordmarkSize={24} />
+        </div>
         <div style={{ marginBottom: '1rem' }}>
           <h2 style={{ margin: 0, color: '#111827' }}>Lesson Video Room</h2>
           <p style={{ margin: '0.5rem 0 0', color: '#374151' }}>
@@ -844,10 +848,10 @@ export default function VideoRoomPage() {
               {canEnterRoom && (
                 <>
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <button type="button" onClick={() => setWhiteboardOpen((prev) => !prev)}>
+                    <button type="button" onClick={() => setWhiteboardOpen((prev) => !prev)} style={buttonStyle}>
                       {whiteboardOpen ? 'Hide Whiteboard' : 'Open Whiteboard'}
                     </button>
-                    <button type="button" onClick={handleToggleRecording}>
+                    <button type="button" onClick={handleToggleRecording} style={buttonStyle}>
                       {isRecording ? 'Stop Recording' : 'Start Recording'}
                     </button>
                   </div>

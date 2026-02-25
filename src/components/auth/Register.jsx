@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { User, Mail, Lock, Calendar, Loader2, UserPlus, AlertCircle } from 'lucide-react'
+import BrandLogo from '../shared/BrandLogo'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -70,6 +71,7 @@ export default function Register() {
     <div className="auth-container">
       <div className="auth-card register-card">
         <div className="auth-header">
+          <BrandLogo size={52} wordmarkSize={26} />
           <div className="header-icon">
             <UserPlus size={32} />
           </div>

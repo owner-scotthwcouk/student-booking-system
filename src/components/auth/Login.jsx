@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { getSystemSetting } from '../../lib/settingsAPI'
 import { Mail, Lock, LogIn, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
+import BrandLogo from '../shared/BrandLogo'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -74,6 +75,7 @@ export default function Login() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
+          <BrandLogo size={52} wordmarkSize={26} />
           <div className="header-icon">
             <ShieldCheck size={32} />
           </div>

@@ -28,7 +28,7 @@ function ProtectedRoute({ children, allowedRole }) {
           width: '50px',
           height: '50px',
           border: '4px solid #2a2a2a',
-          borderTop: '4px solid #7c3aed',
+          borderTop: '4px solid #45d5e8',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>
@@ -72,7 +72,7 @@ function AppRoutes() {
           width: '50px',
           height: '50px',
           border: '4px solid #2a2a2a',
-          borderTop: '4px solid #7c3aed',
+          borderTop: '4px solid #45d5e8',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>

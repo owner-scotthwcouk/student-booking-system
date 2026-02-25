@@ -24,6 +24,7 @@ import Students from './Students'
 import SettingsPage from './Settings'
 import TutorProfile from './Profile' // [NEW] Imported Profile
 import './TutorDashboard.css'
+import BrandLogo from '../shared/BrandLogo'
 
 export default function TutorDashboard() {
   const { user, profile, signOut } = useAuth()
@@ -58,7 +59,9 @@ export default function TutorDashboard() {
       {/* Sidebar Navigation */}
       <aside className={`dashboard-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <div className="logo-placeholder">TutorAdmin</div>
+          <div className="logo-placeholder">
+            <BrandLogo size={36} wordmarkSize={18} />
+          </div>
           <div className="user-profile-summary">
             <div className="avatar-circle">
               {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'T'}

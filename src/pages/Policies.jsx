@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, Shield, HelpCircle, FileText, Lock } from 'lucide-react'
+import { ChevronDown, ChevronUp, HelpCircle, FileText, Lock } from 'lucide-react'
+import BrandLogo from '../components/shared/BrandLogo'
 
 export default function Policies() {
   const navigate = useNavigate()
@@ -18,11 +19,12 @@ export default function Policies() {
         borderBottom: '1px solid #334155',
         backgroundColor: '#1e293b'
       }}>
-        <div 
-          onClick={() => navigate('/')} 
-          style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        <div
+          onClick={() => navigate('/')}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
         >
-          <Shield size={28} /> Edumaxim Legal
+          <BrandLogo size={40} wordmarkSize={20} />
+          <span style={{ color: '#7fd8ff', fontWeight: '700' }}>Legal</span>
         </div>
         <button 
           onClick={() => navigate('/')}
@@ -96,7 +98,7 @@ function MenuButton({ active, onClick, icon, label }) {
         padding: '1rem',
         border: 'none',
         borderRadius: '8px',
-        backgroundColor: active ? '#6366f1' : 'transparent',
+        background: active ? 'linear-gradient(135deg, #45d5e8 0%, #9e65ec 100%)' : 'transparent',
         color: active ? '#ffffff' : '#94a3b8',
         fontWeight: active ? '600' : '400',
         cursor: 'pointer',
@@ -237,7 +239,7 @@ function Accordion({ question, children }) {
         }}
       >
         {question}
-        {isOpen ? <ChevronUp size={20} color="#6366f1" /> : <ChevronDown size={20} color="#94a3b8" />}
+        {isOpen ? <ChevronUp size={20} color="#45d5e8" /> : <ChevronDown size={20} color="#94a3b8" />}
       </button>
       {isOpen && (
         <div style={{ marginTop: '0.75rem', color: '#94a3b8', lineHeight: '1.6' }}>
