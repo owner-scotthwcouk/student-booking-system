@@ -192,21 +192,37 @@ export default function AvailabilityManager({ tutorId }) {
       )}
 
       {/* Top Control Bar: Rate & Add Slot */}
-      <div className="controls-grid">
+      <div className="controls-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
         {/* Hourly Rate Card */}
-        <div className="control-card rate-card">
-          <h3>Hourly Rate</h3>
-          <div className="input-row">
-            <div className="currency-wrap">
-              <span>£</span>
+        <div className="control-card rate-card" style={{
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08))',
+          border: '1px solid rgba(255,255,255,0.25)',
+          borderRadius: '16px',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          boxShadow: '0 8px 20px rgba(15, 23, 42, 0.22)',
+          padding: '1.5rem',
+          transition: 'all 0.2s ease'
+        }} onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)'
+          e.currentTarget.style.boxShadow = '0 14px 30px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.45)'
+        }} onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.22)'
+        }}>
+          <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff' }}>Hourly Rate</h3>
+          <div className="input-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="currency-wrap" style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', overflow: 'hidden' }}>
+              <span style={{ padding: '0.6rem 0.75rem', color: '#93c5fd' }}>£</span>
               <input
                 type="number"
                 value={hourlyRate}
                 onChange={(e) => setHourlyRate(e.target.value)}
+                style={{ flex: 1, padding: '0.6rem', background: 'transparent', border: 'none', color: '#e5e5e5', outline: 'none', fontSize: '1rem' }}
               />
             </div>
-            <button 
-              onClick={saveHourlyRate} 
+            <button
+              onClick={saveHourlyRate}
               disabled={busySlotId === 'rate'}
               className="btn-primary"
             >
@@ -216,38 +232,56 @@ export default function AvailabilityManager({ tutorId }) {
         </div>
 
         {/* Add Slot Card */}
-        <div className="control-card add-slot-card">
-          <h3>Add Availability</h3>
-          <div className="add-form">
-            <div className="form-group">
-              <label>Day</label>
+        <div className="control-card add-slot-card" style={{
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08))',
+          border: '1px solid rgba(255,255,255,0.25)',
+          borderRadius: '16px',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          boxShadow: '0 8px 20px rgba(15, 23, 42, 0.22)',
+          padding: '1.5rem',
+          transition: 'all 0.2s ease'
+        }} onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)'
+          e.currentTarget.style.boxShadow = '0 14px 30px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.45)'
+        }} onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.22)'
+        }}>
+          <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff' }}>Add Availability</h3>
+          <div className="add-form" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ color: '#e5e5e5', fontSize: '0.9rem', fontWeight: '500' }}>Day</label>
               <select
                 value={newSlot.day_of_week}
                 onChange={(e) => setNewSlot(s => ({ ...s, day_of_week: e.target.value }))}
+                style={{ padding: '0.6rem', background: 'rgba(30, 41, 59, 0.8)', color: '#e5e5e5', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', fontSize: '0.95rem' }}
               >
                 {DAYS.map(d => (
                   <option key={d.value} value={d.value}>{d.label}</option>
                 ))}
               </select>
             </div>
-            <div className="form-group">
-              <label>Start</label>
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ color: '#e5e5e5', fontSize: '0.9rem', fontWeight: '500' }}>Start</label>
               <input
                 type="time"
                 value={newSlot.start_time}
                 onChange={(e) => setNewSlot(s => ({ ...s, start_time: e.target.value }))}
+                style={{ padding: '0.6rem', background: 'rgba(30, 41, 59, 0.8)', color: '#e5e5e5', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', fontSize: '0.95rem' }}
               />
             </div>
-            <div className="form-group">
-              <label>End</label>
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ color: '#e5e5e5', fontSize: '0.9rem', fontWeight: '500' }}>End</label>
               <input
                 type="time"
                 value={newSlot.end_time}
                 onChange={(e) => setNewSlot(s => ({ ...s, end_time: e.target.value }))}
+                style={{ padding: '0.6rem', background: 'rgba(30, 41, 59, 0.8)', color: '#e5e5e5', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', fontSize: '0.95rem' }}
               />
             </div>
-            <button 
-              onClick={addSlot} 
+            <button
+              onClick={addSlot}
               disabled={busySlotId === 'add'}
               className="btn-primary icon-btn"
             >
@@ -258,32 +292,72 @@ export default function AvailabilityManager({ tutorId }) {
       </div>
 
       {/* The Weekly Grid */}
-      <div className="week-grid">
+      <div className="week-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         {DAYS.map((day) => {
           const slots = availabilityByDay.get(day.value) || []
           const hasSlots = slots.length > 0
-          
+
           return (
-            <div key={day.value} className={`day-card ${hasSlots ? 'active' : ''}`}>
-              <div className="day-header">
-                <h4>{day.label}</h4>
-                {hasSlots && <span className="badge">{slots.length}</span>}
+            <div key={day.value} className={`day-card ${hasSlots ? 'active' : ''}`} style={{
+              background: hasSlots
+                ? 'linear-gradient(145deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08))'
+                : 'linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08))',
+              border: hasSlots
+                ? '1px solid rgba(59, 130, 246, 0.3)'
+                : '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(14px)',
+              WebkitBackdropFilter: 'blur(14px)',
+              boxShadow: '0 8px 20px rgba(15, 23, 42, 0.22)',
+              padding: '1.5rem',
+              transition: 'all 0.2s ease'
+            }} onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)'
+              e.currentTarget.style.boxShadow = '0 14px 30px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.45)'
+            }} onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.22)'
+            }}>
+              <div className="day-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{day.label}</h4>
+                {hasSlots && <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.3)', color: '#93c5fd', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600' }}>{slots.length}</span>}
               </div>
-              
+
               <div className="day-body">
                 {!hasSlots ? (
-                  <div className="empty-state-day">Unavailable</div>
+                  <div className="empty-state-day" style={{ color: '#9ca3af', fontSize: '0.95rem' }}>Unavailable</div>
                 ) : (
-                  <div className="slots-list">
+                  <div className="slots-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {slots.map(slot => (
-                      <div key={slot.id} className="time-pill">
+                      <div key={slot.id} className="time-pill" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: 'rgba(59, 130, 246, 0.2)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '8px',
+                        padding: '0.75rem',
+                        fontSize: '0.9rem',
+                        color: '#93c5fd'
+                      }}>
                         <Clock size={12} className="clock-icon"/>
                         <span>{timeLabel(slot.start_time)} - {timeLabel(slot.end_time)}</span>
-                        <button 
+                        <button
                           onClick={() => deleteSlot(slot.id)}
                           disabled={busySlotId === slot.id}
                           className="delete-pill"
                           title="Remove slot"
+                          style={{
+                            marginLeft: 'auto',
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '0.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            hover: { color: '#fca5a5' }
+                          }}
                         >
                           <Trash2 size={12} />
                         </button>

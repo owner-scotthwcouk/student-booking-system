@@ -171,25 +171,29 @@ export default function LessonEditor({ tutorId }) {
           <div className="modal-content">
             <h3>{selectedLesson ? 'Edit Lesson' : 'Create Lesson'}</h3>
             <form onSubmit={handleSubmit}>
-              {!selectedLesson && (
-                <div className="form-group">
-                  <label htmlFor="studentId">Student *</label>
-                  <select
-                    id="studentId"
-                    name="studentId"
-                    value={formData.studentId}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select a student</option>
-                    {students.map((student) => (
-                      <option key={student.id} value={student.id}>
-                        {student.full_name} ({student.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="form-group">
+                <label htmlFor="studentId">Student *</label>
+                <select
+                  id="studentId"
+                  name="studentId"
+                  value={formData.studentId}
+                  onChange={handleChange}
+                  required
+                  disabled={selectedLesson && formData.studentId !== ''}
+                >
+                  <option value="">Select a student</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.full_name} ({student.email})
+                    </option>
+                  ))}
+                </select>
+                {selectedLesson && formData.studentId && (
+                  <small style={{ color: '#888', marginTop: '0.25rem', display: 'block' }}>
+                    Note: You are editing a lesson for this student. Create a new lesson to assign to a different student.
+                  </small>
+                )}
+              </div>
 
               <div className="form-group">
                 <label htmlFor="lessonDate">Date *</label>
@@ -304,27 +308,87 @@ export default function LessonEditor({ tutorId }) {
         </div>
       )}
 
-      <div className="lessons-list">
+      <div
+        className="lessons-list"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: '1rem',
+          marginTop: '1.5rem'
+        }}
+      >
         {lessons.length === 0 ? (
-          <div className="empty-state">No lessons found.</div>
+          <div className="empty-state" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: '#666' }}>
+            No lessons found.
+          </div>
         ) : (
           lessons.map((lesson) => (
-            <div key={lesson.id} className="lesson-card">
-              <h3>{lesson.title}</h3>
-              <p><strong>Student:</strong> {lesson.student?.full_name || 'N/A'}</p>
-              <p><strong>Date:</strong> {new Date(lesson.lesson_date).toLocaleDateString()}</p>
-              <p><strong>Time:</strong> {lesson.lesson_time.slice(0, 5)}</p>
-              <p><strong>Status:</strong> {lesson.status}</p>
-              <div className="lesson-actions">
-                <button onClick={() => handleEdit(lesson)} className="btn-secondary">
+            <div
+              key={lesson.id}
+              className="lesson-card"
+              style={{
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08))',
+                border: '1px solid rgba(255,255,255,0.25)',
+                borderRadius: '16px',
+                backdropFilter: 'blur(14px)',
+                WebkitBackdropFilter: 'blur(14px)',
+                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.22)',
+                padding: '1.5rem',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+                cursor: 'default'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)'
+                e.currentTarget.style.boxShadow = '0 14px 30px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.45)'
+                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.22)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
+              }}
+            >
+              <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#fff' }}>{lesson.title}</h3>
+              <div style={{ marginBottom: '1rem' }}>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#e5e5e5' }}>
+                  <strong>Student:</strong> {lesson.student?.full_name || 'N/A'}
+                </p>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#e5e5e5' }}>
+                  <strong>Date:</strong> {new Date(lesson.lesson_date).toLocaleDateString()}
+                </p>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#e5e5e5' }}>
+                  <strong>Time:</strong> {lesson.lesson_time.slice(0, 5)}
+                </p>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#e5e5e5' }}>
+                  <strong>Duration:</strong> {lesson.duration_minutes || 60} minutes
+                </p>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#e5e5e5' }}>
+                  <strong>Status:</strong>{' '}
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '20px',
+                      fontSize: '0.85rem',
+                      backgroundColor: lesson.status === 'completed' ? 'rgba(34, 197, 94, 0.2)' : lesson.status === 'cancelled' ? 'rgba(239, 68, 68, 0.2)' : lesson.status === 'archived' ? 'rgba(107, 114, 128, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                      color: lesson.status === 'completed' ? '#86efac' : lesson.status === 'cancelled' ? '#fca5a5' : lesson.status === 'archived' ? '#d1d5db' : '#93c5fd',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {lesson.status}
+                  </span>
+                </p>
+              </div>
+              <div className="lesson-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button onClick={() => handleEdit(lesson)} className="btn-secondary" style={{ flex: '1 1 auto', minWidth: '80px' }}>
                   Edit
                 </button>
                 {lesson.status !== 'archived' && (
-                  <button onClick={() => handleArchive(lesson.id)} className="btn-secondary">
+                  <button onClick={() => handleArchive(lesson.id)} className="btn-secondary" style={{ flex: '1 1 auto', minWidth: '80px' }}>
                     Archive
                   </button>
                 )}
-                <button onClick={() => handleDelete(lesson.id)} className="btn-danger">
+                <button onClick={() => handleDelete(lesson.id)} className="btn-danger" style={{ flex: '1 1 auto', minWidth: '80px' }}>
                   Delete
                 </button>
               </div>

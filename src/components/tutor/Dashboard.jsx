@@ -158,7 +158,7 @@ export default function TutorDashboard() {
           </div>
         )}
 
-        {activeTab === 'lessons' && <LessonEditor />}
+        {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
         {activeTab === 'homework' && <HomeworkReview />}
         {activeTab === 'pos' && <POSSystem />}
         {activeTab === 'students' && <Students />}
