@@ -108,15 +108,6 @@ export default function TutorProfile() {
     backgroundColor: '#0f172a'
   }
 
-  const bodyStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(250px, 300px) 1fr', // Sidebar | Content
-    gap: '0',
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: '1fr'
-    }
-  }
-
   const sidebarStyle = {
     padding: '2rem',
     borderRight: '1px solid #334155',
