@@ -354,34 +354,51 @@ export default function POSSystem() {
           margin-bottom: 2rem;
         }
         .lilac-card {
-          background-color: #e6e6fa !important; /* Lilac */
-          color: #000000 !important;
-          border: 1px solid #dcdcdc;
+          background: linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08)) !important;
+          color: #e5e5e5 !important;
+          border: 1px solid rgba(255,255,255,0.25);
           padding: 1.5rem;
-          border-radius: 8px;
+          border-radius: 16px;
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+          transition: all 0.2s ease;
+        }
+        .lilac-card:hover {
+          border-color: rgba(99, 102, 241, 0.5);
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.45);
         }
         .lilac-card h3 {
           margin-top: 0;
           margin-bottom: 1rem;
-          border-bottom: 2px solid rgba(0,0,0,0.1);
+          border-bottom: 1px solid rgba(255,255,255,0.15);
           padding-bottom: 0.5rem;
-          color: #333;
+          color: #fff;
         }
         .lilac-card label {
-          color: #333;
+          color: #e5e5e5;
           font-weight: 500;
           margin-bottom: 4px;
           display: block;
         }
-        /* Ensure inputs inside lilac card are readable */
+        /* Ensure inputs inside glass card are readable */
         .lilac-card input,
         .lilac-card select {
-          background-color: #ffffff;
-          color: #000000;
-          border: 1px solid #ccc;
+          background-color: rgba(30, 41, 59, 0.8);
+          color: #e5e5e5;
+          border: 1px solid rgba(255,255,255,0.2);
           padding: 8px;
-          border-radius: 4px;
+          border-radius: 8px;
           width: 100%;
+          backdrop-filter: blur(10px);
+          transition: all 0.2s ease;
+        }
+        .lilac-card input:focus,
+        .lilac-card select:focus {
+          background-color: rgba(30, 41, 59, 0.9);
+          border-color: rgba(99, 102, 241, 0.5);
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
         .form-row {
           display: flex;
@@ -396,10 +413,15 @@ export default function POSSystem() {
         .price-display {
           font-size: 1.5rem;
           font-weight: bold;
-          color: #2c3e50;
+          color: #93c5fd;
+          background: rgba(59, 130, 246, 0.1);
+          padding: 1rem;
+          border-radius: 8px;
+          border: 1px solid rgba(59, 130, 246, 0.2);
         }
         .bg-gray {
-          background-color: #f0f0f0 !important;
+          background-color: rgba(107, 114, 128, 0.1) !important;
+          color: #9ca3af !important;
         }
         .btn-block {
           width: 100%;
