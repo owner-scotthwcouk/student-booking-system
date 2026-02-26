@@ -22,6 +22,7 @@ export default function BookingManagement({ tutorId }) {
   const [error, setError] = useState(null)
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [hoveredBookingId, setHoveredBookingId] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   const loadBookings = useCallback(async () => {
     try {
@@ -194,22 +195,34 @@ export default function BookingManagement({ tutorId }) {
         </div>
       ) : (
         <>
-          {activeBookings.length > 0 && (
+          {activeBookings.length > 0 ? (
             <div style={{ marginBottom: '1.5rem' }}>
-              <h3 style={{ marginBottom: '0.75rem' }}>Active Bookings</h3>
+              <h3 style={{ marginBottom: '0.75rem' }}>Bookings</h3>
               {renderBookings(activeBookings)}
             </div>
+          ) : (
+            <div className="empty-state" style={{ marginBottom: '1.5rem' }}>
+              <p>No current or upcoming bookings.</p>
+            </div>
           )}
-          <div>
-            <h3 style={{ marginBottom: '0.75rem' }}>Archived Bookings</h3>
-            {archivedBookings.length > 0 ? (
-              renderBookings(archivedBookings)
-            ) : (
-              <div className="empty-state">
-                <p>No archived bookings yet.</p>
-              </div>
-            )}
-          </div>
+          {archivedBookings.length > 0 && (
+            <div>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowArchived((prev) => !prev)}
+                style={{ marginBottom: '0.75rem' }}
+              >
+                {showArchived ? `Hide Archived (${archivedBookings.length})` : `Show Archived (${archivedBookings.length})`}
+              </button>
+              {showArchived && (
+                <div>
+                  <h3 style={{ marginBottom: '0.75rem' }}>Archived Bookings</h3>
+                  {renderBookings(archivedBookings)}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
