@@ -119,6 +119,11 @@ export default function Login() {
               />
               <Lock className="input-icon" size={18} />
             </div>
+            <div style={{ marginTop: '0.45rem', textAlign: 'right' }}>
+              <Link to="/forgot-password" style={{ color: '#7fd8ff', fontSize: '0.85rem', textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button type="submit" disabled={loading} className="btn-auth">
