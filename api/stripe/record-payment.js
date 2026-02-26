@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { sendEmail } from '../_sendgrid.js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' })
 
@@ -60,6 +61,50 @@ export default async function handler(req, res) {
         .eq('id', finalBookingId)
 
       if (updateError) console.error('Failed to update booking', updateError)
+    }
+
+    // Best-effort: send a confirmation email to the student after successful payment.
+    if (finalBookingId) {
+      try {
+        const { data: booking } = await supabase
+          .from('bookings')
+          .select('id, lesson_date, lesson_time, student_id, tutor_id')
+          .eq('id', finalBookingId)
+          .single()
+
+        if (booking?.student_id) {
+          const [{ data: student }, { data: tutor }] = await Promise.all([
+            supabase.from('profiles').select('full_name, email').eq('id', booking.student_id).single(),
+            booking?.tutor_id
+              ? supabase.from('profiles').select('full_name, email').eq('id', booking.tutor_id).single()
+              : Promise.resolve({ data: null })
+          ])
+
+          if (student?.email) {
+            const lessonDate = booking.lesson_date || 'TBC'
+            const lessonTime = booking.lesson_time || 'TBC'
+            const tutorName = tutor?.full_name || 'your tutor'
+            const amountLabel = `${currency} ${amount.toFixed(2)}`
+
+            await sendEmail({
+              to: student.email,
+              subject: 'Payment confirmed for your lesson',
+              text: `Hi ${student.full_name || 'Student'}, your payment of ${amountLabel} was confirmed for ${lessonDate} at ${lessonTime} with ${tutorName}.`,
+              html: `
+                <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;">
+                  <p>Hi ${student.full_name || 'Student'},</p>
+                  <p>Your payment of <strong>${amountLabel}</strong> has been confirmed.</p>
+                  <p>Lesson date: <strong>${lessonDate}</strong><br />Lesson time: <strong>${lessonTime}</strong><br />Tutor: <strong>${tutorName}</strong></p>
+                  <p>Thank you.</p>
+                </div>
+              `,
+              replyTo: tutor?.email || undefined
+            })
+          }
+        }
+      } catch (emailErr) {
+        console.error('Failed to send payment confirmation email', emailErr)
+      }
     }
 
     return res.status(200).json({ success: true, intent: intent })

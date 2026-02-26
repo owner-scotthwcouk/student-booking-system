@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/auth'
 import { getAllStudents, getProfile, updateStudentProfile } from '../../lib/profileAPI'
 import { getStudentPayments } from '../../lib/paymentsAPI'
 import { getTutorBookings } from '../../lib/bookingAPI'
+import { sendStudentEmail } from '../../lib/emailAPI'
 import { 
   Mail, 
   Phone, 
@@ -14,7 +15,8 @@ import {
   Search,
   User,
   History,
-  CreditCard
+  CreditCard,
+  Send
 } from 'lucide-react'
 
 export default function TutorStudents() {
@@ -37,6 +39,11 @@ export default function TutorStudents() {
     date_of_birth: ''
   })
   const [saveLoading, setSaveLoading] = useState(false)
+  const [showEmailComposer, setShowEmailComposer] = useState(false)
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailStatus, setEmailStatus] = useState(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -179,6 +186,40 @@ export default function TutorStudents() {
       setError(err.message || 'Failed to update student details')
     } finally {
       setSaveLoading(false)
+    }
+  }
+
+  const handleSendStudentEmail = async () => {
+    if (!studentProfile?.email) {
+      setError('Selected student has no email address.')
+      return
+    }
+    if (!emailSubject.trim() || !emailMessage.trim()) {
+      setError('Please provide both an email subject and message.')
+      return
+    }
+
+    setSendingEmail(true)
+    setError(null)
+    setEmailStatus(null)
+    try {
+      await sendStudentEmail({
+        studentEmail: studentProfile.email,
+        studentName: studentProfile.full_name,
+        tutorName: user?.user_metadata?.full_name || 'Tutor',
+        tutorEmail: user?.email,
+        subject: emailSubject,
+        message: emailMessage
+      })
+      setEmailStatus('Email sent successfully.')
+      setEmailSubject('')
+      setEmailMessage('')
+      setShowEmailComposer(false)
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'Failed to send email')
+    } finally {
+      setSendingEmail(false)
     }
   }
 
@@ -396,13 +437,25 @@ export default function TutorStudents() {
                         <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.75rem' }}>{studentProfile.full_name}</h3>
                         <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Student Profile</span>
                       </div>
-                      <button 
-                        onClick={() => setIsEditing(true)}
-                        className="btn-secondary"
-                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#333', background: '#f1f5f9', border: '1px solid #cbd5e1' }}
-                      >
-                        <Edit2 size={16} /> Edit Details
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => {
+                            setShowEmailComposer((prev) => !prev)
+                            setEmailStatus(null)
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#333', background: '#f1f5f9', border: '1px solid #cbd5e1' }}
+                        >
+                          <Mail size={16} /> {showEmailComposer ? 'Close Email' : 'Send Email'}
+                        </button>
+                        <button 
+                          onClick={() => setIsEditing(true)}
+                          className="btn-secondary"
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#333', background: '#f1f5f9', border: '1px solid #cbd5e1' }}
+                        >
+                          <Edit2 size={16} /> Edit Details
+                        </button>
+                      </div>
                     </div>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
@@ -434,6 +487,41 @@ export default function TutorStudents() {
                         <div style={{ fontSize: '1rem', color: '#0f172a', whiteSpace: 'pre-wrap' }}>{studentProfile.address || '-'}</div>
                       </div>
                     </div>
+                    {emailStatus && (
+                      <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#dcfce7', border: '1px solid #86efac', color: '#166534' }}>
+                        {emailStatus}
+                      </div>
+                    )}
+                    {showEmailComposer && (
+                      <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}>
+                        <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155' }}>Send Email to {studentProfile.full_name}</h4>
+                        <input
+                          type="text"
+                          placeholder="Subject"
+                          value={emailSubject}
+                          onChange={(e) => setEmailSubject(e.target.value)}
+                          style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '0.75rem', color: '#000', background: '#fff' }}
+                        />
+                        <textarea
+                          rows={6}
+                          placeholder="Write your message..."
+                          value={emailMessage}
+                          onChange={(e) => setEmailMessage(e.target.value)}
+                          style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', resize: 'vertical', color: '#000', background: '#fff' }}
+                        />
+                        <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={handleSendStudentEmail}
+                            disabled={sendingEmail}
+                            className="btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                          >
+                            <Send size={16} />
+                            {sendingEmail ? 'Sending...' : 'Send Email'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
