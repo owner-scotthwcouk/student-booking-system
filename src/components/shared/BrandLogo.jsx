@@ -1,9 +1,13 @@
+import { useState } from 'react'
+
 export default function BrandLogo({
   size = 44,
   showWordmark = true,
   wordmarkSize = 24,
-  imageSrc = '/edumaxim-logo.png'
+  imageSrc = null
 }) {
+  const [showFallbackMark, setShowFallbackMark] = useState(!imageSrc)
+
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.7rem' }}>
       <div
@@ -20,20 +24,17 @@ export default function BrandLogo({
           justifyContent: 'center'
         }}
       >
-        <img
-          src={imageSrc}
-          alt="Edumaxim logo"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          onError={(event) => {
-            event.currentTarget.style.display = 'none'
-            if (event.currentTarget.nextElementSibling) {
-              event.currentTarget.nextElementSibling.style.display = 'inline-block'
-            }
-          }}
-        />
+        {imageSrc && !showFallbackMark && (
+          <img
+            src={imageSrc}
+            alt="Edumaxim logo"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={() => setShowFallbackMark(true)}
+          />
+        )}
         <span
           style={{
-            display: 'none',
+            display: showFallbackMark ? 'inline-block' : 'none',
             position: 'absolute',
             fontSize: `${Math.max(14, Math.round(size * 0.38))}px`,
             fontWeight: 800,
@@ -43,6 +44,19 @@ export default function BrandLogo({
         >
           EM
         </span>
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: `${Math.max(3, Math.round(size * 0.14))}px`,
+            right: `${Math.max(3, Math.round(size * 0.14))}px`,
+            width: `${Math.max(5, Math.round(size * 0.16))}px`,
+            height: `${Math.max(5, Math.round(size * 0.16))}px`,
+            borderRadius: '50%',
+            background: '#4ce0e9',
+            boxShadow: '0 0 0 2px rgba(15, 23, 42, 0.45)'
+          }}
+        />
       </div>
       {showWordmark && (
         <span
