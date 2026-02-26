@@ -2,6 +2,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { cancelBooking, ensureBookingVideoRoom, getTutorBookings, updateBookingStatus } from '../../lib/bookingAPI'
 import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
 
+function parseLessonDate(lessonDate) {
+  if (!lessonDate) return null
+  const [year, month, day] = String(lessonDate).split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+function isArchivedBooking(booking, today) {
+  if (booking?.status === 'archived') return true
+  const lessonDate = parseLessonDate(booking?.lesson_date)
+  if (!lessonDate) return false
+  return lessonDate < today
+}
+
 export default function BookingManagement({ tutorId }) {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -81,6 +95,93 @@ export default function BookingManagement({ tutorId }) {
 
   if (loading) return <div>Loading bookings...</div>
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const activeBookings = bookings.filter((booking) => !isArchivedBooking(booking, today))
+  const archivedBookings = bookings.filter((booking) => isArchivedBooking(booking, today))
+
+  const renderBookings = (items) => (
+    <div
+      className="bookings-list"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '1rem'
+      }}
+    >
+      {items.map((booking) => (
+        <div
+          key={booking.id}
+          className={`booking-card booking-card-glass ${booking.status}`}
+          onClick={() => setSelectedBooking(booking)}
+          onMouseEnter={() => setHoveredBookingId(booking.id)}
+          onMouseLeave={() => setHoveredBookingId(null)}
+          style={{
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08))',
+            border: '1px solid rgba(255,255,255,0.25)',
+            borderRadius: '16px',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            boxShadow: hoveredBookingId === booking.id
+              ? '0 14px 30px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.45)'
+              : '0 8px 20px rgba(15, 23, 42, 0.22)',
+            transform: hoveredBookingId === booking.id ? 'translateY(-5px)' : 'translateY(0)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            padding: '1rem',
+            cursor: 'pointer'
+          }}
+        >
+          <div className="booking-header">
+            <h3>{booking.student?.full_name || 'Unknown Student'}</h3>
+            <span className={`status-badge ${booking.status}`}>
+              {booking.status}
+            </span>
+          </div>
+          <p>
+            <strong>Date:</strong>{' '}
+            {new Date(booking.lesson_date).toLocaleDateString()}
+          </p>
+          <p>
+            <strong>Time:</strong> {booking.lesson_time}
+          </p>
+          <p>
+            <strong>Duration:</strong> {booking.duration_minutes} minutes
+          </p>
+          <p>
+            <strong>Payment:</strong> {booking.payment_status}
+          </p>
+          {booking.video_room_token && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <a
+                href={buildVideoRoomUrl(booking.video_room_token)}
+                className="btn-secondary"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Join Room
+              </a>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  copyRoomLink(booking.video_room_token)
+                }}
+              >
+                Copy Link
+              </button>
+            </div>
+          )}
+          {booking.video_room_passcode && (
+            <p>
+              <strong>Passcode:</strong> {booking.video_room_passcode}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+
   return (
     <div className="booking-management">
       <h2>Booking Requests</h2>
@@ -92,84 +193,24 @@ export default function BookingManagement({ tutorId }) {
           <p>No bookings yet.</p>
         </div>
       ) : (
-        <div
-          className="bookings-list"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '1rem'
-          }}
-        >
-          {bookings.map((booking) => (
-            <div
-              key={booking.id}
-              className={`booking-card booking-card-glass ${booking.status}`}
-              onClick={() => setSelectedBooking(booking)}
-              onMouseEnter={() => setHoveredBookingId(booking.id)}
-              onMouseLeave={() => setHoveredBookingId(null)}
-              style={{
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.08))',
-                border: '1px solid rgba(255,255,255,0.25)',
-                borderRadius: '16px',
-                backdropFilter: 'blur(14px)',
-                WebkitBackdropFilter: 'blur(14px)',
-                boxShadow: hoveredBookingId === booking.id
-                  ? '0 14px 30px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.45)'
-                  : '0 8px 20px rgba(15, 23, 42, 0.22)',
-                transform: hoveredBookingId === booking.id ? 'translateY(-5px)' : 'translateY(0)',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                padding: '1rem',
-                cursor: 'pointer'
-              }}
-            >
-              <div className="booking-header">
-                <h3>{booking.student?.full_name || 'Unknown Student'}</h3>
-                <span className={`status-badge ${booking.status}`}>
-                  {booking.status}
-                </span>
-              </div>
-              <p>
-                <strong>Date:</strong>{' '}
-                {new Date(booking.lesson_date).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Time:</strong> {booking.lesson_time}
-              </p>
-              <p>
-                <strong>Duration:</strong> {booking.duration_minutes} minutes
-              </p>
-              <p>
-                <strong>Payment:</strong> {booking.payment_status}
-              </p>
-              {booking.video_room_token && (
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <a
-                    href={buildVideoRoomUrl(booking.video_room_token)}
-                    className="btn-secondary"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Join Room
-                  </a>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      copyRoomLink(booking.video_room_token)
-                    }}
-                  >
-                    Copy Link
-                  </button>
-                </div>
-              )}
-              {booking.video_room_passcode && (
-                <p>
-                  <strong>Passcode:</strong> {booking.video_room_passcode}
-                </p>
-              )}
+        <>
+          {activeBookings.length > 0 && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ marginBottom: '0.75rem' }}>Active Bookings</h3>
+              {renderBookings(activeBookings)}
             </div>
-          ))}
-        </div>
+          )}
+          <div>
+            <h3 style={{ marginBottom: '0.75rem' }}>Archived Bookings</h3>
+            {archivedBookings.length > 0 ? (
+              renderBookings(archivedBookings)
+            ) : (
+              <div className="empty-state">
+                <p>No archived bookings yet.</p>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {selectedBooking && (
