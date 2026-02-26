@@ -4,7 +4,7 @@ export default function BrandLogo({
   size = 44,
   showWordmark = true,
   wordmarkSize = 24,
-  imageSrc = null
+  imageSrc = '/edumaxim-logo.svg'
 }) {
   const [showFallbackMark, setShowFallbackMark] = useState(!imageSrc)
 
