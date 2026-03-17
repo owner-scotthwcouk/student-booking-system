@@ -91,6 +91,21 @@ export default function StudentDashboard() {
     }
   }
 
+  const formatBookingDate = (booking) => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return new Date(booking.lesson_date).toLocaleDateString()
+  }
+
+  const formatBookingTime = (booking) => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return (booking.lesson_time || '').slice(0, 5)
+  }
+
+  const formatStatusLabel = (status) => {
+    if (status === 'tba') return 'To be arranged'
+    return status
+  }
+
   const handleTutorSelect = (tutorId) => {
     navigate(`/book/${tutorId}`)
     setShowTutorSelection(false)
@@ -211,12 +226,12 @@ export default function StudentDashboard() {
                   <tbody>
                     {bookings.map((booking) => (
                       <tr key={booking.id}>
-                        <td>{new Date(booking.lesson_date).toLocaleDateString()}</td>
-                        <td>{booking.lesson_time.slice(0, 5)}</td>
+                        <td>{formatBookingDate(booking)}</td>
+                        <td>{formatBookingTime(booking)}</td>
                         <td>{booking.tutor?.full_name || 'Unknown Tutor'}</td>
                         <td>
                           <span className={`status-badge ${booking.status}`}>
-                            {booking.status}
+                            {formatStatusLabel(booking.status)}
                           </span>
                         </td>
                         <td>

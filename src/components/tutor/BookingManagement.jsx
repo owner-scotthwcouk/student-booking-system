@@ -55,6 +55,20 @@ export default function BookingManagement({ tutorId }) {
     [loadBookings]
   )
 
+  const formatBookingDate = (booking) => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return new Date(booking.lesson_date).toLocaleDateString()
+  }
+
+  const formatBookingTime = (booking) => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return booking.lesson_time
+  }
+
+  const formatStatusLabel = (status) => {
+    if (status === 'tba') return 'To be arranged'
+    return status
+  }
   const copyRoomLink = useCallback(async (videoRoomToken) => {
     const url = buildVideoRoomUrl(videoRoomToken)
     if (!url) return
@@ -136,15 +150,14 @@ export default function BookingManagement({ tutorId }) {
           <div className="booking-header">
             <h3>{booking.student?.full_name || 'Unknown Student'}</h3>
             <span className={`status-badge ${booking.status}`}>
-              {booking.status}
+              {formatStatusLabel(booking.status)}
             </span>
           </div>
           <p>
-            <strong>Date:</strong>{' '}
-            {new Date(booking.lesson_date).toLocaleDateString()}
+            <strong>Date:</strong> {formatBookingDate(booking)}
           </p>
           <p>
-            <strong>Time:</strong> {booking.lesson_time}
+            <strong>Time:</strong> {formatBookingTime(booking)}
           </p>
           <p>
             <strong>Duration:</strong> {booking.duration_minutes} minutes
@@ -237,14 +250,13 @@ export default function BookingManagement({ tutorId }) {
               <strong>Email:</strong> {selectedBooking.student?.email}
             </p>
             <p>
-              <strong>Date:</strong>{' '}
-              {new Date(selectedBooking.lesson_date).toLocaleDateString()}
+              <strong>Date:</strong> {formatBookingDate(selectedBooking)}
             </p>
             <p>
-              <strong>Time:</strong> {selectedBooking.lesson_time}
+              <strong>Time:</strong> {formatBookingTime(selectedBooking)}
             </p>
             <p>
-              <strong>Status:</strong> {selectedBooking.status}
+              <strong>Status:</strong> {formatStatusLabel(selectedBooking.status)}
             </p>
             {selectedBooking.video_room_token && (
               <p>
