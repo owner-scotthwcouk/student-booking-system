@@ -1,7 +1,13 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext({})
+const useE2EAuthBypass = import.meta.env.VITE_E2E_AUTH_BYPASS === 'true'
+const e2eUserId = import.meta.env.VITE_E2E_USER_ID || '00000000-0000-0000-0000-000000000123'
+const e2eUserRole = import.meta.env.VITE_E2E_USER_ROLE || 'student'
+const e2eUserName = import.meta.env.VITE_E2E_USER_NAME || 'E2E User'
+const e2eUserEmail = import.meta.env.VITE_E2E_USER_EMAIL || 'e2e@example.com'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -9,6 +15,24 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (useE2EAuthBypass) {
+      setUser({
+        id: e2eUserId,
+        email: e2eUserEmail,
+        user_metadata: {
+          full_name: e2eUserName
+        }
+      })
+      setProfile({
+        id: e2eUserId,
+        role: e2eUserRole,
+        full_name: e2eUserName,
+        email: e2eUserEmail
+      })
+      setLoading(false)
+      return () => {}
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -85,5 +109,3 @@ export function useAuth() {
   }
   return context
 }
-
-export { AuthContext }

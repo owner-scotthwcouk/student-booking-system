@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { getSystemSetting } from '../../lib/settingsAPI'
 import { Mail, Lock, LogIn, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
+import BrandLogo from '../shared/BrandLogo'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -74,6 +75,7 @@ export default function Login() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
+          <BrandLogo size={52} wordmarkSize={26} />
           <div className="header-icon">
             <ShieldCheck size={32} />
           </div>
@@ -116,6 +118,11 @@ export default function Login() {
                 required
               />
               <Lock className="input-icon" size={18} />
+            </div>
+            <div style={{ marginTop: '0.45rem', textAlign: 'right' }}>
+              <Link to="/forgot-password" style={{ color: '#7fd8ff', fontSize: '0.85rem', textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
             </div>
           </div>
 

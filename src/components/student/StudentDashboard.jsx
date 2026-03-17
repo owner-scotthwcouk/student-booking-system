@@ -20,6 +20,7 @@ import HomeworkSubmission from './HomeworkSubmission'
 import TutorSelection from './TutorSelection' // Assuming this is your "Book a Lesson" flow
 
 import './StudentDashboard.css'
+import BrandLogo from '../shared/BrandLogo'
 
 export default function StudentDashboard() {
   const { user, profile, signOut } = useAuth()
@@ -51,7 +52,9 @@ export default function StudentDashboard() {
       {/* Sidebar Navigation */}
       <aside className={`dashboard-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <div className="logo-placeholder">TutorHub</div>
+          <div className="logo-placeholder">
+            <BrandLogo size={36} wordmarkSize={18} />
+          </div>
           <div className="user-profile-summary">
             <div className="avatar-circle">
               {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'S'}

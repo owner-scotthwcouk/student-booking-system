@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { getTutorHourlyRate, updateTutorHourlyRate } from '../../lib/profileAPI'
 
@@ -9,16 +9,17 @@ export default function HourlyRateSettings() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    loadRate()
-  }, [])
-
-  async function loadRate() {
+  const loadRate = useCallback(async () => {
+    if (!user?.id) return
     const { data } = await getTutorHourlyRate(user.id)
     if (data?.hourly_rate) {
       setRate(data.hourly_rate)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    loadRate()
+  }, [loadRate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

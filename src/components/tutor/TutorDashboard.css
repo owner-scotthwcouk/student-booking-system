@@ -3,8 +3,8 @@
   --bg-dark: #0f172a;       
   --bg-card: #1e293b;       
   --bg-hover: #334155;      
-  --primary: #6366f1;       
-  --primary-hover: #4f46e5;
+  --primary: #45d5e8;
+  --primary-hover: #9e65ec;
   --text-main: #f8fafc;     
   --text-muted: #94a3b8;    
   --border: #334155;        
@@ -256,8 +256,8 @@ body {
 }
 
 .day-card.active {
-  background: linear-gradient(to bottom, var(--bg-card), rgba(99, 102, 241, 0.05));
-  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(to bottom, var(--bg-card), rgba(69, 213, 232, 0.08));
+  border-color: rgba(69, 213, 232, 0.35);
 }
 
 .day-header {

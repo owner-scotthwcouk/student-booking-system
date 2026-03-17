@@ -3,13 +3,15 @@ import { AuthProvider, useAuth } from './contexts/auth'
 import Home from './components/Home'
 import Login from './components/auth/Login'
 import Register from './components/auth/Register'
+import ForgotPassword from './components/auth/ForgotPassword'
+import ResetPassword from './components/auth/ResetPassword'
 import StudentDashboard from './components/student/StudentDashboard'
 import TutorDashboard from './components/tutor/TutorDashboard'
 import TutorSelection from './components/student/TutorSelection'
 import BookingForm from './components/student/BookingForm'
 import Policies from './pages/Policies' //
-import VideoRoom from './components/VideoRoom/VideoRoom';
-
+import VideoRoom from './components/VideoRoom/VideoRoom'
+import VideoRoomPage from './pages/VideoRoomPage'
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, profile, loading } = useAuth()
@@ -29,7 +31,7 @@ function ProtectedRoute({ children, allowedRole }) {
           width: '50px',
           height: '50px',
           border: '4px solid #2a2a2a',
-          borderTop: '4px solid #7c3aed',
+          borderTop: '4px solid #45d5e8',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>
@@ -73,7 +75,7 @@ function AppRoutes() {
           width: '50px',
           height: '50px',
           border: '4px solid #2a2a2a',
-          borderTop: '4px solid #7c3aed',
+          borderTop: '4px solid #45d5e8',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>
@@ -93,16 +95,18 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/policies" element={<Policies />} />
       
       <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/tutors" element={<ProtectedRoute allowedRole="student"><TutorSelection /></ProtectedRoute>} />
       <Route path="/student/book/:tutorId" element={<ProtectedRoute allowedRole="student"><BookingForm /></ProtectedRoute>} />
+      <Route path="/video/:roomToken" element={<ProtectedRoute><VideoRoomPage /></ProtectedRoute>} />
       
       <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor"><TutorDashboard /></ProtectedRoute>} />
 
-           <Route path="/video-room/:meetingId" element={<VideoRoom />} />
-
+      <Route path="/video-room/:meetingId" element={<VideoRoom />} />
       <Route path="*" element={<Navigate to="/" />} />   
        </Routes>
  

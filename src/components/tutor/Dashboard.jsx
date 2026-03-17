@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { getTutorBookings, updateBookingSchedule, updateBookingStatus } from '../../lib/bookingAPI'
+import { cancelBooking, getTutorBookings, updateBookingSchedule, updateBookingStatus } from '../../lib/bookingAPI'
 import Profile from './Profile'
 import LessonEditor from './LessonEditor'
 import HomeworkReview from './HomeworkReview'
@@ -17,11 +17,8 @@ export default function TutorDashboard() {
   const [editLessonDate, setEditLessonDate] = useState('')
   const [editLessonTime, setEditLessonTime] = useState('')
 
-  useEffect(() => {
-    if (user) loadBookings()
-  }, [user])
-
-  async function loadBookings() {
+  const loadBookings = useCallback(async () => {
+    if (!user?.id) return
     try {
       const { data, error } = await getTutorBookings(user.id)
       if (error) throw error
@@ -31,7 +28,11 @@ export default function TutorDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (user) loadBookings()
+  }, [user, loadBookings])
 
   const handleStatusChange = async (bookingId, newStatus) => {
     if(!confirm(`Mark lesson as ${newStatus}?`)) return;
@@ -97,6 +98,12 @@ export default function TutorDashboard() {
   const formatStatusLabel = (status) => {
     if (status === 'tba') return 'To be arranged'
     return status
+  }
+
+  const handleCancelBooking = async (bookingId) => {
+    if (!confirm('Cancel this booking?')) return
+    const { error } = await cancelBooking(bookingId)
+    if (!error) loadBookings()
   }
 
   return (
@@ -203,6 +210,11 @@ export default function TutorDashboard() {
                             <button onClick={() => handleMarkTba(booking)} className="btn-secondary">
                               Mark TBA
                             </button>
+                            {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                              <button onClick={() => handleCancelBooking(booking.id)} className="btn-danger">
+                                Cancel
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -255,7 +267,7 @@ export default function TutorDashboard() {
           </div>
         )}
 
-        {activeTab === 'lessons' && <LessonEditor />}
+        {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
         {activeTab === 'homework' && <HomeworkReview />}
         {activeTab === 'pos' && <POSSystem />}
         {activeTab === 'students' && <Students />}
