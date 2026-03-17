@@ -157,6 +157,30 @@ export async function updateBookingStatus(bookingId, status) {
   }
 }
 
+// Update booking schedule (date/time) and optionally status
+export async function updateBookingSchedule(bookingId, { lessonDate, lessonTime, status }) {
+  try {
+    const updatePayload = {}
+    if (lessonDate) updatePayload.lesson_date = lessonDate
+    if (lessonTime) updatePayload.lesson_time = lessonTime
+    if (status) updatePayload.status = status
+    updatePayload.updated_at = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .update(updatePayload)
+      .eq('id', bookingId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error updating booking schedule:', error)
+    return { data: null, error }
+  }
+}
+
 // Cancel a booking (student initiated)
 export async function cancelBooking(bookingId) {
   try {

@@ -146,6 +146,16 @@ export default function StripePayment({ bookingId: propBookingId }) {
   if (loading) return <div>Loading...</div>
   if (!booking) return <div>Booking not found</div>
 
+  const formatBookingDate = () => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return booking.lesson_date
+  }
+
+  const formatBookingTime = () => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return booking.lesson_time
+  }
+
   // Get tutor hourly rate to calculate amount
   const amount = 50 // This should be calculated from tutor's rate
 
@@ -153,8 +163,8 @@ export default function StripePayment({ bookingId: propBookingId }) {
     <div className="payment-container">
       <h2>Complete Your Payment</h2>
       <div className="booking-summary">
-        <p>Lesson Date: {booking.lesson_date}</p>
-        <p>Time: {booking.lesson_time}</p>
+        <p>Lesson Date: {formatBookingDate()}</p>
+        <p>Time: {formatBookingTime()}</p>
         <p>Duration: 1 hour</p>
         <p className="price">Total: £{amount}</p>
       </div>

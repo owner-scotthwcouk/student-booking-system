@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { getTutorBookings, updateBookingStatus } from '../../lib/bookingAPI'
+import { getTutorBookings, updateBookingSchedule, updateBookingStatus } from '../../lib/bookingAPI'
 import Profile from './Profile'
 import LessonEditor from './LessonEditor'
 import HomeworkReview from './HomeworkReview'
@@ -13,6 +13,9 @@ export default function TutorDashboard() {
   const [activeTab, setActiveTab] = useState('bookings')
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [editingBookingId, setEditingBookingId] = useState(null)
+  const [editLessonDate, setEditLessonDate] = useState('')
+  const [editLessonTime, setEditLessonTime] = useState('')
 
   useEffect(() => {
     if (user) loadBookings()
@@ -35,6 +38,65 @@ export default function TutorDashboard() {
     
     const { error } = await updateBookingStatus(bookingId, newStatus)
     if (!error) loadBookings() // Reload list
+  }
+
+  const beginEditSchedule = (booking) => {
+    setEditingBookingId(booking.id)
+    setEditLessonDate(booking.lesson_date || '')
+    setEditLessonTime((booking.lesson_time || '').slice(0, 5))
+  }
+
+  const cancelEditSchedule = () => {
+    setEditingBookingId(null)
+    setEditLessonDate('')
+    setEditLessonTime('')
+  }
+
+  const normalizeTimeForDb = (timeValue) => {
+    if (!timeValue) return ''
+    return timeValue.length === 5 ? `${timeValue}:00` : timeValue
+  }
+
+  const handleScheduleSave = async (booking) => {
+    if (!editLessonDate || !editLessonTime) {
+      alert('Please provide both a date and time.')
+      return
+    }
+    const { error } = await updateBookingSchedule(booking.id, {
+      lessonDate: editLessonDate,
+      lessonTime: normalizeTimeForDb(editLessonTime),
+      status: booking.status === 'tba' ? 'pending' : undefined
+    })
+    if (!error) {
+      await loadBookings()
+      cancelEditSchedule()
+    }
+  }
+
+  const handleMarkTba = async (booking) => {
+    if (!confirm('Mark this booking as To Be Arranged?')) return
+    const { error } = await updateBookingSchedule(booking.id, {
+      status: 'tba'
+    })
+    if (!error) {
+      await loadBookings()
+      cancelEditSchedule()
+    }
+  }
+
+  const formatBookingDate = (booking) => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return new Date(booking.lesson_date).toLocaleDateString()
+  }
+
+  const formatBookingTime = (booking) => {
+    if (booking.status === 'tba') return 'To be arranged'
+    return (booking.lesson_time || '').slice(0, 5)
+  }
+
+  const formatStatusLabel = (status) => {
+    if (status === 'tba') return 'To be arranged'
+    return status
   }
 
   return (
@@ -113,15 +175,15 @@ export default function TutorDashboard() {
                     ) : (
                       bookings.map((booking) => (
                         <tr key={booking.id}>
-                          <td>{new Date(booking.lesson_date).toLocaleDateString()}</td>
-                          <td>{booking.lesson_time.slice(0, 5)}</td>
+                          <td>{formatBookingDate(booking)}</td>
+                          <td>{formatBookingTime(booking)}</td>
                           <td>
                             <div>{booking.student?.full_name}</div>
                             <small>{booking.student?.email}</small>
                           </td>
                           <td>
                             <span className={`status-badge ${booking.status}`}>
-                              {booking.status}
+                              {formatStatusLabel(booking.status)}
                             </span>
                           </td>
                           <td>
@@ -135,12 +197,59 @@ export default function TutorDashboard() {
                                 Complete
                               </button>
                             )}
+                            <button onClick={() => beginEditSchedule(booking)} className="btn-secondary">
+                              Reschedule
+                            </button>
+                            <button onClick={() => handleMarkTba(booking)} className="btn-secondary">
+                              Mark TBA
+                            </button>
                           </td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
+                {editingBookingId && (
+                  <div className="booking-edit-panel">
+                    <h3>Update Booking Schedule</h3>
+                    <div className="form-row">
+                      <div className="input-group">
+                        <label>Date</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="date"
+                            value={editLessonDate}
+                            onChange={(e) => setEditLessonDate(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="input-group">
+                        <label>Time</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="time"
+                            value={editLessonTime}
+                            onChange={(e) => setEditLessonTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="booking-edit-actions">
+                      <button
+                        onClick={() => {
+                          const booking = bookings.find((b) => b.id === editingBookingId)
+                          if (booking) handleScheduleSave(booking)
+                        }}
+                        className="btn-secondary"
+                      >
+                        Save
+                      </button>
+                      <button onClick={cancelEditSchedule} className="btn-secondary">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
