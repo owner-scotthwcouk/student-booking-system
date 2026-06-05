@@ -3,7 +3,9 @@ import { supabase } from '../../lib/supabaseClient'
 
 export default function TutorPayments({ tutorId }) {
   const [payments, setPayments] = useState([])
+  const [studentProfiles, setStudentProfiles] = useState({})
   const [loading, setLoading] = useState(true)
+  const [refundLoading, setRefundLoading] = useState(false)
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -22,7 +24,26 @@ export default function TutorPayments({ tutorId }) {
           .order('payment_date', { ascending: false })
 
         if (error) throw error
-        if (mounted) setPayments(data || [])
+        const paymentsData = data || []
+        if (mounted) setPayments(paymentsData)
+
+        const studentIds = [...new Set(paymentsData.map((item) => item.student_id).filter(Boolean))]
+        if (studentIds.length) {
+          const { data: students, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', studentIds)
+
+          if (profileError) throw profileError
+
+          if (mounted) {
+            const profileMap = (students || []).reduce((acc, student) => {
+              acc[student.id] = student
+              return acc
+            }, {})
+            setStudentProfiles(profileMap)
+          }
+        }
       } catch (err) {
         console.error('Failed to load tutor payments', err)
         if (mounted) setError(err.message || 'Failed to load')
@@ -35,6 +56,79 @@ export default function TutorPayments({ tutorId }) {
     return () => (mounted = false)
   }, [tutorId])
 
+  const studentSummaries = Object.entries(studentProfiles).map(([studentId, profile]) => {
+    const studentPayments = payments.filter((payment) => payment.student_id === studentId)
+    const totalPaid = studentPayments
+      .filter((payment) => payment.status === 'completed')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    const totalRefunded = studentPayments
+      .filter((payment) => payment.status === 'refunded')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+
+    return {
+      studentId,
+      profile,
+      studentPayments,
+      totalPaid,
+      totalRefunded
+    }
+  })
+
+  const formatCsv = (value) => {
+    if (value == null) return ''
+    const stringValue = String(value)
+    if (/[",\n]/.test(stringValue)) {
+      return `"${stringValue.replace(/"/g, '""')}"`
+    }
+    return stringValue
+  }
+
+  const downloadStatement = (studentId) => {
+    const student = studentProfiles[studentId]
+    const rows = payments
+      .filter((payment) => payment.student_id === studentId)
+      .sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date))
+
+    if (!rows.length) return
+
+    const header = ['Payment ID', 'Booking ID', 'Date', 'Amount', 'Currency', 'Method', 'Status']
+    const body = rows.map((payment) => [
+      payment.id,
+      payment.booking_id,
+      payment.payment_date ? new Date(payment.payment_date).toISOString() : '',
+      payment.amount,
+      payment.currency,
+      payment.payment_method,
+      payment.status
+    ])
+
+    const totalPaid = rows
+      .filter((p) => p.status === 'completed')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    const totalRefunded = rows
+      .filter((p) => p.status === 'refunded')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    const net = totalPaid - totalRefunded
+
+    const csvLines = [header.join(','), ...body.map((row) => row.map(formatCsv).join(','))]
+    csvLines.push('')
+    csvLines.push(`Total Paid:,${formatCsv(totalPaid.toFixed(2))}`)
+    csvLines.push(`Total Refunded:,${formatCsv(totalRefunded.toFixed(2))}`)
+    csvLines.push(`Net Amount:,${formatCsv(net.toFixed(2))}`)
+
+    const csvString = csvLines.join('\n')
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    const studentName = student?.full_name?.replace(/[^a-zA-Z0-9_-]/g, '_') || studentId
+    link.setAttribute('download', `statement_${studentName}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) return <div>Loading payments...</div>
   if (error) return <div style={{ color: 'red' }}>{error}</div>
 
@@ -42,6 +136,42 @@ export default function TutorPayments({ tutorId }) {
     <div>
       <h2>Payments Received</h2>
       {successMessage && <div style={{ marginBottom: '1rem', color: 'green' }}>{successMessage}</div>}
+      {studentSummaries.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h3>Student Statements</h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {studentSummaries.map((summary) => (
+              <div
+                key={summary.studentId}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  background: '#fafafa'
+                }}
+              >
+                <div>
+                  <strong>{summary.profile.full_name || 'Unknown Student'}</strong>
+                  <div style={{ fontSize: '0.9rem', color: '#555' }}>
+                    Paid: £{summary.totalPaid.toFixed(2)} · Refunded: £{summary.totalRefunded.toFixed(2)}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={refundLoading}
+                  onClick={() => downloadStatement(summary.studentId)}
+                  style={{ padding: '0.5rem 0.9rem', borderRadius: '6px', cursor: 'pointer' }}
+                >
+                  Download statement
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {payments.length === 0 ? (
         <p>No payments found.</p>
       ) : (
@@ -49,7 +179,8 @@ export default function TutorPayments({ tutorId }) {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Booking</th>
+              <th>Booking ID</th>
+              <th>Student</th>
               <th>Amount</th>
               <th>Method</th>
               <th>Status</th>
@@ -62,6 +193,7 @@ export default function TutorPayments({ tutorId }) {
               <tr key={p.id}>
                 <td>{p.id}</td>
                 <td>{p.booking_id}</td>
+                <td>{studentProfiles[p.student_id]?.full_name || 'Unknown student'}</td>
                 <td>
                   {p.currency} {p.amount}
                 </td>
