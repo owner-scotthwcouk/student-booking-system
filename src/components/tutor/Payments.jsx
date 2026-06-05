@@ -217,29 +217,6 @@ export default function TutorPayments({ tutorId }) {
               <div style={{ width: '100%', color: '#e2e8f0', fontSize: '0.9rem', marginTop: '0.75rem', padding: '0.85rem 1rem', borderRadius: '10px', background: '#1f2937', border: '1px solid #334155' }}>
                 Select a start and end date to generate a student statement PDF for that period.
               </div>
-                  <div style={{ minWidth: '220px' }}>
-                    <label style={{ display: 'block', marginBottom: '0.35rem', color: '#cbd5e1', fontWeight: 600 }}>From</label>
-                    <input
-                      type="date"
-                      value={customFrom}
-                      onChange={(e) => setCustomFrom(e.target.value)}
-                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
-                    />
-                  </div>
-                  <div style={{ minWidth: '220px' }}>
-                    <label style={{ display: 'block', marginBottom: '0.35rem', color: '#cbd5e1', fontWeight: 600 }}>To</label>
-                    <input
-                      type="date"
-                      value={customTo}
-                      onChange={(e) => setCustomTo(e.target.value)}
-                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
-                    />
-                  </div>
-                  <div style={{ width: '100%', color: '#e2e8f0', fontSize: '0.9rem', marginTop: '0.75rem', padding: '0.85rem 1rem', borderRadius: '10px', background: '#1f2937', border: '1px solid #334155' }}>
-                    Select both dates to generate a custom student statement PDF for the chosen period.
-                  </div>
-                </>
-              )}
             </div>
             {(!customFrom || !customTo) && (
               <div style={{ marginTop: '1rem', color: '#fee2e2', background: '#4b5563', padding: '0.9rem 1rem', borderRadius: '10px' }}>
