@@ -261,6 +261,43 @@ export async function cancelBooking(bookingId) {
   }
 }
 
+// Record a cash payment for a booking and mark it paid
+export async function markBookingPaidByCash(bookingId, studentId, amount) {
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({
+        status: 'confirmed',
+        payment_status: 'paid',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', bookingId)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    const { error: paymentError } = await supabase
+      .from('payments')
+      .insert({
+        booking_id: bookingId,
+        student_id: studentId,
+        amount,
+        currency: 'GBP',
+        payment_method: 'cash',
+        status: 'completed',
+        payment_date: new Date().toISOString(),
+        paypal_transaction_id: `CASH-${Date.now()}`
+      })
+
+    if (paymentError) throw paymentError
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error marking booking as paid by cash:', error)
+    return { data: null, error }
+  }
+}
+
 // Get tutor availability
 export async function getTutorAvailability(tutorId) {
   try {

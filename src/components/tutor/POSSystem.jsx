@@ -11,6 +11,7 @@ export default function POSSystem() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [collectPaymentNow, setCollectPaymentNow] = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState('card')
   const [hourlyRate, setHourlyRate] = useState(30.00)
 
   // Form State
@@ -109,10 +110,10 @@ export default function POSSystem() {
             student_id: formData.studentId,
             amount: hourlyRate,
             currency: 'GBP',
-            payment_method: 'pos_card_entry',
+            payment_method: paymentMethod === 'cash' ? 'cash' : 'pos_card_entry',
             status: 'completed',
             payment_date: new Date().toISOString(),
-            paypal_transaction_id: `POS-${Date.now()}`
+            paypal_transaction_id: paymentMethod === 'cash' ? `CASH-${Date.now()}` : `POS-${Date.now()}`
           })
 
         if (paymentError) throw paymentError
@@ -159,7 +160,9 @@ export default function POSSystem() {
       {success && (
         <div className="success-message">
           {collectPaymentNow
-            ? 'Payment processed and booking confirmed!'
+            ? paymentMethod === 'cash'
+              ? 'Cash payment recorded and booking confirmed!'
+              : 'Payment processed and booking confirmed!'
             : 'Booking created for student without payment.'}
         </div>
       )}
@@ -235,7 +238,6 @@ export default function POSSystem() {
                   id="lessonDate"
                   value={formData.lessonDate}
                   onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
                   required
                 />
               </div>
@@ -253,80 +255,112 @@ export default function POSSystem() {
 
             <div className="form-group">
               <label>Total Amount to Charge</label>
-              <div className="price-display">Â£{Number(hourlyRate).toFixed(2)}</div>
+              <div className="price-display">£{Number(hourlyRate).toFixed(2)}</div>
             </div>
           </div>
 
           {/* Section 2: Payment Details */}
           <div className="form-section lilac-card">
-            <h3>Card Details</h3>
+            <h3>Payment Details</h3>
+
+            <div className="form-group">
+              <label>Payment Method</label>
+              <div className="radio-group" style={{ display: 'flex', gap: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="card"
+                    checked={paymentMethod === 'card'}
+                    onChange={() => setPaymentMethod('card')}
+                  />
+                  Card
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="cash"
+                    checked={paymentMethod === 'cash'}
+                    onChange={() => setPaymentMethod('cash')}
+                  />
+                  Cash
+                </label>
+              </div>
+            </div>
 
             {collectPaymentNow ? (
-              <>
-                <div className="form-group">
-                  <label htmlFor="cardholderName">Name of Cardholder *</label>
-                  <input
-                    type="text"
-                    id="cardholderName"
-                    value={formData.cardholderName}
-                    onChange={handleInputChange}
-                    placeholder="e.g. John Doe"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="cardNumber">Card Number</label>
-                  <input
-                    type="text"
-                    id="cardNumber"
-                    value={formData.cardNumber}
-                    onChange={handleInputChange}
-                    placeholder="0000 0000 0000 0000"
-                    maxLength="19"
-                    required
-                  />
-                </div>
-
-                <div className="form-row">
+              paymentMethod === 'cash' ? (
+                <p style={{ margin: 0, color: '#374151' }}>
+                  This booking will be marked as paid by cash and recorded for the student.
+                </p>
+              ) : (
+                <>
                   <div className="form-group">
-                    <label htmlFor="expiryDate">Expiry Date</label>
+                    <label htmlFor="cardholderName">Name of Cardholder *</label>
                     <input
                       type="text"
-                      id="expiryDate"
-                      value={formData.expiryDate}
+                      id="cardholderName"
+                      value={formData.cardholderName}
                       onChange={handleInputChange}
-                      placeholder="MM/YY"
-                      maxLength="5"
+                      placeholder="e.g. John Doe"
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cvv">CVV</label>
+                    <label htmlFor="cardNumber">Card Number</label>
                     <input
                       type="text"
-                      id="cvv"
-                      value={formData.cvv}
+                      id="cardNumber"
+                      value={formData.cardNumber}
                       onChange={handleInputChange}
-                      placeholder="123"
-                      maxLength="4"
+                      placeholder="0000 0000 0000 0000"
+                      maxLength="19"
                       required
                     />
                   </div>
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="postCode">Post Code</label>
-                  <input
-                    type="text"
-                    id="postCode"
-                    value={formData.postCode}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="expiryDate">Expiry Date</label>
+                      <input
+                        type="text"
+                        id="expiryDate"
+                        value={formData.expiryDate}
+                        onChange={handleInputChange}
+                        placeholder="MM/YY"
+                        maxLength="5"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="cvv">CVV</label>
+                      <input
+                        type="text"
+                        id="cvv"
+                        value={formData.cvv}
+                        onChange={handleInputChange}
+                        placeholder="123"
+                        maxLength="4"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="postCode">Post Code</label>
+                    <input
+                      type="text"
+                      id="postCode"
+                      value={formData.postCode}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </>
+              )
             ) : (
               <p style={{ margin: 0, color: '#374151' }}>
                 Payment details are skipped. The booking will be confirmed and saved as unpaid.
@@ -338,7 +372,11 @@ export default function POSSystem() {
         <button type="submit" disabled={loading} className="btn-primary btn-large btn-block">
           {loading
             ? (collectPaymentNow ? 'Processing Payment...' : 'Creating Booking...')
-            : (collectPaymentNow ? `Charge Â£${Number(hourlyRate).toFixed(2)}` : 'Create Booking (Unpaid)')}
+            : (collectPaymentNow
+              ? paymentMethod === 'cash'
+                ? `Record Cash Payment (£${Number(hourlyRate).toFixed(2)})`
+                : `Charge £${Number(hourlyRate).toFixed(2)}`
+              : 'Create Booking (Unpaid)')}
         </button>
       </form>
 

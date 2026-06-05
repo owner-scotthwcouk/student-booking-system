@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { cancelBooking, ensureBookingVideoRoom, getTutorBookings, updateBookingStatus } from '../../lib/bookingAPI'
+import { cancelBooking, ensureBookingVideoRoom, getTutorBookings, markBookingPaidByCash, updateBookingStatus } from '../../lib/bookingAPI'
 import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
 
 function parseLessonDate(lessonDate) {
@@ -105,6 +105,30 @@ export default function BookingManagement({ tutorId }) {
       setSelectedBooking(null)
     } catch (err) {
       setError(err.message || 'Failed to cancel booking')
+    }
+  }, [loadBookings])
+
+  const handleMarkPaidByCash = useCallback(async (booking) => {
+    if (!booking || !booking.student_id) return
+    if (!window.confirm('Mark this lesson as paid by cash?')) return
+
+    try {
+      const defaultAmount = booking.duration_minutes ? booking.duration_minutes / 60 : 1
+      const rawAmount = window.prompt(
+        'Enter the cash amount received for this lesson (GBP):',
+        defaultAmount.toFixed(2)
+      )
+      const amount = rawAmount ? parseFloat(rawAmount.replace(/[^0-9.]/g, '')) : NaN
+      if (Number.isNaN(amount) || amount <= 0) {
+        throw new Error('A valid cash amount is required to record payment.')
+      }
+
+      const { error } = await markBookingPaidByCash(booking.id, booking.student_id, amount)
+      if (error) throw error
+      await loadBookings()
+      setSelectedBooking(null)
+    } catch (err) {
+      setError(err.message || 'Failed to mark booking paid by cash')
     }
   }, [loadBookings])
 
@@ -287,6 +311,14 @@ export default function BookingManagement({ tutorId }) {
                     Confirm
                   </button>
                 </>
+              )}
+              {selectedBooking.payment_status !== 'paid' && selectedBooking.status !== 'cancelled' && (
+                <button
+                  onClick={() => handleMarkPaidByCash(selectedBooking)}
+                  className="btn-warning"
+                >
+                  Mark Paid by Cash
+                </button>
               )}
               {selectedBooking.status !== 'cancelled' && (
                 <button
