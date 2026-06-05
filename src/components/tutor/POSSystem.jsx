@@ -13,6 +13,7 @@ export default function POSSystem() {
   const [collectPaymentNow, setCollectPaymentNow] = useState(true)
   const [paymentMethod, setPaymentMethod] = useState('card')
   const [hourlyRate, setHourlyRate] = useState(30.00)
+  const [amount, setAmount] = useState(30.00)
 
   // Form State
   const [formData, setFormData] = useState({
@@ -42,6 +43,7 @@ export default function POSSystem() {
       const { data } = await getTutorHourlyRate(user.id)
       if (data && data.hourly_rate) {
         setHourlyRate(data.hourly_rate)
+        setAmount(data.hourly_rate)
       }
     } catch (err) {
       console.error('Failed to load rate', err)
@@ -89,6 +91,11 @@ export default function POSSystem() {
 
       if (bookingError) throw bookingError
 
+      const paymentAmount = Number(amount)
+      if (collectPaymentNow && (!paymentAmount || paymentAmount <= 0)) {
+        throw new Error('Enter a valid amount to charge.')
+      }
+
       if (collectPaymentNow) {
         // 2. Mark Booking as Paid & Confirmed
         const { error: updateError } = await supabase
@@ -108,7 +115,7 @@ export default function POSSystem() {
           .insert({
             booking_id: booking.id,
             student_id: formData.studentId,
-            amount: hourlyRate,
+            amount: paymentAmount,
             currency: 'GBP',
             payment_method: paymentMethod === 'cash' ? 'cash' : 'pos_card_entry',
             status: 'completed',
@@ -254,8 +261,21 @@ export default function POSSystem() {
             </div>
 
             <div className="form-group">
-              <label>Total Amount to Charge</label>
-              <div className="price-display">£{Number(hourlyRate).toFixed(2)}</div>
+              <label htmlFor="amount">Total Amount to Charge (GBP)</label>
+              <input
+                id="amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                required={collectPaymentNow}
+              />
+            </div>
+            <div className="form-group">
+              <small style={{ color: '#cbd5e1' }}>
+                Default hourly rate: £{Number(hourlyRate).toFixed(2)}. Edit this field for custom tutor charges.
+              </small>
             </div>
           </div>
 
@@ -374,8 +394,8 @@ export default function POSSystem() {
             ? (collectPaymentNow ? 'Processing Payment...' : 'Creating Booking...')
             : (collectPaymentNow
               ? paymentMethod === 'cash'
-                ? `Record Cash Payment (£${Number(hourlyRate).toFixed(2)})`
-                : `Charge £${Number(hourlyRate).toFixed(2)}`
+                ? `Record Cash Payment (£${Number(amount).toFixed(2)})`
+                : `Charge £${Number(amount).toFixed(2)}`
               : 'Create Booking (Unpaid)')}
         </button>
       </form>
