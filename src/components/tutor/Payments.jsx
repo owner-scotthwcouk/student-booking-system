@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { jsPDF } from 'jspdf'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { format, endOfDay, parseISO, isValid } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
+import statementTemplateImage from '../../../assets/statement-template.png'
 
 export default function TutorPayments({ tutorId }) {
   const [payments, setPayments] = useState([])
@@ -93,7 +94,7 @@ export default function TutorPayments({ tutorId }) {
     return `${format(start, 'dd MMM yyyy')} – ${format(end, 'dd MMM yyyy')}`
   }
 
-  const downloadStatement = (studentId) => {
+  const downloadStatement = async (studentId) => {
     const student = studentProfiles[studentId]
     const [start, end] = getStatementRange()
     const from = parseISO(customFrom)
@@ -122,42 +123,77 @@ export default function TutorPayments({ tutorId }) {
     }
 
     const studentName = student?.full_name?.replace(/[^a-zA-Z0-9_-]/g, '_') || studentId
-    const doc = new jsPDF({ unit: 'pt', format: 'letter' })
-    const titleX = 40
-    let cursorY = 50
+    const templateResponse = await fetch(statementTemplateImage)
+    if (!templateResponse.ok) {
+      window.alert('Unable to load statement template.')
+      return
+    }
+    const templateBytes = await templateResponse.arrayBuffer()
+    const pdfDoc = await PDFDocument.create()
+    const templateImage = await pdfDoc.embedPng(templateBytes)
+    const imageWidth = templateImage.width
+    const imageHeight = templateImage.height
+    let currentPage = pdfDoc.addPage([imageWidth, imageHeight])
+    currentPage.drawImage(templateImage, {
+      x: 0,
+      y: 0,
+      width: imageWidth,
+      height: imageHeight
+    })
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+    const headerFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+    const pageWidth = currentPage.getWidth()
+    const pageHeight = currentPage.getHeight()
+    let cursorY = pageHeight - 90
 
-    doc.setFontSize(18)
-    doc.text(`Statement for ${student?.full_name || 'Student'}`, titleX, cursorY)
-    cursorY += 24
-    doc.setFontSize(11)
-    doc.text(`Period: ${getStatementLabel()}`, titleX, cursorY)
-    cursorY += 18
-    doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy HH:mm')}`, titleX, cursorY)
-    cursorY += 30
+    const drawText = (text, x, y, options = {}) => {
+      currentPage.drawText(text, {
+        x,
+        y,
+        size: options.size || 10,
+        font: options.font || font,
+        color: options.color || rgb(0, 0, 0)
+      })
+    }
 
+    drawText(`Statement for ${student?.full_name || 'Student'}`, 50, cursorY, { size: 18, font: headerFont })
+    cursorY -= 26
+    drawText(`Period: ${getStatementLabel()}`, 50, cursorY, { size: 11, font: font })
+    cursorY -= 16
+    drawText(`Generated: ${format(new Date(), 'dd MMM yyyy HH:mm')}`, 50, cursorY, { size: 11, font: font })
+    cursorY -= 24
+    drawText(`Statement for: ${student?.full_name || 'Student'}`, 50, cursorY, { size: 11, font: font })
+    cursorY -= 20
+    drawText(`Statement period: ${getStatementLabel()}`, 50, cursorY, { size: 11, font: font })
+    cursorY -= 24
+
+    const columnX = [50, 170, 300, 380, 430, 500, 560]
     const header = ['Payment ID', 'Booking ID', 'Date', 'Amount', 'Currency', 'Method', 'Status']
-    const columnX = [40, 120, 220, 310, 365, 435, 520]
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    header.forEach((text, index) => doc.text(text, columnX[index], cursorY))
-    cursorY += 16
-    doc.setDrawColor(200)
-    doc.line(40, cursorY, 560, cursorY)
-    cursorY += 8
-    doc.setFont('helvetica', 'normal')
+    header.forEach((text, index) => {
+      drawText(text, columnX[index], cursorY, { size: 10, font: headerFont })
+    })
+    cursorY -= 16
 
-    rows.forEach((payment, rowIndex) => {
-      if (cursorY > 720) {
-        doc.addPage()
-        cursorY = 50
+    for (const payment of rows) {
+      if (cursorY < 90) {
+        currentPage = pdfDoc.addPage([imageWidth, imageHeight])
+        currentPage.drawImage(templateImage, {
+          x: 0,
+          y: 0,
+          width: imageWidth,
+          height: imageHeight
+        })
+        cursorY = pageHeight - 90
       }
       const dateString = payment.payment_date ? format(parseISO(payment.payment_date), 'dd MMM yyyy') : ''
       const line = [payment.id || '', payment.booking_id || '', dateString, `${payment.amount || ''}`, payment.currency || '', payment.payment_method || '', payment.status || '']
-      line.forEach((text, index) => doc.text(String(text), columnX[index], cursorY))
-      cursorY += 16
-    })
+      line.forEach((text, index) => {
+        drawText(String(text), columnX[index], cursorY, { size: 10 })
+      })
+      cursorY -= 16
+    }
 
-    cursorY += 12
+    cursorY -= 20
     const totalPaid = rows
       .filter((p) => p.status === 'completed')
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
@@ -166,22 +202,36 @@ export default function TutorPayments({ tutorId }) {
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
     const net = totalPaid - totalRefunded
 
-    if (cursorY > 720) {
-      doc.addPage()
-      cursorY = 50
+    if (cursorY < 90) {
+      currentPage = pdfDoc.addPage([imageWidth, imageHeight])
+      currentPage.drawImage(templateImage, {
+        x: 0,
+        y: 0,
+        width: imageWidth,
+        height: imageHeight
+      })
+      cursorY = pageHeight - 90
     }
 
-    doc.setFont('helvetica', 'bold')
-    doc.text('Total Paid:', titleX, cursorY)
-    doc.text(`£${totalPaid.toFixed(2)}`, 140, cursorY)
-    cursorY += 16
-    doc.text('Total Refunded:', titleX, cursorY)
-    doc.text(`£${totalRefunded.toFixed(2)}`, 140, cursorY)
-    cursorY += 16
-    doc.text('Net Amount:', titleX, cursorY)
-    doc.text(`£${net.toFixed(2)}`, 140, cursorY)
+    drawText('Total Paid:', 50, cursorY, { size: 11, font: headerFont })
+    drawText(`£${totalPaid.toFixed(2)}`, 180, cursorY, { size: 11 })
+    cursorY -= 16
+    drawText('Total Refunded:', 50, cursorY, { size: 11, font: headerFont })
+    drawText(`£${totalRefunded.toFixed(2)}`, 180, cursorY, { size: 11 })
+    cursorY -= 16
+    drawText('Net Amount:', 50, cursorY, { size: 11, font: headerFont })
+    drawText(`£${net.toFixed(2)}`, 180, cursorY, { size: 11 })
 
-    doc.save(`statement_${studentName}.pdf`)
+    const pdfBytes = await pdfDoc.save()
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `statement_${studentName}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
   }
 
   if (loading) return <div>Loading payments...</div>
