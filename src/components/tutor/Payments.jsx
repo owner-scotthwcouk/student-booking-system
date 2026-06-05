@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import JSZip from 'jszip'
 import { format, endOfDay, parseISO, isValid } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
-import statementTemplateImage from '../../../assets/statement-template.png'
 
 export default function TutorPayments({ tutorId }) {
   const [payments, setPayments] = useState([])
@@ -123,111 +122,120 @@ export default function TutorPayments({ tutorId }) {
     }
 
     const studentName = student?.full_name?.replace(/[^a-zA-Z0-9_-]/g, '_') || studentId
-    const templateResponse = await fetch(statementTemplateImage)
+    const templateResponse = await fetch('/Statement-template.docx')
     if (!templateResponse.ok) {
       window.alert('Unable to load statement template.')
       return
     }
     const templateBytes = await templateResponse.arrayBuffer()
-    const pdfDoc = await PDFDocument.create()
-    const templateImage = await pdfDoc.embedPng(templateBytes)
-    const imageWidth = templateImage.width
-    const imageHeight = templateImage.height
-    let currentPage = pdfDoc.addPage([imageWidth, imageHeight])
-    currentPage.drawImage(templateImage, {
-      x: 0,
-      y: 0,
-      width: imageWidth,
-      height: imageHeight
-    })
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-    const headerFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-    const pageWidth = currentPage.getWidth()
-    const pageHeight = currentPage.getHeight()
-    let cursorY = pageHeight - 90
+    const zip = await JSZip.loadAsync(templateBytes)
+    const docXmlFile = zip.file('word/document.xml')
+    if (!docXmlFile) {
+      window.alert('Statement template is not a valid DOCX file.')
+      return
+    }
+    const parser = new DOMParser()
+    const serializer = new XMLSerializer()
+    const documentXml = await docXmlFile.async('text')
+    const xmlDoc = parser.parseFromString(documentXml, 'application/xml')
 
-    const drawText = (text, x, y, options = {}) => {
-      currentPage.drawText(text, {
-        x,
-        y,
-        size: options.size || 10,
-        font: options.font || font,
-        color: options.color || rgb(0, 0, 0)
-      })
+    const getTextNodes = (element) => {
+      const nodes = Array.from(element.getElementsByTagName('w:t'))
+      if (nodes.length) return nodes
+      return Array.from(element.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 't'))
     }
 
-    drawText(`Statement for ${student?.full_name || 'Student'}`, 50, cursorY, { size: 18, font: headerFont })
-    cursorY -= 26
-    drawText(`Period: ${getStatementLabel()}`, 50, cursorY, { size: 11, font: font })
-    cursorY -= 16
-    drawText(`Generated: ${format(new Date(), 'dd MMM yyyy HH:mm')}`, 50, cursorY, { size: 11, font: font })
-    cursorY -= 24
-    drawText(`Statement for: ${student?.full_name || 'Student'}`, 50, cursorY, { size: 11, font: font })
-    cursorY -= 20
-    drawText(`Statement period: ${getStatementLabel()}`, 50, cursorY, { size: 11, font: font })
-    cursorY -= 24
+    const replacePlaceholdersInElement = (element, values) => {
+      const textNodes = getTextNodes(element)
+      if (!textNodes.length) return
+      const positions = []
+      textNodes.forEach((node) => {
+        const text = node.textContent || ''
+        for (let offset = 0; offset < text.length; offset += 1) {
+          positions.push({ node, offset })
+        }
+      })
 
-    const columnX = [50, 170, 300, 380, 430, 500, 560]
-    const header = ['Payment ID', 'Booking ID', 'Date', 'Amount', 'Currency', 'Method', 'Status']
-    header.forEach((text, index) => {
-      drawText(text, columnX[index], cursorY, { size: 10, font: headerFont })
-    })
-    cursorY -= 16
-
-    for (const payment of rows) {
-      if (cursorY < 90) {
-        currentPage = pdfDoc.addPage([imageWidth, imageHeight])
-        currentPage.drawImage(templateImage, {
-          x: 0,
-          y: 0,
-          width: imageWidth,
-          height: imageHeight
+      const fullText = positions.map((pos) => pos.node.textContent?.[pos.offset] || '').join('')
+      const placeholderRegex = /{{\s*([^}]+?)\s*}}/g
+      const replacements = []
+      let match
+      while ((match = placeholderRegex.exec(fullText)) !== null) {
+        replacements.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          key: match[1].trim(),
+          value: values[match[1].trim()] ?? ''
         })
-        cursorY = pageHeight - 90
       }
-      const dateString = payment.payment_date ? format(parseISO(payment.payment_date), 'dd MMM yyyy') : ''
-      const line = [payment.id || '', payment.booking_id || '', dateString, `${payment.amount || ''}`, payment.currency || '', payment.payment_method || '', payment.status || '']
-      line.forEach((text, index) => {
-        drawText(String(text), columnX[index], cursorY, { size: 10 })
-      })
-      cursorY -= 16
+
+      for (let i = replacements.length - 1; i >= 0; i -= 1) {
+        const { start, end, value } = replacements[i]
+        const startPos = positions[start]
+        const endPos = positions[end - 1]
+        if (!startPos || !endPos) continue
+
+        const firstNode = startPos.node
+        const lastNode = endPos.node
+        const firstText = firstNode.textContent || ''
+        const lastText = lastNode.textContent || ''
+        const prefix = firstText.slice(0, startPos.offset)
+        const suffix = lastText.slice(endPos.offset + 1)
+        firstNode.textContent = `${prefix}${value}${suffix}`
+
+        if (firstNode !== lastNode) {
+          let clearing = false
+          for (const node of textNodes) {
+            if (node === firstNode) {
+              clearing = true
+              continue
+            }
+            if (node === lastNode) {
+              node.textContent = ''
+              break
+            }
+            if (clearing) {
+              node.textContent = ''
+            }
+          }
+        }
+      }
     }
 
-    cursorY -= 20
-    const totalPaid = rows
-      .filter((p) => p.status === 'completed')
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
-    const totalRefunded = rows
-      .filter((p) => p.status === 'refunded')
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
-    const net = totalPaid - totalRefunded
-
-    if (cursorY < 90) {
-      currentPage = pdfDoc.addPage([imageWidth, imageHeight])
-      currentPage.drawImage(templateImage, {
-        x: 0,
-        y: 0,
-        width: imageWidth,
-        height: imageHeight
-      })
-      cursorY = pageHeight - 90
+    const templateRow = Array.from(xmlDoc.getElementsByTagName('w:tr')).find((row) => row.textContent?.includes('{{'))
+    if (templateRow) {
+      const table = templateRow.parentNode
+      const rowTemplate = templateRow.cloneNode(true)
+      for (const payment of rows) {
+        const clonedRow = rowTemplate.cloneNode(true)
+        replacePlaceholdersInElement(clonedRow, {
+          'Booking ID': payment.booking_id || '',
+          'Payment ID': payment.id || '',
+          'Cash or Stripe': payment.payment_method || '',
+          Ststus: payment.status || '',
+          amount: Number(payment.amount || 0).toFixed(2),
+          'Date/Time completed': payment.payment_date ? format(parseISO(payment.payment_date), 'dd MMM yyyy HH:mm') : ''
+        })
+        table.insertBefore(clonedRow, templateRow)
+      }
+      table.removeChild(templateRow)
     }
 
-    drawText('Total Paid:', 50, cursorY, { size: 11, font: headerFont })
-    drawText(`£${totalPaid.toFixed(2)}`, 180, cursorY, { size: 11 })
-    cursorY -= 16
-    drawText('Total Refunded:', 50, cursorY, { size: 11, font: headerFont })
-    drawText(`£${totalRefunded.toFixed(2)}`, 180, cursorY, { size: 11 })
-    cursorY -= 16
-    drawText('Net Amount:', 50, cursorY, { size: 11, font: headerFont })
-    drawText(`£${net.toFixed(2)}`, 180, cursorY, { size: 11 })
+    replacePlaceholdersInElement(xmlDoc.documentElement, {
+      StudentName: student?.full_name || '',
+      'Todays Date': format(new Date(), 'dd MMM yyyy'),
+      'This is where the date that the tutor has searched from': start ? format(start, 'dd MMM yyyy') : '',
+      'This is where the date that the tutor has searched to': end ? format(end, 'dd MMM yyyy') : ''
+    })
 
-    const pdfBytes = await pdfDoc.save()
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-    const url = URL.createObjectURL(blob)
+    const updatedXml = serializer.serializeToString(xmlDoc)
+    zip.file('word/document.xml', updatedXml)
+
+    const docxBlob = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(docxBlob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `statement_${studentName}.pdf`
+    a.download = `statement_${studentName}.docx`
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -265,7 +273,7 @@ export default function TutorPayments({ tutorId }) {
                 />
               </div>
               <div style={{ width: '100%', color: '#e2e8f0', fontSize: '0.9rem', marginTop: '0.75rem', padding: '0.85rem 1rem', borderRadius: '10px', background: '#1f2937', border: '1px solid #334155' }}>
-                Select a start and end date to generate a student statement PDF for that period.
+                Select a start and end date to generate a student statement DOCX for that period.
               </div>
             </div>
             {(!customFrom || !customTo) && (
@@ -310,7 +318,7 @@ export default function TutorPayments({ tutorId }) {
                     fontWeight: 600
                   }}
                 >
-                  Download PDF
+                  Download Statement
                 </button>
               </div>
             ))}
