@@ -11,7 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  User
+  User,
+  FileText
 } from 'lucide-react'
 
 // Sub-components
@@ -19,6 +20,7 @@ import POSSystem from './POSSystem'
 import AvailabilityManager from './AvailabilityManager'
 import LessonEditor from './LessonEditor'
 import BookingManagement from './BookingManagement'
+import HomeworkReview from './HomeworkReview'
 import TutorPayments from './Payments'
 import Students from './Students'
 import SettingsPage from './Settings'
@@ -40,9 +42,10 @@ export default function TutorDashboard() {
     { id: 'students', label: 'Students', icon: Users },
     { id: 'lessons', label: 'Lessons', icon: BookOpen },
     { id: 'availability', label: 'Availability', icon: Clock },
+    { id: 'homework', label: 'Homework Submissions', icon: FileText },
     { id: 'pos', label: 'POS System', icon: Calculator },
     { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'profile', label: 'My Profile', icon: User }, // [NEW] Added Profile Item
+    { id: 'profile', label: 'My Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
   ]
 
@@ -150,6 +153,7 @@ export default function TutorDashboard() {
             {activeTab === 'students' && <Students onPreviewStudent={handlePreviewStudent} />}
             {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
             {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
+            {activeTab === 'homework' && <HomeworkReview tutorId={user?.id} />}
             {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
             {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
             {activeTab === 'profile' && <TutorProfile />}

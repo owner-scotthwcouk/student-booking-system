@@ -41,14 +41,45 @@ export async function getStudentLessons(studentId) {
 // Get lessons for a tutor
 export async function getTutorLessons(tutorId) {
   try {
-    const { data, error } = await supabase
+    const { data: lessons, error: lessonsError } = await supabase
       .from('lessons')
       .select('*')
       .eq('tutor_id', tutorId)
       .order('lesson_date', { ascending: false })
     
-    if (error) throw error
-    return { data, error: null }
+    if (lessonsError) throw lessonsError
+    
+    if (!lessons || lessons.length === 0) {
+      return { data: [], error: null }
+    }
+    
+    // Get unique student IDs
+    const studentIds = [...new Set(lessons.map(l => l.student_id).filter(Boolean))]
+    
+    if (studentIds.length === 0) {
+      return { data: lessons, error: null }
+    }
+    
+    // Fetch all student profiles in one query
+    const { data: students, error: studentsError } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', studentIds)
+    
+    if (studentsError) throw studentsError
+    
+    // Merge student data into lessons
+    const studentMap = (students || []).reduce((acc, student) => {
+      acc[student.id] = student
+      return acc
+    }, {})
+    
+    const enrichedLessons = lessons.map(lesson => ({
+      ...lesson,
+      student: studentMap[lesson.student_id] || null
+    }))
+    
+    return { data: enrichedLessons, error: null }
   } catch (error) {
     console.error('Error fetching lessons:', error)
     return { data: null, error }
