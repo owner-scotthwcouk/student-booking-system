@@ -22,10 +22,13 @@ import TutorSelection from './TutorSelection' // Assuming this is your "Book a L
 import './StudentDashboard.css'
 import BrandLogo from '../shared/BrandLogo'
 
-export default function StudentDashboard() {
+export default function StudentDashboard({ previewStudentId = null, previewStudentProfile = null, previewMode = false }) {
   const { user, profile, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('lessons') // Default to 'lessons' or 'home'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const studentIdToUse = previewStudentId || user?.id
+  const studentProfileDisplay = previewMode ? (previewStudentProfile || profile) : profile
 
   const menuItems = [
     { id: 'lessons', label: 'My Lessons', icon: BookOpen },
@@ -57,11 +60,11 @@ export default function StudentDashboard() {
           </div>
           <div className="user-profile-summary">
             <div className="avatar-circle">
-              {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'S'}
+              {studentProfileDisplay?.full_name?.charAt(0) || user?.email?.charAt(0) || 'S'}
             </div>
             <div className="user-info">
-              <p className="user-name">{profile?.full_name || 'Student'}</p>
-              <p className="user-role">Student Account</p>
+              <p className="user-name">{studentProfileDisplay?.full_name || 'Student'}</p>
+              <p className="user-role">{previewMode ? 'Student Preview Mode' : 'Student Account'}</p>
             </div>
           </div>
         </div>
@@ -103,11 +106,13 @@ export default function StudentDashboard() {
         </header>
 
         <div className="content-body">
-          {activeTab === 'profile' && <StudentProfile />}
-          {activeTab === 'book' && <TutorSelection studentId={user?.id} />}
-          {activeTab === 'lessons' && <StudentLessons studentId={user?.id} />}
-          {activeTab === 'payments' && <StudentPayments studentId={user?.id} />}
-          {activeTab === 'homework' && <HomeworkSubmission studentId={user?.id} />}
+          <section className="page-section glass-card">
+            {activeTab === 'profile' && <StudentProfile previewMode={previewMode} previewProfile={studentProfileDisplay} />}
+            {activeTab === 'book' && <TutorSelection previewMode={previewMode} />}
+            {activeTab === 'lessons' && <StudentLessons studentId={studentIdToUse} />}
+            {activeTab === 'payments' && <StudentPayments studentId={studentIdToUse} />}
+            {activeTab === 'homework' && <HomeworkSubmission studentId={studentIdToUse} previewMode={previewMode} />}
+          </section>
         </div>
       </main>
     </div>

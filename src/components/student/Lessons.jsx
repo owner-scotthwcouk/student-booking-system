@@ -6,7 +6,7 @@ import { getLessonActivities } from '../../lib/lessonsAPI'
 import { getLessonHomework } from '../../lib/homeworkAPI'
 import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
 
-export default function Lessons() {
+export default function Lessons({ studentId }) {
   const { user } = useAuth()
   const [lessons, setLessons] = useState([])
   const [selectedLesson, setSelectedLesson] = useState(null)
@@ -52,7 +52,7 @@ export default function Lessons() {
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
-        .eq('student_id', user?.id)
+        .eq('student_id', studentId || user?.id)
         .order('lesson_date', { ascending: false })
 
       if (error) throw error
@@ -63,12 +63,12 @@ export default function Lessons() {
     } finally {
       setLoading(false)
     }
-  }, [loadBookingRooms, user?.id])
+  }, [loadBookingRooms, studentId, user?.id])
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!(studentId || user?.id)) return
     loadLessons()
-  }, [user?.id, loadLessons])
+  }, [studentId, user?.id, loadLessons])
 
   async function loadLessonDetails(lessonId) {
     try {

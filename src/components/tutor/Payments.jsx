@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { jsPDF } from 'jspdf'
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO, isValid } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function TutorPayments({ tutorId }) {
@@ -8,6 +10,10 @@ export default function TutorPayments({ tutorId }) {
   const [refundLoading, setRefundLoading] = useState(false)
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
+  const [statementPeriod, setStatementPeriod] = useState('month')
+  const [referenceDate, setReferenceDate] = useState(new Date().toISOString().slice(0, 10))
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -74,34 +80,97 @@ export default function TutorPayments({ tutorId }) {
     }
   })
 
-  const formatCsv = (value) => {
-    if (value == null) return ''
-    const stringValue = String(value)
-    if (/[",\n]/.test(stringValue)) {
-      return `"${stringValue.replace(/"/g, '""')}"`
+  const getStatementRange = () => {
+    const ref = parseISO(referenceDate)
+    if (statementPeriod === 'custom') {
+      const from = parseISO(customFrom)
+      const to = parseISO(customTo)
+      if (isValid(from) && isValid(to)) {
+        return [from, to]
+      }
+      return [null, null]
     }
-    return stringValue
+
+    if (!isValid(ref)) return [null, null]
+    switch (statementPeriod) {
+      case 'week':
+        return [startOfWeek(ref, { weekStartsOn: 1 }), endOfWeek(ref, { weekStartsOn: 1 })]
+      case 'month':
+        return [startOfMonth(ref), endOfMonth(ref)]
+      case 'quarter':
+        return [startOfQuarter(ref), endOfQuarter(ref)]
+      case 'year':
+        return [startOfYear(ref), endOfYear(ref)]
+      default:
+        return [ref, ref]
+    }
+  }
+
+  const getStatementLabel = () => {
+    const [start, end] = getStatementRange()
+    if (!start || !end) return 'Custom range'
+    return `${format(start, 'dd MMM yyyy')} – ${format(end, 'dd MMM yyyy')}`
   }
 
   const downloadStatement = (studentId) => {
     const student = studentProfiles[studentId]
+    const [start, end] = getStatementRange()
     const rows = payments
       .filter((payment) => payment.student_id === studentId)
+      .filter((payment) => {
+        if (!payment.payment_date || !start || !end) return true
+        const paymentDate = parseISO(payment.payment_date)
+        return isValid(paymentDate) && paymentDate >= start && paymentDate <= end
+      })
       .sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date))
 
-    if (!rows.length) return
+    if (statementPeriod === 'custom' && (!customFrom || !customTo || !isValid(parseISO(customFrom)) || !isValid(parseISO(customTo)))) {
+      window.alert('Please select a valid custom start and end date for the statement.')
+      return
+    }
+
+    if (!rows.length) {
+      window.alert('No payments found for this selected range.')
+      return
+    }
+
+    const studentName = student?.full_name?.replace(/[^a-zA-Z0-9_-]/g, '_') || studentId
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' })
+    const titleX = 40
+    let cursorY = 50
+
+    doc.setFontSize(18)
+    doc.text(`Statement for ${student?.full_name || 'Student'}`, titleX, cursorY)
+    cursorY += 24
+    doc.setFontSize(11)
+    doc.text(`Period: ${getStatementLabel()}`, titleX, cursorY)
+    cursorY += 18
+    doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy HH:mm')}`, titleX, cursorY)
+    cursorY += 30
 
     const header = ['Payment ID', 'Booking ID', 'Date', 'Amount', 'Currency', 'Method', 'Status']
-    const body = rows.map((payment) => [
-      payment.id,
-      payment.booking_id,
-      payment.payment_date ? new Date(payment.payment_date).toISOString() : '',
-      payment.amount,
-      payment.currency,
-      payment.payment_method,
-      payment.status
-    ])
+    const columnX = [40, 120, 220, 310, 365, 435, 520]
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    header.forEach((text, index) => doc.text(text, columnX[index], cursorY))
+    cursorY += 16
+    doc.setDrawColor(200)
+    doc.line(40, cursorY, 560, cursorY)
+    cursorY += 8
+    doc.setFont('helvetica', 'normal')
 
+    rows.forEach((payment, rowIndex) => {
+      if (cursorY > 720) {
+        doc.addPage()
+        cursorY = 50
+      }
+      const dateString = payment.payment_date ? format(parseISO(payment.payment_date), 'dd MMM yyyy') : ''
+      const line = [payment.id || '', payment.booking_id || '', dateString, `${payment.amount || ''}`, payment.currency || '', payment.payment_method || '', payment.status || '']
+      line.forEach((text, index) => doc.text(String(text), columnX[index], cursorY))
+      cursorY += 16
+    })
+
+    cursorY += 12
     const totalPaid = rows
       .filter((p) => p.status === 'completed')
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
@@ -110,23 +179,22 @@ export default function TutorPayments({ tutorId }) {
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
     const net = totalPaid - totalRefunded
 
-    const csvLines = [header.join(','), ...body.map((row) => row.map(formatCsv).join(','))]
-    csvLines.push('')
-    csvLines.push(`Total Paid:,${formatCsv(totalPaid.toFixed(2))}`)
-    csvLines.push(`Total Refunded:,${formatCsv(totalRefunded.toFixed(2))}`)
-    csvLines.push(`Net Amount:,${formatCsv(net.toFixed(2))}`)
+    if (cursorY > 720) {
+      doc.addPage()
+      cursorY = 50
+    }
 
-    const csvString = csvLines.join('\n')
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    const studentName = student?.full_name?.replace(/[^a-zA-Z0-9_-]/g, '_') || studentId
-    link.setAttribute('download', `statement_${studentName}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Total Paid:', titleX, cursorY)
+    doc.text(`£${totalPaid.toFixed(2)}`, 140, cursorY)
+    cursorY += 16
+    doc.text('Total Refunded:', titleX, cursorY)
+    doc.text(`£${totalRefunded.toFixed(2)}`, 140, cursorY)
+    cursorY += 16
+    doc.text('Net Amount:', titleX, cursorY)
+    doc.text(`£${net.toFixed(2)}`, 140, cursorY)
+
+    doc.save(`statement_${studentName}.pdf`)
   }
 
   if (loading) return <div>Loading payments...</div>
@@ -139,6 +207,68 @@ export default function TutorPayments({ tutorId }) {
       {studentSummaries.length > 0 && (
         <div style={{ marginBottom: '1.5rem' }}>
           <h3>Student Statements</h3>
+          <div style={{ margin: '1rem 0 1.5rem', padding: '1rem', borderRadius: '16px', background: '#111827', color: '#f8fafc', border: '1px solid #334155' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+              <div style={{ minWidth: '220px' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem', color: '#cbd5e1', fontWeight: 600 }}>Statement Period</label>
+                <select
+                  value={statementPeriod}
+                  onChange={(e) => setStatementPeriod(e.target.value)}
+                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
+                >
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="quarter">Quarter</option>
+                  <option value="year">Year</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              <div style={{ minWidth: '220px' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem', color: '#cbd5e1', fontWeight: 600 }}>
+                  Reference Date
+                </label>
+                <input
+                  type="date"
+                  value={referenceDate}
+                  onChange={(e) => setReferenceDate(e.target.value)}
+                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
+                />
+              </div>
+
+              {statementPeriod === 'custom' && (
+                <>
+                  <div style={{ minWidth: '220px' }}>
+                    <label style={{ display: 'block', marginBottom: '0.35rem', color: '#cbd5e1', fontWeight: 600 }}>From</label>
+                    <input
+                      type="date"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
+                    />
+                  </div>
+                  <div style={{ minWidth: '220px' }}>
+                    <label style={{ display: 'block', marginBottom: '0.35rem', color: '#cbd5e1', fontWeight: 600 }}>To</label>
+                    <input
+                      type="date"
+                      value={customTo}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
+                    />
+                  </div>
+                  <div style={{ width: '100%', color: '#e2e8f0', fontSize: '0.9rem', marginTop: '0.75rem', padding: '0.85rem 1rem', borderRadius: '10px', background: '#1f2937', border: '1px solid #334155' }}>
+                    Select both dates to generate a custom student statement PDF for the chosen period.
+                  </div>
+                </>
+              )}
+            </div>
+            {statementPeriod === 'custom' && (!customFrom || !customTo) && (
+              <div style={{ marginTop: '1rem', color: '#fee2e2', background: '#4b5563', padding: '0.9rem 1rem', borderRadius: '10px' }}>
+                Please choose both a start and end date to download a custom statement range.
+              </div>
+            )}
+            <div style={{ marginTop: '1rem', color: '#9ca3af' }}>Current selection: {getStatementLabel()}</div>
+          </div>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             {studentSummaries.map((summary) => (
               <div
@@ -147,15 +277,16 @@ export default function TutorPayments({ tutorId }) {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '0.75rem 1rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  background: '#fafafa'
+                  padding: '1rem 1.25rem',
+                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                  borderRadius: '12px',
+                  background: '#111827',
+                  color: '#f8fafc'
                 }}
               >
                 <div>
-                  <strong>{summary.profile.full_name || 'Unknown Student'}</strong>
-                  <div style={{ fontSize: '0.9rem', color: '#555' }}>
+                  <strong style={{ fontSize: '1rem' }}>{summary.profile.full_name || 'Unknown Student'}</strong>
+                  <div style={{ fontSize: '0.9rem', color: '#cbd5e1', marginTop: '0.25rem' }}>
                     Paid: £{summary.totalPaid.toFixed(2)} · Refunded: £{summary.totalRefunded.toFixed(2)}
                   </div>
                 </div>
@@ -163,9 +294,17 @@ export default function TutorPayments({ tutorId }) {
                   type="button"
                   disabled={refundLoading}
                   onClick={() => downloadStatement(summary.studentId)}
-                  style={{ padding: '0.5rem 0.9rem', borderRadius: '6px', cursor: 'pointer' }}
+                  style={{
+                    padding: '0.65rem 1rem',
+                    borderRadius: '10px',
+                    cursor: refundLoading ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    background: '#7c3aed',
+                    color: '#fff',
+                    fontWeight: 600
+                  }}
                 >
-                  Download statement
+                  Download PDF
                 </button>
               </div>
             ))}

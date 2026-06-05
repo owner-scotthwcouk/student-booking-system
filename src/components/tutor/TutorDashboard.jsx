@@ -11,7 +11,7 @@ import {
   LogOut,
   Menu,
   X,
-  User // [NEW] Added User icon
+  User
 } from 'lucide-react'
 
 // Sub-components
@@ -22,14 +22,18 @@ import BookingManagement from './BookingManagement'
 import TutorPayments from './Payments'
 import Students from './Students'
 import SettingsPage from './Settings'
-import TutorProfile from './Profile' // [NEW] Imported Profile
+import TutorProfile from './Profile'
 import './TutorDashboard.css'
 import BrandLogo from '../shared/BrandLogo'
+import StudentDashboard from '../student/StudentDashboard'
 
 export default function TutorDashboard() {
   const { user, profile, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('bookings')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [previewStudentId, setPreviewStudentId] = useState(null)
+  const [previewStudentProfile, setPreviewStudentProfile] = useState(null)
+  const [isPreviewMode, setIsPreviewMode] = useState(false)
 
   const menuItems = [
     { id: 'bookings', label: 'Bookings', icon: CalendarDays },
@@ -44,6 +48,39 @@ export default function TutorDashboard() {
 
   const handleSignOut = async () => {
     await signOut()
+  }
+
+  const handlePreviewStudent = (student) => {
+    setPreviewStudentId(student.id)
+    setPreviewStudentProfile(student)
+    setIsPreviewMode(true)
+  }
+
+  const exitPreviewMode = () => {
+    setPreviewStudentId(null)
+    setPreviewStudentProfile(null)
+    setIsPreviewMode(false)
+  }
+
+  if (isPreviewMode) {
+    return (
+      <div className="student-preview-wrapper">
+        <div className="preview-banner">
+          <div>
+            <strong>Student preview mode</strong>
+            <p>Viewing the portal as {previewStudentProfile?.full_name || 'a student'}.</p>
+          </div>
+          <button className="btn-secondary" onClick={exitPreviewMode}>
+            Exit Student Preview
+          </button>
+        </div>
+        <StudentDashboard 
+          previewStudentId={previewStudentId}
+          previewStudentProfile={previewStudentProfile}
+          previewMode={true}
+        />
+      </div>
+    )
   }
 
   return (
@@ -108,14 +145,16 @@ export default function TutorDashboard() {
         </header>
 
         <div className="content-body">
-          {activeTab === 'bookings' && <BookingManagement tutorId={user?.id} />}
-          {activeTab === 'students' && <Students />}
-          {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
-          {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
-          {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
-          {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
-          {activeTab === 'profile' && <TutorProfile />} 
-          {activeTab === 'settings' && <SettingsPage />}
+          <section className="page-section glass-card">
+            {activeTab === 'bookings' && <BookingManagement tutorId={user?.id} />}
+            {activeTab === 'students' && <Students onPreviewStudent={handlePreviewStudent} />}
+            {activeTab === 'lessons' && <LessonEditor tutorId={user?.id} />}
+            {activeTab === 'availability' && <AvailabilityManager tutorId={user?.id} />}
+            {activeTab === 'pos' && <POSSystem tutorId={user?.id} />}
+            {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
+            {activeTab === 'profile' && <TutorProfile />}
+            {activeTab === 'settings' && <SettingsPage />}
+          </section>
         </div>
       </main>
     </div>

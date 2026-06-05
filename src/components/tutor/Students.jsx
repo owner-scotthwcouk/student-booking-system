@@ -16,10 +16,11 @@ import {
   User,
   History,
   CreditCard,
-  Send
+  Send,
+  Users
 } from 'lucide-react'
 
-export default function TutorStudents() {
+export default function TutorStudents({ onPreviewStudent }) {
   const { user } = useAuth()
   const [students, setStudents] = useState([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
@@ -28,6 +29,8 @@ export default function TutorStudents() {
   const [loading, setLoading] = useState(true)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [previewSelectionId, setPreviewSelectionId] = useState('')
   
   // Edit Mode States
   const [isEditing, setIsEditing] = useState(false)
@@ -153,6 +156,21 @@ export default function TutorStudents() {
     loadStudentDetails(student.id, student)
   }
 
+  const openPreviewModal = () => {
+    setPreviewSelectionId(selectedStudentId || students[0]?.id || '')
+    setShowPreviewModal(true)
+  }
+
+  const closePreviewModal = () => setShowPreviewModal(false)
+
+  const handleConfirmPreview = () => {
+    if (!previewSelectionId || !onPreviewStudent) return
+    const student = students.find(s => s.id === previewSelectionId)
+    if (!student) return
+    onPreviewStudent(student)
+    setShowPreviewModal(false)
+  }
+
   useEffect(() => {
     if (user) loadData()
   }, [user, loadData])
@@ -235,8 +253,16 @@ export default function TutorStudents() {
 
   return (
     <div className="students-container">
-      <div className="section-header">
+      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
         <h2>Students Directory</h2>
+        <button
+          type="button"
+          onClick={openPreviewModal}
+          className="btn-primary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer', backgroundColor: '#7c3aed', color: '#fff' }}
+        >
+          <Users size={16} /> View as Student
+        </button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -455,6 +481,15 @@ export default function TutorStudents() {
                         >
                           <Edit2 size={16} /> Edit Details
                         </button>
+                        {onPreviewStudent && (
+                          <button
+                            onClick={() => onPreviewStudent(studentProfile)}
+                            className="btn-primary"
+                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', background: '#7c3aed', border: 'none' }}
+                          >
+                            <Users size={16} /> Preview Student Portal
+                          </button>
+                        )}
                       </div>
                     </div>
                     
@@ -606,6 +641,100 @@ export default function TutorStudents() {
           )}
         </div>
       </div>
+
+      {showPreviewModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          zIndex: 999
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '520px',
+            backgroundColor: '#0f172a',
+            borderRadius: '20px',
+            padding: '1.75rem',
+            boxShadow: '0 30px 80px rgba(0, 0, 0, 0.35)',
+            border: '1px solid rgba(148, 163, 184, 0.15)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.35rem' }}>View as Student</h3>
+                <p style={{ margin: '0.5rem 0 0', color: '#94a3b8' }}>
+                  Select a student account to preview their portal exactly as they see it.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePreviewModal}
+                style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer' }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div style={{ marginTop: '1.5rem' }}>
+              <label style={{ display: 'block', color: '#cbd5e1', marginBottom: '0.5rem', fontWeight: 600 }}>Student</label>
+              <select
+                value={previewSelectionId}
+                onChange={(e) => setPreviewSelectionId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.9rem 1rem',
+                  borderRadius: '12px',
+                  border: '1px solid #334155',
+                  backgroundColor: '#020617',
+                  color: '#f8fafc',
+                  fontSize: '1rem'
+                }}
+              >
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.full_name || student.email || 'Student'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={closePreviewModal}
+                style={{
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '10px',
+                  border: '1px solid #334155',
+                  backgroundColor: '#1e293b',
+                  color: '#cbd5e1',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPreview}
+                disabled={!previewSelectionId}
+                style={{
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: previewSelectionId ? '#7c3aed' : '#6d28d9',
+                  color: '#fff',
+                  cursor: previewSelectionId ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Preview Student
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

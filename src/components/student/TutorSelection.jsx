@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getAllTutors } from '../../lib/profileAPI'
 import { User, BookOpen, Loader2 } from 'lucide-react'
 
-export default function TutorSelection() {
+export default function TutorSelection({ previewMode = false }) {
   const [tutors, setTutors] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -93,27 +93,30 @@ export default function TutorSelection() {
             </div>
 
             <button 
-              onClick={() => navigate(`/student/book/${tutor.id}`)}
+              onClick={() => {
+                if (previewMode) return
+                navigate(`/student/book/${tutor.id}`)
+              }}
+              disabled={previewMode}
               style={{
                 marginTop: 'auto',
                 width: '100%',
                 padding: '0.875rem',
-                backgroundColor: '#7c3aed',
+                backgroundColor: previewMode ? '#475569' : '#7c3aed',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: previewMode ? 'not-allowed' : 'pointer',
                 transition: 'background-color 0.2s',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                opacity: previewMode ? 0.7 : 1
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#6d28d9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#7c3aed'}
             >
-              Book Lesson
+              {previewMode ? 'Preview only' : 'Book Lesson'}
             </button>
           </div>
         ))}

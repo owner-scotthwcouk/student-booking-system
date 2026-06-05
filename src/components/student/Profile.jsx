@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/auth'
 import { updateProfile, uploadProfilePicture } from '../../lib/profileAPI'
 import { User, Camera, Save, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
-export default function StudentProfile() {
+export default function StudentProfile({ previewMode = false, previewProfile = null }) {
   const { user, profile } = useAuth()
   
   // States
@@ -21,21 +21,27 @@ export default function StudentProfile() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    if (profile) {
+    const sourceProfile = previewMode ? previewProfile : profile
+    if (sourceProfile) {
       setFormData({
-        email: profile.email || '',
-        phone_number: profile.phone_number || '',
-        address: profile.address || ''
+        email: sourceProfile.email || '',
+        phone_number: sourceProfile.phone_number || '',
+        address: sourceProfile.address || ''
       })
-      setProfilePicture(profile.profile_picture_url)
+      setProfilePicture(sourceProfile.profile_picture_url)
     }
-  }, [profile])
+  }, [previewMode, previewProfile, profile])
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleProfilePictureChange = async (e) => {
+    if (previewMode) {
+      setError('Preview mode is read-only. Upload is disabled.')
+      return
+    }
+
     const file = e.target.files[0]
     if (!file) return
 
@@ -65,6 +71,12 @@ export default function StudentProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (previewMode) {
+      setError('Preview mode is read-only. Profile updates are disabled.')
+      return
+    }
+
     setSaving(true)
     setError(null)
     setSuccess(false)
@@ -83,7 +95,7 @@ export default function StudentProfile() {
     }
   }
 
-  if (!profile) return <div style={{ padding: '2rem', color: '#fff' }}>Loading profile...</div>
+  if (!profileData) return <div style={{ padding: '2rem', color: '#fff' }}>Loading profile...</div>
 
   // --- Styles ---
   const containerStyle = {
@@ -184,7 +196,7 @@ export default function StudentProfile() {
             {profilePicture ? (
               <img src={profilePicture} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              profile.full_name?.charAt(0).toUpperCase()
+              profileData?.full_name?.charAt(0).toUpperCase() || 'S'
             )}
           </div>
           
@@ -197,21 +209,26 @@ export default function StudentProfile() {
               backgroundColor: '#334155', 
               color: '#fff', 
               borderRadius: '8px', 
-              cursor: uploading ? 'wait' : 'pointer',
+              cursor: previewMode ? 'not-allowed' : uploading ? 'wait' : 'pointer',
+              opacity: previewMode ? 0.6 : 1,
               fontSize: '0.9rem',
               fontWeight: '500',
               transition: 'background 0.2s'
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#475569'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#334155'}
+            onMouseEnter={(e) => {
+              if (!previewMode) e.target.style.backgroundColor = '#475569'
+            }}
+            onMouseLeave={(e) => {
+              if (!previewMode) e.target.style.backgroundColor = '#334155'
+            }}
           >
             <Camera size={18} />
-            {uploading ? 'Uploading...' : 'Change Photo'}
+            {uploading ? 'Uploading...' : previewMode ? 'Preview mode' : 'Change Photo'}
             <input
               type="file"
               accept="image/*"
               onChange={handleProfilePictureChange}
-              disabled={uploading}
+              disabled={uploading || previewMode}
               style={{ display: 'none' }}
             />
           </label>
@@ -230,13 +247,13 @@ export default function StudentProfile() {
                 <div>
                   <label style={labelStyle}>Full Name</label>
                   <div style={{...inputStyle, backgroundColor: '#1e293b', borderColor: 'transparent', color: '#cbd5e1'}}>
-                    {profile.full_name}
+                    {profileData?.full_name}
                   </div>
                 </div>
                 <div>
                   <label style={labelStyle}>Date of Birth</label>
                   <div style={{...inputStyle, backgroundColor: '#1e293b', borderColor: 'transparent', color: '#cbd5e1'}}>
-                    {profile.date_of_birth || 'Not set'}
+                    {profileData?.date_of_birth || 'Not set'}
                   </div>
                 </div>
               </div>
@@ -244,7 +261,12 @@ export default function StudentProfile() {
 
             {/* Editable Fields */}
             <div style={inputGroupStyle}>
-              <label htmlFor="email" style={labelStyle}>Email Address</label>
+              {previewMode && (
+              <div style={{ marginBottom: '1rem', color: '#cbd5e1', backgroundColor: '#111827', padding: '1rem', borderRadius: '12px', border: '1px solid #334155' }}>
+                Preview mode is active. Updates are disabled.
+              </div>
+            )}
+            <label htmlFor="email" style={labelStyle}>Email Address</label>
               <input
                 type="email"
                 id="email"
@@ -289,27 +311,31 @@ export default function StudentProfile() {
             <div style={{ paddingTop: '1rem', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'flex-end' }}>
               <button 
                 type="submit" 
-                disabled={saving}
+                disabled={saving || previewMode}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.75rem 2rem',
-                  backgroundColor: '#8b5cf6',
+                  backgroundColor: previewMode ? '#6d28d9' : '#8b5cf6',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontWeight: '600',
                   fontSize: '1rem',
-                  cursor: saving ? 'wait' : 'pointer',
-                  opacity: saving ? 0.7 : 1,
+                  cursor: previewMode ? 'not-allowed' : saving ? 'wait' : 'pointer',
+                  opacity: saving || previewMode ? 0.7 : 1,
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => !saving && (e.target.style.backgroundColor = '#7c3aed')}
-                onMouseLeave={(e) => !saving && (e.target.style.backgroundColor = '#8b5cf6')}
+                onMouseEnter={(e) => {
+                  if (!saving && !previewMode) e.target.style.backgroundColor = '#7c3aed'
+                }}
+                onMouseLeave={(e) => {
+                  if (!saving && !previewMode) e.target.style.backgroundColor = '#8b5cf6'
+                }}
               >
                 {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                {saving ? 'Saving...' : 'Save Changes'}
+                {previewMode ? 'Preview-only mode' : saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </form>

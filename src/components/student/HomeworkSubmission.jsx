@@ -13,7 +13,7 @@ import {
   MessageSquare 
 } from 'lucide-react'
 
-export default function HomeworkSubmission() {
+export default function HomeworkSubmission({ studentId = null, previewMode = false }) {
   const { user } = useAuth()
   const [lessons, setLessons] = useState([])
   const [selectedLesson, setSelectedLesson] = useState('')
@@ -26,12 +26,13 @@ export default function HomeworkSubmission() {
   // Fetch recent confirmed lessons
   useEffect(() => {
     async function loadLessons() {
-      if (!user) return
+      const activeStudentId = studentId || user?.id
+      if (!activeStudentId) return
       try {
         const { data, error } = await supabase
           .from('bookings')
           .select('id, lesson_date, lesson_time, status')
-          .eq('student_id', user.id)
+          .eq('student_id', activeStudentId)
           .eq('status', 'confirmed')
           .order('lesson_date', { ascending: false })
           .limit(10)
@@ -54,6 +55,10 @@ export default function HomeworkSubmission() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (previewMode) {
+      setError('Preview mode is read-only. Homework uploads are disabled.')
+      return
+    }
     if (!file) return setError('Please select a file to upload.')
     if (!selectedLesson) return setError('Please select a lesson to link this homework to.')
 
@@ -63,8 +68,9 @@ export default function HomeworkSubmission() {
 
     try {
       // 1. Upload File
+      const activeStudentId = studentId || user.id
       const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`
+      const fileName = `${activeStudentId}/${Date.now()}.${fileExt}`
       
       const { error: uploadError } = await supabase.storage
         .from('homework-uploads')
@@ -76,7 +82,7 @@ export default function HomeworkSubmission() {
       const { error: dbError } = await supabase
         .from('homework_submissions')
         .insert({
-          student_id: user.id,
+          student_id: activeStudentId,
           booking_id: selectedLesson,
           file_path: fileName,
           comments: comments,
