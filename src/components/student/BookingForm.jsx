@@ -4,7 +4,6 @@ import { createBooking, getBlockedTimeSlots } from "../../lib/bookingAPI";
 import { getTutorAvailability } from "../../lib/availabilityAPI";
 import { getTutorHourlyRate, getProfile } from "../../lib/profileAPI";
 import { useNavigate, useParams } from "react-router-dom";
-import { buildVideoRoomUrl } from "../../lib/videoRoomAPI";
 
 function BookingForm() {
   const { tutorId } = useParams();
@@ -126,6 +125,7 @@ function BookingForm() {
     setError(null);
 
     try {
+      // 1. Create the booking record
       const { data: booking, error: bookingError } = await createBooking({
         studentId: user.id,
         tutorId: tutorId,
@@ -136,19 +136,25 @@ function BookingForm() {
 
       if (bookingError) throw new Error("Failed to create booking");
 
+      // 2. Initialize GoCardless Payment
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/truelayer-create-payment`,
+        `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/gocardless-init`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: hourlyRate, bookingId: booking.id }),
+          body: JSON.stringify({
+            amount: hourlyRate,
+            bookingId: booking.id,
+            email: user.email,
+          }),
         },
       );
 
-      const { auth_uri } = await response.json();
-      if (!auth_uri) throw new Error("Failed to initialize payment");
+      const { checkout_url } = await response.json();
+      if (!checkout_url) throw new Error("Failed to initialize GoCardless");
 
-      window.location.href = auth_uri;
+      // 3. Redirect to bank authentication
+      window.location.href = checkout_url;
     } catch (err) {
       setError(err.message);
       setLoading(false);
