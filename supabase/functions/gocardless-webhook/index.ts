@@ -4,52 +4,44 @@ import gocardless from "npm:gocardless-nodejs";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
 const client = gocardless(
   Deno.env.get("GC_ACCESS_TOKEN")!,
-  Deno.env.get("GC_ENVIRONMENT")!, // 'sandbox' or 'live'
+  Deno.env.get("GC_ENVIRONMENT")!
 );
 
 serve(async (req) => {
+  // 1. Get the signature from the headers
+  const signature = req.headers.get("Webhook-Signature");
+  const webhookSecret = Deno.env.get("GC_WEBHOOK_SECRET")!;
+  
+  // 2. Read the raw body text
+  const body = await req.text();
+
   try {
-    const body = await req.json();
-    const event = body.events[0];
+    // 3. Verify the signature using the GoCardless SDK
+    const events = client.webhooks.parse(body, signature, webhookSecret);
 
-    // Handle "fulfilled" event (Payment success)
-    if (
-      event.action === "fulfilled" &&
-      event.resource_type === "billing_requests"
-    ) {
-      const billingRequestId = event.links.billing_request;
+    // 4. Process each event
+    for (const event of events) {
+      if (event.action === "fulfilled" && event.resource_type === "billing_requests") {
+        const billingRequest = await client.billingRequests.find(event.links.billing_request);
+        const bookingId = billingRequest.metadata?.booking_id;
 
-      // 1. Fetch the billing request to get the metadata (which contains your booking_id)
-      const billingRequest =
-        await client.billingRequests.find(billingRequestId);
-      const bookingId = billingRequest.metadata?.booking_id;
-
-      if (bookingId) {
-        // 2. Update your booking status in Supabase
-        const { error } = await supabase
-          .from("bookings")
-          .update({
-            status: "confirmed",
-            payment_status: "paid",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", bookingId);
-
-        if (error) {
-          console.error("Supabase update error:", error);
-          return new Response("Supabase Error", { status: 500 });
+        if (bookingId) {
+          await supabase
+            .from('bookings')
+            .update({ status: 'confirmed', payment_status: 'paid' })
+            .eq('id', bookingId);
         }
       }
     }
 
     return new Response("OK", { status: 200 });
   } catch (err) {
-    console.error("Webhook processing error:", err);
-    return new Response("Internal Server Error", { status: 500 });
+    console.error("Signature verification failed:", err);
+    return new Response("Invalid Signature", { status: 401 });
   }
 });
