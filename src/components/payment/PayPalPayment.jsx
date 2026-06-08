@@ -1,76 +1,22 @@
-// src/components/payment/PayPalPayment.jsx
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-import { supabase } from '../../lib/supabaseClient';
 
 export default function PayPalPayment({ amount, bookingId, onSuccess, onError }) {
-  // Use the env variable directly
-  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
-  const [isReady, setIsReady] = useState(false);
+  // HARD CODED FOR TESTING
+  const clientId = "YOUR_CLIENT_ID_HERE"; 
+  
+  console.log("DEBUG: Using Client ID:", clientId);
 
-  useEffect(() => {
-    // Debug: Check if the variable is loaded in the browser console
-    console.log("DEBUG: VITE_PAYPAL_CLIENT_ID is:", clientId);
-    
-    if (clientId && clientId !== 'test') {
-      setIsReady(true);
-    } else {
-      console.error("PayPal Error: VITE_PAYPAL_CLIENT_ID is missing or invalid in your .env");
-    }
-  }, [clientId]);
-
-  const createOrder = async () => {
-    // ... existing logic ...
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/paypal-create-order`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ amount, bookingId })
-      });
-      const orderData = await response.json();
-      return orderData.id;
-    } catch (err) {
-      if (onError) onError(err);
-    }
-  };
-
-  const onApprove = async (data) => {
-    // ... existing logic ...
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/paypal-capture-order`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ orderId: data.orderID, bookingId })
-      });
-      const orderData = await response.json();
-      if (orderData.status === 'COMPLETED') {
-        onSuccess(orderData);
-      }
-    } catch (err) {
-      if (onError) onError(err);
-    }
-  };
-
-  // Only render the provider if we have a real ID
-  if (!isReady) {
-    return <div className="text-red-500 text-sm">Payment system configuration error. Please contact support.</div>;
+  if (!clientId || clientId === "AaceKn590W9TDiod6Z4I5PU976UadMXXkfB2-mN4V0tm6AI2r1tytZd_tkYMOfImV0J6hosExyVidbaE") {
+    return <div style={{color: 'red'}}>Error: You must paste your Client ID into the code!</div>;
   }
 
   return (
     <div className="w-full">
       <PayPalScriptProvider options={{ "client-id": clientId, currency: "GBP" }}>
         <PayPalButtons 
-          createOrder={createOrder}
-          onApprove={onApprove}
           style={{ layout: "vertical", shape: "rect" }}
+          onApprove={(data) => console.log("Payment approved:", data)}
         />
       </PayPalScriptProvider>
     </div>
