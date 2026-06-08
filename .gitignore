@@ -26,5 +26,10 @@ dist-ssr
 .env.*.local
 .env.local
 cleanup-supabase.ps1
-playwright-report
-test-results
+# Cache and Build Artifacts
+.npm-cache/
+playwright-report/
+test-results/
+dist/
+.env.local
+.DS_Store
