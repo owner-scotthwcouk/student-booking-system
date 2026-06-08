@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
 import { useAuth } from '../../hooks/useAuth'
 import { createBooking, getBlockedTimeSlots } from '../../lib/bookingAPI'
 import { getTutorAvailability } from '../../lib/availabilityAPI'
@@ -8,352 +6,12 @@ import { getTutorHourlyRate, getProfile } from '../../lib/profileAPI'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
+import PayPalPayment from '../payment/PayPalPayment'
 
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
-
-// Stripe Card Element Styling
-const CARD_ELEMENT_OPTIONS = {
-  style: {
-    base: {
-      color: '#000000',
-      fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-      fontSmoothing: 'antialiased',
-      fontSize: '16px',
-      '::placeholder': {
-        color: '#666666'
-      }
-    },
-    invalid: {
-      color: '#e74c3c',
-      iconColor: '#e74c3c'
-    }
-  },
-  hidePostalCode: false
-}
-
-// Booking Payment Form Component
-function BookingPaymentForm({ 
-  tutorId, 
-  tutorName, 
-  hourlyRate, 
-  selectedDate, 
-  selectedTime,
-  onBack,
-  onSuccess 
-}) {
-  const { user } = useAuth()
-  const stripe = useStripe()
-  const elements = useElements()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [cardholderName, setCardholderName] = useState('')
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    if (!stripe || !elements) {
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      // 1. Create booking
-      const { data: booking, error: bookingError } = await createBooking({
-        studentId: user.id,
-        tutorId: tutorId,
-        lessonDate: selectedDate,
-        lessonTime: selectedTime,
-        duration: 60
-      })
-
-      if (bookingError) throw new Error('Failed to create booking')
-
-      // 2. Create payment intent
-      const response = await fetch('/api/stripe/create-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: hourlyRate,
-          studentId: user.id,
-          tutorId: tutorId,
-          bookingId: booking.id,
-          studentEmail: user.email,
-          currency: 'gbp'
-        })
-      })
-
-      const { clientSecret, paymentIntentId } = await response.json()
-
-      if (!clientSecret) {
-        throw new Error('Failed to create payment intent')
-      }
-
-      // 3. Confirm payment with Stripe
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement),
-            billing_details: {
-              name: cardholderName,
-              email: user.email
-            }
-          }
-        }
-      )
-
-      if (stripeError) {
-        throw new Error(stripeError.message)
-      }
-
-      if (paymentIntent.status === 'succeeded') {
-        // 4. Update booking status
-        await supabase
-          .from('bookings')
-          .update({
-            status: 'confirmed',
-            payment_status: 'paid',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', booking.id)
-
-        // 5. Record payment
-        await supabase
-          .from('payments')
-          .insert({
-            booking_id: booking.id,
-            student_id: user.id,
-            stripe_payment_intent_id: paymentIntentId,
-            amount: hourlyRate,
-            currency: 'GBP',
-            payment_method: 'stripe',
-            status: 'completed',
-            payment_date: new Date().toISOString()
-          })
-
-        onSuccess(booking)
-      }
-    } catch (err) {
-      setError(err.message || 'Payment failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="payment-form">
-      <div className="booking-summary">
-        <h3>Booking Summary</h3>
-        <div className="summary-row">
-          <span>Tutor:</span>
-          <strong>{tutorName}</strong>
-        </div>
-        <div className="summary-row">
-          <span>Date:</span>
-          <strong>{new Date(selectedDate).toLocaleDateString('en-GB')}</strong>
-        </div>
-        <div className="summary-row">
-          <span>Time:</span>
-          <strong>{selectedTime}</strong>
-        </div>
-        <div className="summary-row">
-          <span>Duration:</span>
-          <strong>60 minutes</strong>
-        </div>
-        <div className="summary-row total">
-          <span>Total:</span>
-          <strong>£{Number(hourlyRate).toFixed(2)}</strong>
-        </div>
-      </div>
-
-      {error && <div className="error-message">{error}</div>}
-
-      <div className="form-group">
-        <label htmlFor="cardholderName">Cardholder Name *</label>
-        <input
-          type="text"
-          id="cardholderName"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value)}
-          placeholder="e.g. John Doe"
-          required
-          className="form-input"
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Card Information *</label>
-        <div className="stripe-card-element">
-          <CardElement options={CARD_ELEMENT_OPTIONS} />
-        </div>
-      </div>
-
-      <div className="security-notice">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M8 0L2 3V7C2 11 5 14 8 16C11 14 14 11 14 7V3L8 0Z" fill="#28a745"/>
-        </svg>
-        <span>Secured by Stripe - Your payment information is safe</span>
-      </div>
-
-      <div className="button-group">
-        <button type="button" onClick={onBack} className="btn-secondary">
-          Back
-        </button>
-        <button type="submit" disabled={!stripe || loading} className="btn-primary">
-          {loading ? 'Processing...' : `Pay £${Number(hourlyRate).toFixed(2)}`}
-        </button>
-      </div>
-
-      <style jsx>{`
-        .payment-form {
-          max-width: 500px;
-          margin: 0 auto;
-        }
-
-        .booking-summary {
-          background: #f8f9fa;
-          border: 2px solid #dee2e6;
-          border-radius: 8px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-        }
-
-        .booking-summary h3 {
-          margin: 0 0 1rem 0;
-          color: #1a1a1a;
-          font-size: 1.25rem;
-          border-bottom: 2px solid #dee2e6;
-          padding-bottom: 0.5rem;
-        }
-
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 0.5rem 0;
-          color: #333333;
-        }
-
-        .summary-row.total {
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 2px solid #dee2e6;
-          font-size: 1.25rem;
-          color: #1e40af;
-        }
-
-        .form-group {
-          margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-          display: block;
-          color: #333333;
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-          font-size: 14px;
-        }
-
-        .form-input {
-          width: 100%;
-          padding: 12px;
-          font-size: 16px;
-          border: 2px solid #d1d5db;
-          border-radius: 6px;
-          background-color: #ffffff;
-          color: #000000;
-        }
-
-        .form-input:focus {
-          outline: none;
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-        }
-
-        .stripe-card-element {
-          padding: 14px;
-          border: 2px solid #d1d5db;
-          border-radius: 6px;
-          background-color: #ffffff;
-        }
-
-        .stripe-card-element:focus-within {
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-        }
-
-        .security-notice {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin: 1.5rem 0;
-          padding: 0.75rem;
-          background-color: #f0fdf4;
-          border-radius: 6px;
-          color: #166534;
-          font-size: 14px;
-        }
-
-        .button-group {
-          display: flex;
-          gap: 1rem;
-          margin-top: 2rem;
-        }
-
-        .btn-primary, .btn-secondary {
-          flex: 1;
-          padding: 1rem;
-          font-size: 1rem;
-          font-weight: 600;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-primary {
-          background-color: #7c3aed;
-          color: #ffffff;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          background-color: #6d28d9;
-        }
-
-        .btn-primary:disabled {
-          background-color: #9ca3af;
-          cursor: not-allowed;
-          opacity: 0.6;
-        }
-
-        .btn-secondary {
-          background-color: #e5e7eb;
-          color: #374151;
-        }
-
-        .btn-secondary:hover {
-          background-color: #d1d5db;
-        }
-
-        .error-message {
-          background-color: #fee2e2;
-          color: #991b1b;
-          padding: 1rem;
-          border-radius: 6px;
-          margin-bottom: 1.5rem;
-          border: 1px solid #fca5a5;
-        }
-      `}</style>
-    </form>
-  )
-}
-
-// Main Booking Form Component
 function BookingForm() {
   const { tutorId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
@@ -364,6 +22,7 @@ function BookingForm() {
   const [showPayment, setShowPayment] = useState(false)
   const [hourlyRate, setHourlyRate] = useState(30.00)
   const [tutorName, setTutorName] = useState('')
+  const [bookingId, setBookingId] = useState(null)
 
   const loadTutorInfo = useCallback(async () => {
     const { data: profile } = await getProfile(tutorId)
@@ -476,7 +135,7 @@ function BookingForm() {
     return () => clearTimeout(applyTimer)
   }, [availability, blockedSlots, selectedDate, selectedDayOfWeek])
 
-  const handleContinueToPayment = (e) => {
+  const handleContinueToPayment = async (e) => {
     e.preventDefault()
     
     if (!availableTimes.includes(selectedTime)) {
@@ -484,15 +143,27 @@ function BookingForm() {
       return
     }
 
+    // Create booking to get ID for PayPal
+    const { data: booking, error: bookingError } = await createBooking({
+      studentId: user.id,
+      tutorId: tutorId,
+      lessonDate: selectedDate,
+      lessonTime: selectedTime,
+      duration: 60
+    })
+
+    if (bookingError) {
+      setError('Failed to initiate booking')
+      return
+    }
+
+    setBookingId(booking.id)
     setShowPayment(true)
   }
 
-  const handlePaymentSuccess = (booking) => {
-    if (booking?.video_room_token) {
-      const joinUrl = buildVideoRoomUrl(booking.video_room_token)
-      const passcodeText = booking?.video_room_passcode ? `\nPasscode: ${booking.video_room_passcode}` : ''
-      window.alert(`Booking confirmed. Video room link:\n${joinUrl}${passcodeText}`)
-    }
+  const handlePaymentSuccess = (orderData) => {
+    // Optional: Log payment completion to database via supabase if not already handled
+    window.alert('Booking confirmed.')
     navigate('/student')
   }
 
@@ -500,17 +171,15 @@ function BookingForm() {
     return (
       <div className="booking-form-container">
         <h2>Payment</h2>
-        <Elements stripe={stripePromise}>
-          <BookingPaymentForm
-            tutorId={tutorId}
-            tutorName={tutorName}
-            hourlyRate={hourlyRate}
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            onBack={() => setShowPayment(false)}
-            onSuccess={handlePaymentSuccess}
-          />
-        </Elements>
+        <PayPalPayment
+          amount={hourlyRate}
+          bookingId={bookingId}
+          onSuccess={handlePaymentSuccess}
+          onError={(err) => setError(err.message)}
+        />
+        <button onClick={() => setShowPayment(false)} className="btn-secondary" style={{ marginTop: '1rem', width: '100%' }}>
+          Back
+        </button>
       </div>
     )
   }
@@ -577,20 +246,20 @@ function BookingForm() {
         }
 
         .booking-form-container h2 {
-          color: #1a1a1a;
+          color: #ffffff;
           margin-bottom: 0.5rem;
         }
 
         .tutor-rate {
-          color: #1e40af;
+          color: #60a5fa;
           font-weight: 600;
           font-size: 1.125rem;
           margin-bottom: 2rem;
         }
 
         .booking-form {
-          background: #ffffff;
-          border: 2px solid #e5e7eb;
+          background: #1a1a1a;
+          border: 2px solid #3a3a3a;
           border-radius: 12px;
           padding: 2rem;
         }
@@ -601,7 +270,7 @@ function BookingForm() {
 
         .form-group label {
           display: block;
-          color: #374151;
+          color: #ffffff;
           font-weight: 600;
           margin-bottom: 0.5rem;
         }
@@ -610,20 +279,19 @@ function BookingForm() {
           width: 100%;
           padding: 0.75rem;
           font-size: 1rem;
-          border: 2px solid #d1d5db;
+          border: 2px solid #3a3a3a;
           border-radius: 6px;
-          background-color: #ffffff;
-          color: #000000;
+          background-color: #1a1a1a;
+          color: #ffffff;
         }
 
         .form-input:focus {
           outline: none;
           border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
         }
 
         .form-input:disabled {
-          background-color: #f3f4f6;
+          background-color: #333333;
           cursor: not-allowed;
         }
 
@@ -637,7 +305,6 @@ function BookingForm() {
           border: none;
           border-radius: 8px;
           cursor: pointer;
-          transition: background-color 0.2s;
         }
 
         .btn-primary:hover:not(:disabled) {
@@ -645,29 +312,28 @@ function BookingForm() {
         }
 
         .btn-primary:disabled {
-          background-color: #9ca3af;
+          background-color: #4b5563;
           cursor: not-allowed;
-          opacity: 0.6;
+        }
+        
+        .btn-secondary {
+          width: 100%;
+          padding: 1rem;
+          background-color: #374151;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
         }
 
         .error {
-          background-color: #fee2e2;
-          color: #991b1b;
+          background-color: #7f1d1d;
+          color: #fecaca;
           padding: 1rem;
           border-radius: 6px;
           margin-bottom: 1.5rem;
-          border: 1px solid #fca5a5;
+          border: 1px solid #991b1b;
         }
-          .form-input, select, input {
-  background-color: #1a1a1a !important;
-  color: #ffffff !important;
-  border: 2px solid #3a3a3a !important;
-}
-
-.form-section {
-  background-color: #1a1a1a !important;
-  color: #ffffff !important;
-}
       `}</style>
     </div>
   )
