@@ -1,111 +1,41 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
-const AuthContext = createContext({})
-const useE2EAuthBypass = import.meta.env.VITE_E2E_AUTH_BYPASS === 'true'
-const e2eUserId = import.meta.env.VITE_E2E_USER_ID || '00000000-0000-0000-0000-000000000123'
-const e2eUserRole = import.meta.env.VITE_E2E_USER_ROLE || 'student'
-const e2eUserName = import.meta.env.VITE_E2E_USER_NAME || 'E2E User'
-const e2eUserEmail = import.meta.env.VITE_E2E_USER_EMAIL || 'e2e@example.com'
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (useE2EAuthBypass) {
-      setUser({
-        id: e2eUserId,
-        email: e2eUserEmail,
-        user_metadata: {
-          full_name: e2eUserName
-        }
-      })
-      setProfile({
-        id: e2eUserId,
-        role: e2eUserRole,
-        full_name: e2eUserName,
-        email: e2eUserEmail
-      })
-      setLoading(false)
-      return () => {}
-    }
-
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
-        setLoading(false)
+    const initAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setUser(data.session?.user ?? null);
+      } catch (err) {
+        console.error("Error loading session:", err);
+      } finally {
+        setLoading(false);
       }
-    }).catch((error) => {
-      console.error('Error getting session:', error)
-      setLoading(false)
-    })
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
-      }
-    })
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
-
-  async function loadProfile(userId) {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) throw error
-      setProfile(data)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-      setProfile(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut()
-      setUser(null)
-      setProfile(null)
-    } catch (error) {
-      console.error('Error signing out:', error)
-    }
-  }
-
-  const value = {
-    user,
-    profile,
-    loading,
-    signOut
-  }
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
+    <AuthContext.Provider value={{ user, loading }}>
+      {!loading && children}
     </AuthContext.Provider>
-  )
+  );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
+export const useAuth = () => useContext(AuthContext);
