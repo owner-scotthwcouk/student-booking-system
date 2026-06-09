@@ -32,6 +32,16 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw error;
+    }
+
+    setUser(null);
+    setProfile(null);
+  };
+
   useEffect(() => {
     // Get initial session
     const initAuth = async () => {
@@ -62,7 +72,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
       {!loading && children}
     </AuthContext.Provider>
   );
