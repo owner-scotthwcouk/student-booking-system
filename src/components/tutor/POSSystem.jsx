@@ -120,7 +120,7 @@ export default function POSSystem() {
             payment_method: paymentMethod === 'cash' ? 'cash' : 'pos_card_entry',
             status: 'completed',
             payment_date: new Date().toISOString(),
-            paypal_transaction_id: paymentMethod === 'cash' ? `CASH-${Date.now()}` : `POS-${Date.now()}`
+            transaction_reference: paymentMethod === 'cash' ? `CASH-${Date.now()}` : `POS-${Date.now()}`
           })
 
         if (paymentError) throw paymentError

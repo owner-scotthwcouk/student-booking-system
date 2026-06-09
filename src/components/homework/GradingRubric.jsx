@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './homework-hub.css'
 
-export default function GradingRubric({ assignmentId, onGradeChange, isEditable = false }) {
+export default function GradingRubric({ onGradeChange, isEditable = false }) {
   const [rubricItems, setRubricItems] = useState([
     { id: 1, criterion: 'Accuracy', maxScore: 25, description: 'Correctness of answers' },
     { id: 2, criterion: 'Completeness', maxScore: 25, description: 'All parts addressed' },

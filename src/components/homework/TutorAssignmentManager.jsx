@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { getAssignmentsByTutor } from '../../lib/homeworkHubAPI'
 import './homework-hub.css'
 
 export default function TutorAssignmentManager({ assignments, onDelete, onEdit }) {

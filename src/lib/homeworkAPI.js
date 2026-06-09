@@ -531,11 +531,19 @@ export async function getTutorAnalytics(tutorId) {
 
 export async function addComment(submissionId, content, isTutorFeedback = false) {
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user?.id) {
+      throw new Error('You must be signed in to add a comment')
+    }
+
     const { data, error } = await supabase
       .from('homework_comments')
       .insert([{
         submission_id: submissionId,
-        user_id: auth.currentUser.id,
+        user_id: user?.id,
         content,
         is_tutor_feedback: isTutorFeedback
       }])

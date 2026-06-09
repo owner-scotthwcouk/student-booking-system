@@ -3,11 +3,10 @@ import { useAuth } from "../../hooks/useAuth";
 import { createBooking, getBlockedTimeSlots } from "../../lib/bookingAPI";
 import { getTutorAvailability } from "../../lib/availabilityAPI";
 import { getTutorHourlyRate, getProfile } from "../../lib/profileAPI";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 function BookingForm() {
   const { tutorId } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState("");
@@ -22,21 +21,15 @@ function BookingForm() {
 
   const loadTutorInfo = useCallback(async () => {
     const { data: profile } = await getProfile(tutorId);
-    if (profile) {
-      setTutorName(profile.full_name);
-    }
+    if (profile) setTutorName(profile.full_name);
 
     const { data: rateData } = await getTutorHourlyRate(tutorId);
-    if (rateData?.hourly_rate) {
-      setHourlyRate(rateData.hourly_rate);
-    }
+    if (rateData?.hourly_rate) setHourlyRate(rateData.hourly_rate);
   }, [tutorId]);
 
   const loadAvailability = useCallback(async () => {
     const { data, error } = await getTutorAvailability(tutorId);
-    if (!error && data) {
-      setAvailability(data);
-    }
+    if (!error && data) setAvailability(data);
   }, [tutorId]);
 
   useEffect(() => {
@@ -111,9 +104,7 @@ function BookingForm() {
         const overlapsBlocked = blockedRanges.some(
           (b) => slotStart < b.end && slotEnd > b.start,
         );
-        if (!overlapsBlocked) {
-          times.push(timeStr);
-        }
+        if (!overlapsBlocked) times.push(timeStr);
       }
     }
     setAvailableTimes(times);
@@ -125,7 +116,6 @@ function BookingForm() {
     setError(null);
 
     try {
-      // 1. Create the booking record
       const { data: booking, error: bookingError } = await createBooking({
         studentId: user.id,
         tutorId: tutorId,
@@ -136,7 +126,6 @@ function BookingForm() {
 
       if (bookingError) throw new Error("Failed to create booking");
 
-      // 2. Initialize GoCardless Payment
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/gocardless-init`,
         {
@@ -150,11 +139,10 @@ function BookingForm() {
         },
       );
 
-      const { checkout_url } = await response.json();
-      if (!checkout_url) throw new Error("Failed to initialize GoCardless");
+      const data = await response.json();
+      if (!data.checkout_url) throw new Error("Failed to initialize payment");
 
-      // 3. Redirect to bank authentication
-      window.location.href = checkout_url;
+      window.location.href = data.checkout_url;
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -204,7 +192,7 @@ function BookingForm() {
           disabled={loading || !selectedTime}
           className="btn-primary"
         >
-          {loading ? "Redirecting..." : "Continue to Payment"}
+          {loading ? "Redirecting..." : "Continue to GoCardless payment"}
         </button>
       </form>
 

@@ -12,6 +12,7 @@ import BookingForm from './components/student/BookingForm'
 import Policies from './pages/Policies' //
 import VideoRoom from './components/VideoRoom/VideoRoom'
 import VideoRoomPage from './pages/VideoRoomPage'
+import PaymentPage from './pages/PaymentPage'
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, profile, loading } = useAuth()
@@ -102,6 +103,7 @@ function AppRoutes() {
       <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/tutors" element={<ProtectedRoute allowedRole="student"><TutorSelection /></ProtectedRoute>} />
       <Route path="/student/book/:tutorId" element={<ProtectedRoute allowedRole="student"><BookingForm /></ProtectedRoute>} />
+      <Route path="/payment/:bookingId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
       <Route path="/video/:roomToken" element={<ProtectedRoute><VideoRoomPage /></ProtectedRoute>} />
       
       <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor"><TutorDashboard /></ProtectedRoute>} />

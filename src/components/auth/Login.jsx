@@ -1,76 +1,86 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { supabase } from '../../lib/supabaseClient'
-import { getSystemSetting } from '../../lib/settingsAPI'
-import { Mail, Lock, LogIn, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
-import BrandLogo from '../shared/BrandLogo'
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "../../lib/supabaseClient";
+import { getSystemSetting } from "../../lib/settingsAPI";
+import {
+  Mail,
+  Lock,
+  LogIn,
+  Loader2,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
+import BrandLogo from "../shared/BrandLogo";
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  
-  const navigate = useNavigate()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
       // 1. Sign in
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (signInError) throw signInError
+      if (signInError) throw signInError;
 
       if (!data.user?.id) {
-        throw new Error('Login failed')
+        throw new Error("Login failed");
       }
 
       // 2. Fetch profile
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single()
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
 
-      if (profileError) throw profileError
+      if (profileError) throw profileError;
 
       // 3. Normalize role to lowercase for robust comparison
       const role = profile.role?.toLowerCase().trim();
 
       // 4. Maintenance check for students
-      if (role === 'student') {
+      if (role === "student") {
         try {
-          const { data: setting } = await getSystemSetting('maintenance_mode')
-          if (setting && setting.value === 'true') {
-            await supabase.auth.signOut()
-            throw new Error("⚠️ Maintenance: We are currently upgrading the system. Please try again later.")
+          const { data: setting } = await getSystemSetting("maintenance_mode");
+          if (setting && setting.value === "true") {
+            await supabase.auth.signOut();
+            throw new Error(
+              "⚠️ Maintenance: We are currently upgrading the system. Please try again later.",
+            );
           }
         } catch (maintenanceError) {
-           console.error("Maintenance check skipped:", maintenanceError)
+          console.error("Maintenance check skipped:", maintenanceError);
         }
       }
 
       // 5. Redirect based on role
-      if (role === 'tutor') {
-        navigate('/tutor')
-      } else if (role === 'student') {
-        navigate('/student')
+      if (role === "tutor") {
+        navigate("/tutor");
+      } else if (role === "student") {
+        navigate("/student");
       } else {
-        navigate('/')
+        navigate("/");
       }
     } catch (error) {
       console.error("Login Error:", error);
-      setError(error.message || 'Login failed')
+      setError(error.message || "Login failed");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="auth-container">
@@ -90,7 +100,7 @@ export default function Login() {
             <span>{error}</span>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
             <label htmlFor="email">Email Address</label>
@@ -106,7 +116,7 @@ export default function Login() {
               <Mail className="input-icon" size={18} />
             </div>
           </div>
-          
+
           <div className="input-group">
             <label htmlFor="password">Password</label>
             <div className="input-wrapper">
@@ -120,8 +130,15 @@ export default function Login() {
               />
               <Lock className="input-icon" size={18} />
             </div>
-            <div style={{ marginTop: '0.45rem', textAlign: 'right' }}>
-              <Link to="/forgot-password" style={{ color: '#7fd8ff', fontSize: '0.85rem', textDecoration: 'none' }}>
+            <div style={{ marginTop: "0.45rem", textAlign: "right" }}>
+              <Link
+                to="/forgot-password"
+                style={{
+                  color: "#7fd8ff",
+                  fontSize: "0.85rem",
+                  textDecoration: "none",
+                }}
+              >
                 Forgot password?
               </Link>
             </div>
@@ -137,9 +154,11 @@ export default function Login() {
             )}
           </button>
         </form>
-        
+
         <div className="auth-footer">
-          <p>Don't have an account? <Link to="/register">Create Account</Link></p>
+          <p>
+            Don't have an account? <Link to="/register">Create Account</Link>
+          </p>
         </div>
       </div>
 
@@ -150,7 +169,11 @@ export default function Login() {
           align-items: center;
           justify-content: center;
           padding: 1rem;
-          background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+          background: radial-gradient(
+            circle at center,
+            #1e293b 0%,
+            #0f172a 100%
+          );
         }
 
         .auth-card {
@@ -166,9 +189,15 @@ export default function Login() {
           color: white;
         }
 
-        .auth-header { text-align: center; margin-bottom: 2rem; }
-        .header-icon { color: #7c3aed; margin: 1rem 0; }
-        
+        .auth-header {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+        .header-icon {
+          color: #7c3aed;
+          margin: 1rem 0;
+        }
+
         .auth-error {
           background: rgba(220, 38, 38, 0.2);
           border: 1px solid rgba(220, 38, 38, 0.4);
@@ -182,9 +211,17 @@ export default function Login() {
           font-size: 0.9rem;
         }
 
-        .input-group { margin-bottom: 1.25rem; }
-        .input-group label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; }
-        .input-wrapper { position: relative; }
+        .input-group {
+          margin-bottom: 1.25rem;
+        }
+        .input-group label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-size: 0.9rem;
+        }
+        .input-wrapper {
+          position: relative;
+        }
         .input-wrapper input {
           width: 100%;
           padding: 0.75rem 2.5rem 0.75rem 0.75rem;
@@ -193,8 +230,14 @@ export default function Login() {
           border-radius: 8px;
           color: white;
         }
-        .input-icon { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-        
+        .input-icon {
+          position: absolute;
+          right: 0.75rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94a3b8;
+        }
+
         .btn-auth {
           width: 100%;
           padding: 0.75rem;
@@ -210,9 +253,15 @@ export default function Login() {
           gap: 0.5rem;
           transition: background 0.2s;
         }
-        .btn-auth:hover { background: #6d28d9; }
-        .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; }
+        .btn-auth:hover {
+          background: #6d28d9;
+        }
+        .auth-footer {
+          margin-top: 1.5rem;
+          text-align: center;
+          font-size: 0.9rem;
+        }
       `}</style>
     </div>
-  )
+  );
 }

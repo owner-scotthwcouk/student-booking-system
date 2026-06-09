@@ -5,6 +5,7 @@ import { User, Camera, Save, Loader2, CheckCircle, AlertCircle } from 'lucide-re
 
 export default function StudentProfile({ previewMode = false, previewProfile = null }) {
   const { user, profile } = useAuth()
+  const profileData = previewMode ? previewProfile : profile
   
   // States
   const [formData, setFormData] = useState({

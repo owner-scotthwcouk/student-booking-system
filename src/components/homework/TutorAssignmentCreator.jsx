@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { createAssignment, updateAssignment, uploadResource } from '../../lib/homeworkHubAPI'
+import { createAssignment, updateAssignment, uploadResource, assignStudentsToAssignment } from '../../lib/homeworkHubAPI'
 import './homework-hub.css'
 
 export default function TutorAssignmentCreator({ assignment, onClose, onCreate }) {
@@ -19,7 +19,7 @@ export default function TutorAssignmentCreator({ assignment, onClose, onCreate }
   const [selectedStudents, setSelectedStudents] = useState([])
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState(null)
-  const [students, setStudents] = useState([])
+  const [students] = useState([])
 
   useEffect(() => {
     if (assignment) {

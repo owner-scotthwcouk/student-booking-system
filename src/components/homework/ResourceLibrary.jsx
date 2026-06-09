@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getResourcesByTutor, uploadResource, linkResourceToAssignment } from '../../lib/homeworkHubAPI'
+import { getResourcesByTutor, uploadResource } from '../../lib/homeworkHubAPI'
 import './homework-hub.css'
 
 export default function ResourceLibrary({ isEditable = false }) {

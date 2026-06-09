@@ -6,14 +6,12 @@ export default function HomeworkHub() {
   const [activeTab, setActiveTab] = useState('pending')
   const [assignments, setAssignments] = useState([])
   const [selectedAssignment, setSelectedAssignment] = useState(null)
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     loadAssignments()
   }, [])
 
   const loadAssignments = async () => {
-    setLoading(true)
     try {
       const { data, error } = await getAssignmentsForStudent('...') // TODO: Get student ID from auth
       if (error) throw error
@@ -21,7 +19,6 @@ export default function HomeworkHub() {
     } catch (error) {
       console.error('Error loading assignments:', error)
     }
-    setLoading(false)
   }
 
   const getAssignmentStatus = (assignment) => {
@@ -131,12 +128,11 @@ export default function HomeworkHub() {
 function StudentAssignmentDetail({ assignment, onClose, onSubmit }) {
   const [submissionText, setSubmissionText] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isDraft, setIsDraft] = useState(false)
 
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const { data, error } = await submitAssignmentWork({
+      const { error } = await submitAssignmentWork({
         assignment_id: assignment.id,
         student_id: '...', // TODO: Get from auth
         submission_text: submissionText,
@@ -160,7 +156,6 @@ function StudentAssignmentDetail({ assignment, onClose, onSubmit }) {
         submission_text: submissionText,
         is_draft: true
       })
-      setIsDraft(true)
     } catch (error) {
       console.error('Error saving draft:', error)
     }

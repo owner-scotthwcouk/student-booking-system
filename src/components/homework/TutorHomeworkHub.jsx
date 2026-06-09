@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { getAssignmentsByTutor, createAssignment, updateAssignment, deleteAssignment, assignStudentsToAssignment } from '../../lib/homeworkHubAPI'
+import { createAssignment, deleteAssignment } from '../../lib/homeworkHubAPI'
 import './homework-hub.css'
 
 export default function TutorHomeworkHub() {
@@ -7,10 +7,7 @@ export default function TutorHomeworkHub() {
   const [assignments, setAssignments] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState(null)
-  const [loading, setLoading] = useState(false)
-
   const handleCreateAssignment = async (assignmentData) => {
-    setLoading(true)
     try {
       const { data, error } = await createAssignment(assignmentData)
       if (error) throw error
@@ -19,7 +16,6 @@ export default function TutorHomeworkHub() {
     } catch (error) {
       console.error('Error creating assignment:', error)
     }
-    setLoading(false)
   }
 
   const handleDeleteAssignment = async (assignmentId) => {

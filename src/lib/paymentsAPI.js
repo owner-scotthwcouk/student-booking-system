@@ -33,9 +33,9 @@ export async function createPayment(paymentData) {
         student_id: paymentData.studentId,
         amount: paymentData.amount,
         currency: paymentData.currency || 'GBP',
-        payment_method: paymentData.paymentMethod || 'paypal',
-        paypal_transaction_id: paymentData.paypalTransactionId,
-        paypal_order_id: paymentData.paypalOrderId,
+        payment_method: paymentData.paymentMethod || 'gocardless',
+        transaction_reference: paymentData.transactionReference,
+        order_reference: paymentData.orderReference,
         status: paymentData.status || 'completed',
         payment_date: paymentData.paymentDate || new Date().toISOString()
       })
@@ -50,8 +50,8 @@ export async function createPayment(paymentData) {
   }
 }
 
-// Record a payment (for Stripe payments)
-export async function recordPayment(bookingId, studentId, amount, stripePaymentIntentId) {
+// Record a payment from an external payment provider
+export async function recordPayment(bookingId, studentId, amount, paymentReference) {
   try {
     const { data, error } = await supabase
       .from('payments')
@@ -60,8 +60,8 @@ export async function recordPayment(bookingId, studentId, amount, stripePaymentI
         student_id: studentId,
         amount: amount,
         currency: 'GBP',
-        payment_method: 'stripe',
-        stripe_payment_intent_id: stripePaymentIntentId,
+        payment_method: 'gocardless',
+        transaction_reference: paymentReference,
         status: 'completed',
         payment_date: new Date().toISOString()
       })
@@ -93,7 +93,7 @@ export async function issueRefund(bookingId, studentId, amount) {
         payment_method: 'refund',
         status: 'refunded',
         payment_date: new Date().toISOString(),
-        paypal_transaction_id: `REFUND-${Date.now()}`
+        transaction_reference: `REFUND-${Date.now()}`
       })
 
     if (insertError) throw insertError

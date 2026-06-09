@@ -7,7 +7,6 @@ export default function TutorPayments({ tutorId }) {
   const [payments, setPayments] = useState([])
   const [studentProfiles, setStudentProfiles] = useState({})
   const [loading, setLoading] = useState(true)
-  const [refundLoading, setRefundLoading] = useState(false)
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [customFrom, setCustomFrom] = useState('')
@@ -211,7 +210,7 @@ export default function TutorPayments({ tutorId }) {
         replacePlaceholdersInElement(clonedRow, {
           'Booking ID': payment.booking_id || '',
           'Payment ID': payment.id || '',
-          'Cash or Stripe': payment.payment_method || '',
+          'Cash or GoCardless': payment.payment_method || '',
           Ststus: payment.status || '',
           amount: Number(payment.amount || 0).toFixed(2),
           'Date/Time completed': payment.payment_date ? format(parseISO(payment.payment_date), 'dd MMM yyyy HH:mm') : ''
@@ -304,14 +303,13 @@ export default function TutorPayments({ tutorId }) {
                     Paid: £{summary.totalPaid.toFixed(2)} · Refunded: £{summary.totalRefunded.toFixed(2)}
                   </div>
                 </div>
-                <button
+                  <button
                   type="button"
-                  disabled={refundLoading}
                   onClick={() => downloadStatement(summary.studentId)}
                   style={{
                     padding: '0.65rem 1rem',
                     borderRadius: '10px',
-                    cursor: refundLoading ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     border: 'none',
                     background: '#7c3aed',
                     color: '#fff',
@@ -387,7 +385,7 @@ export default function TutorPayments({ tutorId }) {
                               payment_method: 'refund',
                               status: 'refunded',
                               payment_date: new Date().toISOString(),
-                              paypal_transaction_id: `REFUND-${Date.now()}`
+                              transaction_reference: `REFUND-${Date.now()}`
                             })
 
                           if (insertError) throw insertError

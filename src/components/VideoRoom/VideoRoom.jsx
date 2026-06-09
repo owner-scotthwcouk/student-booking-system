@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import VideoDisplay from './VideoDisplay';
 import Controls from './Controls';
 import ParticipantList from './ParticipantList';
-import { extractCredentialsFromUrl, checkMeetingAccessibility } from '../../services/videoChatUtils';
+import { extractCredentialsFromUrl } from '../../services/videoChatUtils';
 
 const VideoRoom = () => {
   const { meetingId } = useParams();
@@ -11,13 +11,11 @@ const VideoRoom = () => {
   const [localStream, setLocalStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
-  const [meetingActive, setMeetingActive] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const peerConnectionsRef = useRef({});
   const localVideoRef = useRef(null);
   const userIdRef = useRef(null);
-  const sessionIdRef = useRef(null);
   const passcodeRef = useRef(null);
 
   // Initialize meeting and get user credentials from URL
@@ -49,8 +47,8 @@ const VideoRoom = () => {
         }
 
         // Join the meeting
-        await joinMeeting(meetingId, credentials.passcode, stream);
-        setMeetingActive(true);
+        await joinMeeting(meetingId, credentials.passcode);
+        await fetchParticipants(meetingId);
         setLoading(false);
       } catch (err) {
         console.error('Error initializing meeting:', err);
@@ -62,7 +60,21 @@ const VideoRoom = () => {
     initializeMeeting();
   }, [meetingId]);
 
-  const joinMeeting = async (meetingId, passcode, stream) => {
+  const fetchParticipants = async (meetingId) => {
+    try {
+      const response = await fetch(`/api/video/meetings/${meetingId}/participants`);
+      const data = await response.json();
+
+      if (data.success && data.participants) {
+        console.log('Participants:', data.participants);
+        setParticipants(data.participants);
+      }
+    } catch (error) {
+      console.error('Error fetching participants:', error);
+    }
+  };
+
+  const joinMeeting = async (meetingId, passcode) => {
   try {
     console.log('Joining meeting:', meetingId);
     
@@ -83,7 +95,6 @@ const VideoRoom = () => {
       throw new Error(data.error || 'Failed to join meeting');
     }
 
-    setMeetingActive(true);
     console.log('Successfully joined meeting');
     
   } catch (error) {
@@ -92,24 +103,6 @@ const VideoRoom = () => {
     throw error;
   }
 };
-
-
-
-  const fetchParticipants = async () => {
-  try {
-    const response = await fetch(`/api/video/meetings/${meetingId}/participants`);
-    const data = await response.json();
-    
-    if (data.success && data.participants) {
-      console.log('Participants:', data.participants);
-      setParticipants(data.participants);
-    }
-  } catch (error) {
-    console.error('Error fetching participants:', error);
-  }
-};
-
-
   const handleLeaveMeeting = async () => {
   try {
     const response = await fetch(`/api/video/meetings/${meetingId}/leave`, {

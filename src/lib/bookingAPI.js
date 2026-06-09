@@ -287,7 +287,7 @@ export async function markBookingPaidByCash(bookingId, studentId, amount) {
         payment_method: 'cash',
         status: 'completed',
         payment_date: new Date().toISOString(),
-        paypal_transaction_id: `CASH-${Date.now()}`
+        transaction_reference: `CASH-${Date.now()}`
       })
 
     if (paymentError) throw paymentError
