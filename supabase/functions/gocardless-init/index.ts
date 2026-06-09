@@ -6,7 +6,16 @@ const client = gocardless(
   Deno.env.get("GC_ENVIRONMENT")!, // 'sandbox' or 'live'
 );
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     const { amount, bookingId } = await req.json();
 
@@ -15,7 +24,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing amount or bookingId" }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
@@ -26,7 +35,7 @@ serve(async (req) => {
         JSON.stringify({ error: "FRONTEND_URL is not configured" }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
@@ -49,7 +58,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ checkout_url: flow.authorisation_url }),
       {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
   } catch (error) {
@@ -60,7 +69,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
   }
