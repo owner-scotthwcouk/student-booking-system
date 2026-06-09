@@ -3,6 +3,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { createBooking, getBlockedTimeSlots } from "../../lib/bookingAPI";
 import { getTutorAvailability } from "../../lib/availabilityAPI";
 import { getTutorHourlyRate, getProfile } from "../../lib/profileAPI";
+import { supabase } from "../../lib/supabaseClient";
 import { useParams } from "react-router-dom";
 
 function BookingForm() {
@@ -18,16 +19,6 @@ function BookingForm() {
   const [loading, setLoading] = useState(false);
   const [hourlyRate, setHourlyRate] = useState(30.0);
   const [tutorName, setTutorName] = useState("");
-
-  const readJsonResponse = async (response) => {
-    const text = await response.text();
-    if (!text) return {};
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error("Payment service returned an invalid response");
-    }
-  };
 
   const loadTutorInfo = useCallback(async () => {
     const { data: profile } = await getProfile(tutorId);
@@ -136,22 +127,23 @@ function BookingForm() {
 
       if (bookingError) throw new Error("Failed to create booking");
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/gocardless-init`,
+      const { data, error: paymentError } = await supabase.functions.invoke(
+        "gocardless-init",
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             amount: hourlyRate,
             bookingId: booking.id,
             email: user.email,
-          }),
+          },
         },
       );
 
-      const data = await readJsonResponse(response);
-      if (!response.ok || !data.checkout_url) {
-        throw new Error(data.error || "Failed to initialize payment");
+      if (paymentError) {
+        throw new Error(paymentError.message || "Failed to initialize payment");
+      }
+
+      if (!data?.checkout_url) {
+        throw new Error("Failed to initialize payment");
       }
 
       window.location.href = data.checkout_url;

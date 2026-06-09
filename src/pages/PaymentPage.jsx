@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getBookingById } from '../lib/bookingAPI'
+import { supabase } from '../lib/supabaseClient'
 
 export default function PaymentPage() {
   const { bookingId } = useParams()
@@ -8,16 +9,6 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [amount, setAmount] = useState(0)
-
-  const readJsonResponse = async (response) => {
-    const text = await response.text()
-    if (!text) return {}
-    try {
-      return JSON.parse(text)
-    } catch {
-      throw new Error('Payment service returned an invalid response')
-    }
-  }
 
   useEffect(() => {
     let cancelled = false
@@ -44,22 +35,25 @@ export default function PaymentPage() {
           setAmount(bookingAmount)
         }
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/gocardless-init`,
+        const { data, error: paymentError } = await supabase.functions.invoke(
+          'gocardless-init',
           {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: {
               amount: bookingAmount,
               bookingId: booking.id,
               email: booking.student?.email || booking.student_email || '',
-            }),
+            },
           },
         )
 
-        const data = await readJsonResponse(response)
-        if (!response.ok || !data.checkout_url) {
-          throw new Error(data.error || 'Failed to initialize GoCardless checkout')
+        if (paymentError) {
+          throw new Error(
+            paymentError.message || 'Failed to initialize GoCardless checkout',
+          )
+        }
+
+        if (!data?.checkout_url) {
+          throw new Error('Failed to initialize GoCardless checkout')
         }
 
         window.location.href = data.checkout_url
