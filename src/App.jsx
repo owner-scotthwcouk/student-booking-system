@@ -16,6 +16,7 @@ import PaymentPage from './pages/PaymentPage'
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, profile, loading } = useAuth()
+  const resolvedRole = profile?.role ?? user?.user_metadata?.role ?? user?.app_metadata?.role ?? null
 
   if (loading) {
     return (
@@ -51,8 +52,16 @@ function ProtectedRoute({ children, allowedRole }) {
     return <Navigate to="/login" />
   }
 
-  if (allowedRole && profile?.role !== allowedRole) {
-    return <Navigate to={profile?.role === 'tutor' ? '/tutor' : '/student'} />
+  if (allowedRole && resolvedRole !== allowedRole) {
+    if (resolvedRole === 'tutor') {
+      return <Navigate to="/tutor" replace />
+    }
+
+    if (resolvedRole === 'student') {
+      return <Navigate to="/student" replace />
+    }
+
+    return <Navigate to="/" replace />
   }
 
   return children
