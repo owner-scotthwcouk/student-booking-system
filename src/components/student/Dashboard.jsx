@@ -239,7 +239,7 @@ export default function StudentDashboard() {
                             <span className="text-success">Paid</span>
                           ) : (
                             <Link to={`/payment/${booking.id}`} className="pay-link">
-                              Pay with GoCardless
+                              Pay with Stripe
                             </Link>
                           )}
                         </td>

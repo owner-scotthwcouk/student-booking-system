@@ -33,7 +33,7 @@ export async function createPayment(paymentData) {
         student_id: paymentData.studentId,
         amount: paymentData.amount,
         currency: paymentData.currency || 'GBP',
-        payment_method: paymentData.paymentMethod || 'gocardless',
+        payment_method: paymentData.paymentMethod || 'stripe',
         transaction_reference: paymentData.transactionReference,
         order_reference: paymentData.orderReference,
         status: paymentData.status || 'completed',
@@ -60,7 +60,7 @@ export async function recordPayment(bookingId, studentId, amount, paymentReferen
         student_id: studentId,
         amount: amount,
         currency: 'GBP',
-        payment_method: 'gocardless',
+        payment_method: 'stripe',
         transaction_reference: paymentReference,
         status: 'completed',
         payment_date: new Date().toISOString()

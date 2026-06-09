@@ -13,7 +13,7 @@ export default function PaymentPage() {
   useEffect(() => {
     let cancelled = false
 
-    const startGoCardlessCheckout = async () => {
+    const startStripeCheckout = async () => {
       try {
         if (!bookingId) {
           throw new Error('Booking ID is missing')
@@ -36,11 +36,12 @@ export default function PaymentPage() {
         }
 
         const { data, error: paymentError } = await supabase.functions.invoke(
-          'gocardless-init',
+          'stripe-init',
           {
             body: {
               amount: bookingAmount,
               bookingId: booking.id,
+              studentId: booking.student_id,
               email: booking.student?.email || booking.student_email || '',
             },
           },
@@ -48,12 +49,12 @@ export default function PaymentPage() {
 
         if (paymentError) {
           throw new Error(
-            paymentError.message || 'Failed to initialize GoCardless checkout',
+            paymentError.message || 'Failed to initialize Stripe checkout',
           )
         }
 
         if (!data?.checkout_url) {
-          throw new Error('Failed to initialize GoCardless checkout')
+          throw new Error('Failed to initialize Stripe checkout')
         }
 
         window.location.href = data.checkout_url
@@ -65,7 +66,7 @@ export default function PaymentPage() {
       }
     }
 
-    startGoCardlessCheckout()
+    startStripeCheckout()
 
     return () => {
       cancelled = true
@@ -79,10 +80,10 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-xl shadow-md text-center">
-        <h2 className="text-3xl font-extrabold text-gray-900">GoCardless Checkout</h2>
+        <h2 className="text-3xl font-extrabold text-gray-900">Stripe Checkout</h2>
         {loading && !error && (
           <p className="text-sm text-gray-600">
-            Preparing your GoCardless payment for £{amount.toFixed(2)}...
+            Preparing your Stripe payment for £{amount.toFixed(2)}...
           </p>
         )}
         {error && (

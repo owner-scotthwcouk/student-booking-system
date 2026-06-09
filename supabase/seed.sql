@@ -153,7 +153,7 @@ select
   b.student_id,
   20.00,
   'GBP',
-  'gocardless',
+  'stripe',
   null,
   null,
   'pending'

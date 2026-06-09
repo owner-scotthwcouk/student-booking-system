@@ -210,7 +210,7 @@ export default function TutorPayments({ tutorId }) {
         replacePlaceholdersInElement(clonedRow, {
           'Booking ID': payment.booking_id || '',
           'Payment ID': payment.id || '',
-          'Cash or GoCardless': payment.payment_method || '',
+          'Payment method': payment.payment_method || '',
           Ststus: payment.status || '',
           amount: Number(payment.amount || 0).toFixed(2),
           'Date/Time completed': payment.payment_date ? format(parseISO(payment.payment_date), 'dd MMM yyyy HH:mm') : ''

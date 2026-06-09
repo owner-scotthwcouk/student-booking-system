@@ -128,22 +128,23 @@ function BookingForm() {
       if (bookingError) throw new Error("Failed to create booking");
 
       const { data, error: paymentError } = await supabase.functions.invoke(
-        "gocardless-init",
+        "stripe-init",
         {
           body: {
             amount: hourlyRate,
             bookingId: booking.id,
+            studentId: user.id,
             email: user.email,
           },
         },
       );
 
       if (paymentError) {
-        throw new Error(paymentError.message || "Failed to initialize payment");
+        throw new Error(paymentError.message || "Failed to initialize Stripe checkout");
       }
 
       if (!data?.checkout_url) {
-        throw new Error("Failed to initialize payment");
+        throw new Error("Failed to initialize Stripe checkout");
       }
 
       window.location.href = data.checkout_url;
@@ -196,7 +197,7 @@ function BookingForm() {
           disabled={loading || !selectedTime}
           className="btn-primary"
         >
-          {loading ? "Redirecting..." : "Continue to GoCardless payment"}
+        {loading ? "Redirecting..." : "Continue to Stripe checkout"}
         </button>
       </form>
 

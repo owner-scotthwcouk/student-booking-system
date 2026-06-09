@@ -388,3 +388,21 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/notify-booking/deno.json"
 entrypoint = "./functions/notify-booking/index.ts"
+
+[functions.stripe-init]
+enabled = true
+verify_jwt = true
+import_map = "./functions/stripe-init/deno.json"
+entrypoint = "./functions/stripe-init/index.ts"
+
+[functions.stripe-webhook]
+enabled = true
+verify_jwt = false
+import_map = "./functions/stripe-webhook/deno.json"
+entrypoint = "./functions/stripe-webhook/index.ts"
+
+[functions.stripe-portal]
+enabled = true
+verify_jwt = true
+import_map = "./functions/stripe-portal/deno.json"
+entrypoint = "./functions/stripe-portal/index.ts"
