@@ -52,6 +52,7 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       const bookingId = session.metadata?.booking_id;
       const studentId = session.metadata?.student_id || null;
+      const stripeCustomerId = typeof session.customer === "string" ? session.customer : null;
       const transactionReference =
         typeof session.payment_intent === "string"
           ? session.payment_intent
@@ -59,6 +60,17 @@ serve(async (req) => {
       const amount = Number(session.amount_total || 0) / 100;
 
       if (bookingId && studentId) {
+        if (stripeCustomerId) {
+          const { error: customerUpdateError } = await supabase
+            .from("profiles")
+            .update({ stripe_customer_id: stripeCustomerId })
+            .eq("id", studentId);
+
+          if (customerUpdateError) {
+            console.warn("Failed to persist Stripe customer id:", customerUpdateError);
+          }
+        }
+
         const { data: existingPayment, error: existingPaymentError } = await supabase
           .from("payments")
           .select("id")
@@ -103,6 +115,16 @@ serve(async (req) => {
     return new Response("OK", { status: 200 });
   } catch (error) {
     console.error("stripe-webhook failed:", error);
-    return new Response("Invalid signature or payload", { status: 400 });
+    const errorMessage =
+      typeof error === "object" && error !== null && "message" in error
+        ? String((error as { message?: unknown }).message || "Invalid signature or payload")
+        : String(error || "Invalid signature or payload");
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 });

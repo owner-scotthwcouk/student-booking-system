@@ -391,7 +391,7 @@ entrypoint = "./functions/notify-booking/index.ts"
 
 [functions.stripe-init]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/stripe-init/deno.json"
 entrypoint = "./functions/stripe-init/index.ts"
 
@@ -403,6 +403,6 @@ entrypoint = "./functions/stripe-webhook/index.ts"
 
 [functions.stripe-portal]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/stripe-portal/deno.json"
 entrypoint = "./functions/stripe-portal/index.ts"

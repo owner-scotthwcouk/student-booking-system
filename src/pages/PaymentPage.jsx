@@ -1,16 +1,26 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getBookingById } from '../lib/bookingAPI'
 import { supabase } from '../lib/supabaseClient'
 
 export default function PaymentPage() {
   const { bookingId } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [amount, setAmount] = useState(0)
+  const cancelled = useMemo(() => {
+    const searchParams = new URLSearchParams(location.search)
+    return searchParams.get('cancelled') === '1'
+  }, [location.search])
 
   useEffect(() => {
+    if (cancelled) {
+      setLoading(false)
+      return
+    }
+
     let cancelled = false
 
     const startStripeCheckout = async () => {
@@ -71,16 +81,41 @@ export default function PaymentPage() {
     return () => {
       cancelled = true
     }
-  }, [bookingId])
+  }, [bookingId, cancelled])
 
   const handleBack = () => {
     navigate(-1)
+  }
+
+  const handleDashboard = () => {
+    navigate('/student')
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-xl shadow-md text-center">
         <h2 className="text-3xl font-extrabold text-gray-900">Stripe Checkout</h2>
+        {cancelled && (
+          <div className="text-sm text-gray-700 space-y-4">
+            <p>Your payment was cancelled. No charge was taken.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleDashboard}
+                className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white"
+              >
+                Back to dashboard
+              </button>
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-800"
+              >
+                Go back
+              </button>
+            </div>
+          </div>
+        )}
         {loading && !error && (
           <p className="text-sm text-gray-600">
             Preparing your Stripe payment for £{amount.toFixed(2)}...

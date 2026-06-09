@@ -4,16 +4,13 @@ import Stripe from "npm:stripe@^17.7.0";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
-  throw new Error("SUPABASE_URL, SUPABASE_ANON_KEY, or SUPABASE_SERVICE_ROLE_KEY is not configured");
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("SUPABASE_URL or SUPABASE_ANON_KEY is not configured");
 }
 if (!stripeSecretKey) {
   throw new Error("STRIPE_SECRET_KEY is not configured");
 }
-
-const serviceSupabase = createClient(supabaseUrl, serviceRoleKey);
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2024-06-20",
 });
@@ -75,20 +72,10 @@ serve(async (req) => {
         },
       );
     }
-
-    const { data: profile, error: profileError } = await serviceSupabase
-      .from("profiles")
-      .select("stripe_customer_id")
-      .eq("id", studentId)
-      .single();
-
-    if (profileError) {
-      throw profileError;
-    }
-
-    const sessionBase = {
+    const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: email || undefined,
+      customer_creation: "always",
       line_items: [
         {
           quantity: 1,
@@ -102,7 +89,7 @@ serve(async (req) => {
         },
       ],
       success_url: `${frontendUrl}/student?payment=success&booking_id=${encodeURIComponent(bookingId)}`,
-      cancel_url: `${frontendUrl}/payment/${encodeURIComponent(bookingId)}`,
+      cancel_url: `${frontendUrl}/payment/${encodeURIComponent(bookingId)}?cancelled=1`,
       metadata: {
         booking_id: bookingId,
         student_id: studentId,
@@ -115,20 +102,7 @@ serve(async (req) => {
           student_email: email || "",
         },
       },
-    } as const;
-
-    const session = await stripe.checkout.sessions.create(
-      profile?.stripe_customer_id
-        ? {
-            ...sessionBase,
-            customer: profile.stripe_customer_id,
-            customer_creation: "if_required",
-          }
-        : {
-            ...sessionBase,
-            customer_creation: "always",
-          },
-    );
+    });
 
     return new Response(
       JSON.stringify({ checkout_url: session.url, session_id: session.id }),
@@ -138,9 +112,13 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("stripe-init failed:", error);
+    const errorMessage =
+      typeof error === "object" && error !== null && "message" in error
+        ? String((error as { message?: unknown }).message || "Failed to initialize Stripe checkout")
+        : String(error || "Failed to initialize Stripe checkout");
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Failed to initialize Stripe checkout",
+        error: errorMessage,
       }),
       {
         status: 500,

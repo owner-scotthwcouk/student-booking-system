@@ -106,7 +106,7 @@ export async function getBookingById(bookingId) {
 
     // Get tutor details including hourly rate
     const { data: tutor, error: tutorError } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('id, full_name, email, hourly_rate')
       .eq('id', booking.tutor_id)
       .single()
