@@ -37,10 +37,15 @@ export default function StudentPayments({ studentId }) {
     try {
       setPortalLoading(true)
       setPortalError(null)
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData?.session?.access_token
 
       const { data, error: portalErrorResponse } = await supabase.functions.invoke(
         'stripe-portal',
-        { body: {} },
+        {
+          body: { studentId },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        },
       )
 
       if (portalErrorResponse) {

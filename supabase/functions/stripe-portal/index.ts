@@ -59,18 +59,29 @@ serve(async (req) => {
       .single();
 
     if (profileError) {
-      throw profileError;
+      throw new Error(`Failed to load profile: ${profileError.message || String(profileError)}`);
     }
 
     let stripeCustomerId = profile?.stripe_customer_id || null;
 
     if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: profile?.email || user.email || undefined,
-        metadata: {
-          supabase_user_id: user.id,
-        },
-      });
+      let customer;
+      try {
+        customer = await stripe.customers.create({
+          email: profile?.email || user.email || undefined,
+          metadata: {
+            supabase_user_id: user.id,
+          },
+        });
+      } catch (stripeCustomerError) {
+        throw new Error(
+          `Failed to create Stripe customer: ${
+            stripeCustomerError instanceof Error
+              ? stripeCustomerError.message
+              : String(stripeCustomerError)
+          }`,
+        );
+      }
 
       stripeCustomerId = customer.id;
 
@@ -80,7 +91,7 @@ serve(async (req) => {
         .eq("id", user.id);
 
       if (updateError) {
-        throw updateError;
+        throw new Error(`Failed to store Stripe customer id: ${updateError.message || String(updateError)}`);
       }
     }
 
@@ -92,10 +103,19 @@ serve(async (req) => {
       });
     }
 
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: stripeCustomerId,
-      return_url: `${frontendUrl}/student?portal=returned`,
-    });
+    let portalSession;
+    try {
+      portalSession = await stripe.billingPortal.sessions.create({
+        customer: stripeCustomerId,
+        return_url: `${frontendUrl}/student?portal=returned`,
+      });
+    } catch (portalError) {
+      throw new Error(
+        `Failed to create billing portal session: ${
+          portalError instanceof Error ? portalError.message : String(portalError)
+        }`,
+      );
+    }
 
     return new Response(
       JSON.stringify({ portal_url: portalSession.url }),
@@ -105,9 +125,16 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("stripe-portal failed:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null
+          ? JSON.stringify(error)
+          : String(error || "Failed to open Stripe customer portal");
+
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Failed to open Stripe customer portal",
+        error: errorMessage,
       }),
       {
         status: 500,
