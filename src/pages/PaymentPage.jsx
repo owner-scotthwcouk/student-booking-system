@@ -9,6 +9,16 @@ export default function PaymentPage() {
   const [error, setError] = useState(null)
   const [amount, setAmount] = useState(0)
 
+  const readJsonResponse = async (response) => {
+    const text = await response.text()
+    if (!text) return {}
+    try {
+      return JSON.parse(text)
+    } catch {
+      throw new Error('Payment service returned an invalid response')
+    }
+  }
+
   useEffect(() => {
     let cancelled = false
 
@@ -47,7 +57,7 @@ export default function PaymentPage() {
           },
         )
 
-        const data = await response.json()
+        const data = await readJsonResponse(response)
         if (!response.ok || !data.checkout_url) {
           throw new Error(data.error || 'Failed to initialize GoCardless checkout')
         }

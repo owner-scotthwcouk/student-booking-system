@@ -19,6 +19,16 @@ function BookingForm() {
   const [hourlyRate, setHourlyRate] = useState(30.0);
   const [tutorName, setTutorName] = useState("");
 
+  const readJsonResponse = async (response) => {
+    const text = await response.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error("Payment service returned an invalid response");
+    }
+  };
+
   const loadTutorInfo = useCallback(async () => {
     const { data: profile } = await getProfile(tutorId);
     if (profile) setTutorName(profile.full_name);
@@ -139,8 +149,10 @@ function BookingForm() {
         },
       );
 
-      const data = await response.json();
-      if (!data.checkout_url) throw new Error("Failed to initialize payment");
+      const data = await readJsonResponse(response);
+      if (!response.ok || !data.checkout_url) {
+        throw new Error(data.error || "Failed to initialize payment");
+      }
 
       window.location.href = data.checkout_url;
     } catch (err) {
