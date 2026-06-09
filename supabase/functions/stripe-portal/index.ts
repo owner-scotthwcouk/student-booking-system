@@ -54,7 +54,7 @@ serve(async (req) => {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("email, stripe_customer_id")
+      .select("email")
       .eq("id", user.id)
       .single();
 
@@ -62,17 +62,31 @@ serve(async (req) => {
       throw new Error(`Failed to load profile: ${profileError.message || String(profileError)}`);
     }
 
-    let stripeCustomerId = profile?.stripe_customer_id || null;
+    const customerEmail = profile?.email || user.email || undefined;
+
+    let stripeCustomerId = null;
+    try {
+      const existingCustomers = customerEmail
+        ? await stripe.customers.list({ email: customerEmail, limit: 1 })
+        : { data: [] };
+      stripeCustomerId = existingCustomers.data?.[0]?.id || null;
+    } catch (lookupError) {
+      throw new Error(
+        `Failed to look up Stripe customer: ${
+          lookupError instanceof Error ? lookupError.message : String(lookupError)
+        }`,
+      );
+    }
 
     if (!stripeCustomerId) {
-      let customer;
       try {
-        customer = await stripe.customers.create({
-          email: profile?.email || user.email || undefined,
+        const customer = await stripe.customers.create({
+          email: customerEmail,
           metadata: {
             supabase_user_id: user.id,
           },
         });
+        stripeCustomerId = customer.id;
       } catch (stripeCustomerError) {
         throw new Error(
           `Failed to create Stripe customer: ${
@@ -81,17 +95,6 @@ serve(async (req) => {
               : String(stripeCustomerError)
           }`,
         );
-      }
-
-      stripeCustomerId = customer.id;
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ stripe_customer_id: stripeCustomerId })
-        .eq("id", user.id);
-
-      if (updateError) {
-        throw new Error(`Failed to store Stripe customer id: ${updateError.message || String(updateError)}`);
       }
     }
 
