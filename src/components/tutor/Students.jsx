@@ -4,6 +4,7 @@ import { getAllStudents, getProfile, updateStudentProfile } from '../../lib/prof
 import { getStudentPayments } from '../../lib/paymentsAPI'
 import { getTutorBookings } from '../../lib/bookingAPI'
 import { sendStudentEmail } from '../../lib/emailAPI'
+import { getStudentPasswordResetRequests, resetStudentPassword } from '../../lib/tutorPasswordAPI'
 import { 
   Mail, 
   Phone, 
@@ -17,6 +18,7 @@ import {
   History,
   CreditCard,
   Send,
+  KeyRound,
   Users
 } from 'lucide-react'
 
@@ -47,6 +49,9 @@ export default function TutorStudents({ onPreviewStudent }) {
   const [emailMessage, setEmailMessage] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailStatus, setEmailStatus] = useState(null)
+  const [resettingPassword, setResettingPassword] = useState(false)
+  const [passwordResetStatus, setPasswordResetStatus] = useState(null)
+  const [passwordResetRequests, setPasswordResetRequests] = useState([])
 
   const loadData = useCallback(async () => {
     try {
@@ -102,14 +107,19 @@ export default function TutorStudents({ onPreviewStudent }) {
     setIsEditing(false) 
 
     try {
-      const [profileResult, paymentsResult] = await Promise.all([
+      const [profileResult, paymentsResult, resetRequestsResult] = await Promise.all([
         getProfile(studentId),
-        getStudentPayments(studentId)
+        getStudentPayments(studentId),
+        getStudentPasswordResetRequests(studentId),
       ])
+
+      if (resetRequestsResult.error) {
+        console.warn('Could not fetch reset requests:', resetRequestsResult.error)
+      }
 
       // If getProfile fails but we have initialData, keep initialData
       if (profileResult.error) {
-        console.warn("Could not fetch fresh profile, using list data:", profileResult.error)
+        console.warn('Could not fetch fresh profile, using list data:', profileResult.error)
       }
 
       // Merge fresh data with initial data to ensure no fields are lost
@@ -118,6 +128,7 @@ export default function TutorStudents({ onPreviewStudent }) {
       
       setStudentProfile(mergedProfile)
       setPayments(paymentsResult.data || [])
+      setPasswordResetRequests(resetRequestsResult.data || [])
       
       // Update form with the most complete data we have
       setEditForm({
@@ -139,6 +150,8 @@ export default function TutorStudents({ onPreviewStudent }) {
 
   const handleStudentSelect = (student) => {
     setSelectedStudentId(student.id)
+    setPasswordResetStatus(null)
+    setPasswordResetRequests([])
     
     // Immediately set the profile using the data we already have from the list
     setStudentProfile(student)
@@ -204,6 +217,41 @@ export default function TutorStudents({ onPreviewStudent }) {
       setError(err.message || 'Failed to update student details')
     } finally {
       setSaveLoading(false)
+    }
+  }
+
+  const handleResetStudentPassword = async () => {
+    if (!studentProfile?.id) {
+      setError('Select a student first.')
+      return
+    }
+
+    if (!studentProfile?.email) {
+      setError('Selected student has no email address.')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Send a password reset email to ${studentProfile.full_name || studentProfile.email}?`
+    )
+    if (!confirmed) return
+
+    setResettingPassword(true)
+    setError(null)
+    setPasswordResetStatus(null)
+
+    try {
+      await resetStudentPassword(studentProfile.id)
+      setPasswordResetStatus('Password reset email sent successfully.')
+      const freshResetRequests = await getStudentPasswordResetRequests(studentProfile.id)
+      if (!freshResetRequests.error) {
+        setPasswordResetRequests(freshResetRequests.data || [])
+      }
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'Failed to reset student password')
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -481,6 +529,14 @@ export default function TutorStudents({ onPreviewStudent }) {
                         >
                           <Edit2 size={16} /> Edit Details
                         </button>
+                        <button
+                          onClick={handleResetStudentPassword}
+                          disabled={resettingPassword}
+                          className="btn-secondary"
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#333', background: '#f1f5f9', border: '1px solid #cbd5e1' }}
+                        >
+                          <KeyRound size={16} /> {resettingPassword ? 'Sending Reset...' : 'Reset Password'}
+                        </button>
                         {onPreviewStudent && (
                           <button
                             onClick={() => onPreviewStudent(studentProfile)}
@@ -527,6 +583,46 @@ export default function TutorStudents({ onPreviewStudent }) {
                         {emailStatus}
                       </div>
                     )}
+                    {passwordResetStatus && (
+                      <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#e0f2fe', border: '1px solid #7dd3fc', color: '#075985' }}>
+                        {passwordResetStatus}
+                      </div>
+                    )}
+                    <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155' }}>Password Reset History</h4>
+                      {passwordResetRequests.length === 0 ? (
+                        <div style={{ color: '#64748b' }}>No reset requests recorded for this student.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {passwordResetRequests.map((request) => (
+                            <div key={request.id} style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                                <strong style={{ color: '#0f172a' }}>{request.tutor_name || request.tutor_email || 'Tutor'}</strong>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  textTransform: 'capitalize',
+                                  background: request.status === 'sent' ? '#dcfce7' : request.status === 'failed' ? '#fee2e2' : '#e0f2fe',
+                                  color: request.status === 'sent' ? '#166534' : request.status === 'failed' ? '#991b1b' : '#075985'
+                                }}>
+                                  {request.status}
+                                </span>
+                              </div>
+                              <div style={{ marginTop: '0.35rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                Requested {new Date(request.created_at).toLocaleString()}
+                              </div>
+                              {request.error_message && (
+                                <div style={{ marginTop: '0.4rem', color: '#991b1b', fontSize: '0.9rem' }}>
+                                  {request.error_message}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {showEmailComposer && (
                       <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}>
                         <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155' }}>Send Email to {studentProfile.full_name}</h4>

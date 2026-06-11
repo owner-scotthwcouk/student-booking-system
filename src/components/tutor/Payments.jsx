@@ -19,11 +19,24 @@ export default function TutorPayments({ tutorId }) {
       try {
         setLoading(true)
 
-        // Attempt to join payments -> bookings to filter by tutor
+        const { data: tutorBookings, error: bookingError } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('tutor_id', tutorId)
+
+        if (bookingError) throw bookingError
+
+        const bookingIds = (tutorBookings || []).map((booking) => booking.id).filter(Boolean)
+        if (bookingIds.length === 0) {
+          if (mounted) setPayments([])
+          if (mounted) setStudentProfiles({})
+          return
+        }
+
         const { data, error } = await supabase
           .from('payments')
-          .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, bookings( tutor_id )')
-          .eq('bookings.tutor_id', tutorId)
+          .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
+          .in('booking_id', bookingIds)
           .order('payment_date', { ascending: false })
 
         if (error) throw error
@@ -413,10 +426,19 @@ export default function TutorPayments({ tutorId }) {
                           }
 
                           setSuccessMessage(`Refund of £${parsedAmount.toFixed(2)} recorded.`)
+
+                          const { data: tutorBookings, error: bookingReloadError } = await supabase
+                            .from('bookings')
+                            .select('id')
+                            .eq('tutor_id', tutorId)
+
+                          if (bookingReloadError) throw bookingReloadError
+
+                          const bookingIds = (tutorBookings || []).map((booking) => booking.id).filter(Boolean)
                           const { data: newData, error: reloadError } = await supabase
                             .from('payments')
-                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, bookings( tutor_id )')
-                            .eq('bookings.tutor_id', tutorId)
+                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
+                            .in('booking_id', bookingIds)
                             .order('payment_date', { ascending: false })
 
                           if (reloadError) throw reloadError
