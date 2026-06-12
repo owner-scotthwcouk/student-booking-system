@@ -60,6 +60,16 @@ serve(async (req) => {
       const amount = Number(session.amount_total || 0) / 100;
 
       if (bookingId && studentId) {
+        const { data: booking, error: bookingLookupError } = await supabase
+          .from("bookings")
+          .select("tutor_id")
+          .eq("id", bookingId)
+          .single();
+
+        if (bookingLookupError) {
+          throw bookingLookupError;
+        }
+
         if (stripeCustomerId) {
           const { error: customerUpdateError } = await supabase
             .from("profiles")
@@ -85,6 +95,7 @@ serve(async (req) => {
           const { error: insertError } = await supabase.from("payments").insert({
             booking_id: bookingId,
             student_id: studentId,
+            tutor_id: booking?.tutor_id || null,
             amount,
             currency: "GBP",
             payment_method: "stripe",
