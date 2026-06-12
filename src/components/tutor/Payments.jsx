@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import JSZip from 'jszip'
 import { format, endOfDay, parseISO, isValid } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
+import { deletePayment } from '../../lib/paymentsAPI'
 
 export default function TutorPayments({ tutorId }) {
   const [payments, setPayments] = useState([])
@@ -352,6 +353,7 @@ export default function TutorPayments({ tutorId }) {
                 <td>{new Date(p.payment_date).toLocaleString()}</td>
                 <td>
                   {p.status !== 'refunded' ? (
+                    <>
                     <button
                       type="button"
                       onClick={async () => {
@@ -433,6 +435,41 @@ export default function TutorPayments({ tutorId }) {
                     >
                       Refund
                     </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!window.confirm(`Delete payment ${p.id}? This will update the related booking status.`)) return
+
+                        try {
+                          setLoading(true)
+                          setError(null)
+                          setSuccessMessage('')
+
+                          const { error: deleteError } = await deletePayment(p.id)
+                          if (deleteError) throw deleteError
+
+                          setSuccessMessage('Payment deleted.')
+
+                          const { data: newData, error: reloadError } = await supabase
+                            .from('payments')
+                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, tutor_id')
+                            .eq('tutor_id', tutorId)
+                            .order('payment_date', { ascending: false })
+
+                          if (reloadError) throw reloadError
+                          setPayments(newData || [])
+                        } catch (err) {
+                          console.error('Failed to delete payment', err)
+                          setError(err.message || 'Failed to delete payment')
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}
+                      style={{ marginLeft: '0.5rem', padding: '0.45rem 0.85rem', borderRadius: '6px', cursor: 'pointer' }}
+                    >
+                      Delete
+                    </button>
+                    </>
                   ) : (
                     <span style={{ color: '#666' }}>Refunded</span>
                   )}
