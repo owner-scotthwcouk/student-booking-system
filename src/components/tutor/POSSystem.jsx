@@ -115,6 +115,7 @@ export default function POSSystem() {
           .insert({
             booking_id: booking.id,
             student_id: formData.studentId,
+            tutor_id: user.id,
             amount: paymentAmount,
             currency: 'GBP',
             payment_method: paymentMethod === 'cash' ? 'cash' : 'pos_card_entry',

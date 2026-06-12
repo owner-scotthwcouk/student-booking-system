@@ -31,6 +31,7 @@ export async function createPayment(paymentData) {
       .insert({
         booking_id: paymentData.bookingId || null,
         student_id: paymentData.studentId,
+        tutor_id: paymentData.tutorId || null,
         amount: paymentData.amount,
         currency: paymentData.currency || 'GBP',
         payment_method: paymentData.paymentMethod || 'stripe',
@@ -58,6 +59,7 @@ export async function recordBookingPayment(paymentData) {
       .insert({
         booking_id: paymentData.bookingId,
         student_id: paymentData.studentId,
+        tutor_id: paymentData.tutorId || null,
         amount: paymentData.amount,
         currency: paymentData.currency || 'GBP',
         payment_method: paymentData.paymentMethod || 'manual',
@@ -98,6 +100,7 @@ export async function recordPayment(bookingId, studentId, amount, paymentReferen
       .insert({
         booking_id: bookingId,
         student_id: studentId,
+        tutor_id: null,
         amount: amount,
         currency: 'GBP',
         payment_method: 'stripe',
@@ -128,6 +131,7 @@ export async function issueRefund(bookingId, studentId, amount) {
       .insert({
         booking_id: bookingId,
         student_id: studentId,
+        tutor_id: null,
         amount: refundAmount,
         currency: 'GBP',
         payment_method: 'refund',

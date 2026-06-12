@@ -19,24 +19,10 @@ export default function TutorPayments({ tutorId }) {
       try {
         setLoading(true)
 
-        const { data: tutorBookings, error: bookingError } = await supabase
-          .from('bookings')
-          .select('id')
-          .eq('tutor_id', tutorId)
-
-        if (bookingError) throw bookingError
-
-        const bookingIds = (tutorBookings || []).map((booking) => booking.id).filter(Boolean)
-        if (bookingIds.length === 0) {
-          if (mounted) setPayments([])
-          if (mounted) setStudentProfiles({})
-          return
-        }
-
         const { data, error } = await supabase
           .from('payments')
           .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
-          .in('booking_id', bookingIds)
+          .eq('tutor_id', tutorId)
           .order('payment_date', { ascending: false })
 
         if (error) throw error
@@ -393,6 +379,7 @@ export default function TutorPayments({ tutorId }) {
                             .insert({
                               booking_id: p.booking_id,
                               student_id: p.student_id,
+                              tutor_id: tutorId,
                               amount: parsedAmount,
                               currency: p.currency || 'GBP',
                               payment_method: 'refund',
@@ -427,18 +414,10 @@ export default function TutorPayments({ tutorId }) {
 
                           setSuccessMessage(`Refund of £${parsedAmount.toFixed(2)} recorded.`)
 
-                          const { data: tutorBookings, error: bookingReloadError } = await supabase
-                            .from('bookings')
-                            .select('id')
-                            .eq('tutor_id', tutorId)
-
-                          if (bookingReloadError) throw bookingReloadError
-
-                          const bookingIds = (tutorBookings || []).map((booking) => booking.id).filter(Boolean)
                           const { data: newData, error: reloadError } = await supabase
                             .from('payments')
                             .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
-                            .in('booking_id', bookingIds)
+                            .eq('tutor_id', tutorId)
                             .order('payment_date', { ascending: false })
 
                           if (reloadError) throw reloadError

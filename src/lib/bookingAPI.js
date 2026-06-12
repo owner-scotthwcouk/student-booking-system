@@ -264,6 +264,14 @@ export async function cancelBooking(bookingId) {
 // Record a cash payment for a booking and mark it paid
 export async function markBookingPaidByCash(bookingId, studentId, amount) {
   try {
+    const { data: booking, error: bookingLookupError } = await supabase
+      .from('bookings')
+      .select('id, tutor_id')
+      .eq('id', bookingId)
+      .single()
+
+    if (bookingLookupError) throw bookingLookupError
+
     const { data, error } = await supabase
       .from('bookings')
       .update({
@@ -282,6 +290,7 @@ export async function markBookingPaidByCash(bookingId, studentId, amount) {
       .insert({
         booking_id: bookingId,
         student_id: studentId,
+        tutor_id: booking?.tutor_id || null,
         amount,
         currency: 'GBP',
         payment_method: 'cash',

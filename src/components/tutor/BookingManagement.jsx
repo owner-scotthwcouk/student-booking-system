@@ -160,6 +160,7 @@ export default function BookingManagement({ tutorId }) {
       const { error } = await recordBookingPayment({
         bookingId: booking.id,
         studentId: booking.student_id,
+        tutorId,
         amount,
         paymentMethod,
         transactionReference,

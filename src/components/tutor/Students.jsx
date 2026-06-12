@@ -4,7 +4,7 @@ import { getAllStudents, getProfile, updateStudentProfile } from '../../lib/prof
 import { getStudentPayments } from '../../lib/paymentsAPI'
 import { getTutorBookings } from '../../lib/bookingAPI'
 import { sendStudentEmail } from '../../lib/emailAPI'
-import { getStudentPasswordResetRequests, issueStudentTemporaryPassword } from '../../lib/tutorPasswordAPI'
+import { getStudentPasswordResetRequests, getStudentTemporaryPasswords, issueStudentTemporaryPassword } from '../../lib/tutorPasswordAPI'
 import { 
   Mail, 
   Phone, 
@@ -61,6 +61,7 @@ export default function TutorStudents({ onPreviewStudent }) {
   const [passwordResetStatus, setPasswordResetStatus] = useState(null)
   const [temporaryPassword, setTemporaryPassword] = useState('')
   const [passwordResetRequests, setPasswordResetRequests] = useState([])
+  const [temporaryPasswordHistory, setTemporaryPasswordHistory] = useState([])
   const [showTempPasswordModal, setShowTempPasswordModal] = useState(false)
   const [tempPasswordInput, setTempPasswordInput] = useState('')
   const [tempPasswordModalError, setTempPasswordModalError] = useState('')
@@ -119,10 +120,11 @@ export default function TutorStudents({ onPreviewStudent }) {
     setIsEditing(false) 
 
     try {
-      const [profileResult, paymentsResult, resetRequestsResult] = await Promise.all([
+      const [profileResult, paymentsResult, resetRequestsResult, temporaryPasswordResult] = await Promise.all([
         getProfile(studentId),
         getStudentPayments(studentId),
         getStudentPasswordResetRequests(studentId),
+        getStudentTemporaryPasswords(studentId),
       ])
 
       if (resetRequestsResult.error) {
@@ -141,6 +143,7 @@ export default function TutorStudents({ onPreviewStudent }) {
       setStudentProfile(mergedProfile)
       setPayments(paymentsResult.data || [])
       setPasswordResetRequests(resetRequestsResult.data || [])
+      setTemporaryPasswordHistory(temporaryPasswordResult.data || [])
       
       // Update form with the most complete data we have
       setEditForm({
@@ -165,6 +168,7 @@ export default function TutorStudents({ onPreviewStudent }) {
     setPasswordResetStatus(null)
     setTemporaryPassword('')
     setPasswordResetRequests([])
+    setTemporaryPasswordHistory([])
     setShowTempPasswordModal(false)
     setTempPasswordInput('')
     setTempPasswordModalError('')
@@ -276,6 +280,10 @@ export default function TutorStudents({ onPreviewStudent }) {
       const freshResetRequests = await getStudentPasswordResetRequests(studentProfile.id)
       if (!freshResetRequests.error) {
         setPasswordResetRequests(freshResetRequests.data || [])
+      }
+      const freshTemporaryPasswords = await getStudentTemporaryPasswords(studentProfile.id)
+      if (!freshTemporaryPasswords.error) {
+        setTemporaryPasswordHistory(freshTemporaryPasswords.data || [])
       }
       setShowTempPasswordModal(false)
       setTempPasswordModalError('')
@@ -647,10 +655,41 @@ export default function TutorStudents({ onPreviewStudent }) {
                     )}
                     <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
                       <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155' }}>Password Reset History</h4>
-                      {passwordResetRequests.length === 0 ? (
-                        <div style={{ color: '#64748b' }}>No reset requests recorded for this student.</div>
+                      {passwordResetRequests.length === 0 && temporaryPasswordHistory.length === 0 ? (
+                        <div style={{ color: '#64748b' }}>No reset activity recorded for this student.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {temporaryPasswordHistory.map((entry) => (
+                            <div key={entry.id} style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                                <strong style={{ color: '#0f172a' }}>Temporary Password Issued</strong>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  textTransform: 'capitalize',
+                                  background: entry.used_at ? '#dcfce7' : '#fff7ed',
+                                  color: entry.used_at ? '#166534' : '#9a3412'
+                                }}>
+                                  {entry.used_at ? 'used' : 'pending'}
+                                </span>
+                              </div>
+                              <div style={{ marginTop: '0.35rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                Issued {new Date(entry.issued_at).toLocaleString()}
+                              </div>
+                              {entry.expires_at && (
+                                <div style={{ marginTop: '0.25rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                  Expires {new Date(entry.expires_at).toLocaleString()}
+                                </div>
+                              )}
+                              {entry.used_at && (
+                                <div style={{ marginTop: '0.25rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                  Used {new Date(entry.used_at).toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                           {passwordResetRequests.map((request) => (
                             <div key={request.id} style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>

@@ -36,3 +36,20 @@ export async function getStudentPasswordResetRequests(studentId) {
     return { data: [], error }
   }
 }
+
+export async function getStudentTemporaryPasswords(studentId) {
+  try {
+    const { data, error } = await supabase
+      .from('student_temporary_passwords')
+      .select('id, tutor_id, issued_at, expires_at, used_at, updated_at')
+      .eq('student_id', studentId)
+      .order('issued_at', { ascending: false })
+      .limit(10)
+
+    if (error) throw error
+    return { data: data || [], error: null }
+  } catch (error) {
+    console.error('Error loading temporary password history:', error)
+    return { data: [], error }
+  }
+}
