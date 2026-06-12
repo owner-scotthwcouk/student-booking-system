@@ -4,7 +4,7 @@ import { getAllStudents, getProfile, updateStudentProfile } from '../../lib/prof
 import { getStudentPayments } from '../../lib/paymentsAPI'
 import { getTutorBookings } from '../../lib/bookingAPI'
 import { sendStudentEmail } from '../../lib/emailAPI'
-import { getStudentPasswordResetRequests, resetStudentPassword } from '../../lib/tutorPasswordAPI'
+import { getStudentPasswordResetRequests, issueStudentTemporaryPassword } from '../../lib/tutorPasswordAPI'
 import { 
   Mail, 
   Phone, 
@@ -19,7 +19,8 @@ import {
   CreditCard,
   Send,
   KeyRound,
-  Users
+  Users,
+  Copy
 } from 'lucide-react'
 
 export default function TutorStudents({ onPreviewStudent }) {
@@ -51,6 +52,7 @@ export default function TutorStudents({ onPreviewStudent }) {
   const [emailStatus, setEmailStatus] = useState(null)
   const [resettingPassword, setResettingPassword] = useState(false)
   const [passwordResetStatus, setPasswordResetStatus] = useState(null)
+  const [temporaryPassword, setTemporaryPassword] = useState('')
   const [passwordResetRequests, setPasswordResetRequests] = useState([])
 
   const loadData = useCallback(async () => {
@@ -151,6 +153,7 @@ export default function TutorStudents({ onPreviewStudent }) {
   const handleStudentSelect = (student) => {
     setSelectedStudentId(student.id)
     setPasswordResetStatus(null)
+    setTemporaryPassword('')
     setPasswordResetRequests([])
     
     // Immediately set the profile using the data we already have from the list
@@ -232,17 +235,19 @@ export default function TutorStudents({ onPreviewStudent }) {
     }
 
     const confirmed = window.confirm(
-      `Send a password reset email to ${studentProfile.full_name || studentProfile.email}?`
+      `Generate a temporary password for ${studentProfile.full_name || studentProfile.email}? The student will log in with it and then choose a new password.`
     )
     if (!confirmed) return
 
     setResettingPassword(true)
     setError(null)
     setPasswordResetStatus(null)
+    setTemporaryPassword('')
 
     try {
-      await resetStudentPassword(studentProfile.id)
-      setPasswordResetStatus('Password reset email sent successfully.')
+      const data = await issueStudentTemporaryPassword(studentProfile.id)
+      setPasswordResetStatus('Temporary password generated successfully.')
+      setTemporaryPassword(data?.temporary_password || '')
       const freshResetRequests = await getStudentPasswordResetRequests(studentProfile.id)
       if (!freshResetRequests.error) {
         setPasswordResetRequests(freshResetRequests.data || [])
@@ -586,6 +591,31 @@ export default function TutorStudents({ onPreviewStudent }) {
                     {passwordResetStatus && (
                       <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#e0f2fe', border: '1px solid #7dd3fc', color: '#075985' }}>
                         {passwordResetStatus}
+                      </div>
+                    )}
+                    {temporaryPassword && (
+                      <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '8px', background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          <div>
+                            <strong>Temporary password</strong>
+                            <div style={{ marginTop: '0.35rem', fontFamily: 'monospace', fontSize: '1.05rem' }}>{temporaryPassword}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(temporaryPassword)
+                                setPasswordResetStatus('Temporary password copied to clipboard.')
+                              } catch {
+                                window.prompt('Copy this temporary password:', temporaryPassword)
+                              }
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #fb923c', background: '#fff', color: '#9a3412', cursor: 'pointer' }}
+                          >
+                            <Copy size={16} /> Copy
+                          </button>
+                        </div>
+                        <div style={{ marginTop: '0.75rem' }}>Share this with the student securely. It will be replaced after their next login.</div>
                       </div>
                     )}
                     <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>

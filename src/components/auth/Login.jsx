@@ -70,7 +70,11 @@ export default function Login() {
       if (role === "tutor") {
         navigate("/tutor");
       } else if (role === "student") {
-        navigate("/student");
+        if (data.user?.app_metadata?.force_password_reset) {
+          navigate("/reset-password", { replace: true });
+        } else {
+          navigate("/student");
+        }
       } else {
         navigate("/");
       }

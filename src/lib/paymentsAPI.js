@@ -50,6 +50,46 @@ export async function createPayment(paymentData) {
   }
 }
 
+// Record a payment against an existing booking and mark the booking paid.
+export async function recordBookingPayment(paymentData) {
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .insert({
+        booking_id: paymentData.bookingId,
+        student_id: paymentData.studentId,
+        amount: paymentData.amount,
+        currency: paymentData.currency || 'GBP',
+        payment_method: paymentData.paymentMethod || 'manual',
+        transaction_reference: paymentData.transactionReference,
+        order_reference: paymentData.orderReference,
+        status: paymentData.status || 'completed',
+        payment_date: paymentData.paymentDate || new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    if (paymentData.bookingId && (paymentData.status || 'completed') === 'completed') {
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({
+          payment_status: 'paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', paymentData.bookingId)
+
+      if (bookingError) throw bookingError
+    }
+
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error recording booking payment:', error)
+    return { data: null, error }
+  }
+}
+
 // Record a payment from an external payment provider
 export async function recordPayment(bookingId, studentId, amount, paymentReference) {
   try {

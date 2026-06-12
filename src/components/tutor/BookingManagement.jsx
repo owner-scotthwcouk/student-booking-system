@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { cancelBooking, ensureBookingVideoRoom, getTutorBookings, markBookingPaidByCash, updateBookingStatus } from '../../lib/bookingAPI'
 import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
+import { recordBookingPayment } from '../../lib/paymentsAPI'
 
 function parseLessonDate(lessonDate) {
   if (!lessonDate) return null
@@ -129,6 +130,48 @@ export default function BookingManagement({ tutorId }) {
       setSelectedBooking(null)
     } catch (err) {
       setError(err.message || 'Failed to mark booking paid by cash')
+    }
+  }, [loadBookings])
+
+  const handleAssignPayment = useCallback(async (booking) => {
+    if (!booking || !booking.student_id) return
+    if (!window.confirm('Assign a payment to this lesson?')) return
+
+    try {
+      const rawAmount = window.prompt(
+        'Enter the payment amount in GBP:',
+        '0.00'
+      )
+      const amount = rawAmount ? parseFloat(rawAmount.replace(/[^0-9.]/g, '')) : NaN
+      if (Number.isNaN(amount) || amount <= 0) {
+        throw new Error('A valid payment amount is required.')
+      }
+
+      const paymentMethod = window.prompt(
+        'Enter the payment method (cash, card, bank_transfer, etc.):',
+        'manual'
+      ) || 'manual'
+
+      const transactionReference = window.prompt(
+        'Optional transaction reference or receipt number:',
+        ''
+      ) || undefined
+
+      const { error } = await recordBookingPayment({
+        bookingId: booking.id,
+        studentId: booking.student_id,
+        amount,
+        paymentMethod,
+        transactionReference,
+        status: 'completed'
+      })
+
+      if (error) throw error
+      await loadBookings()
+      setSelectedBooking((prev) => (prev?.id === booking.id ? { ...prev, payment_status: 'paid' } : prev))
+      window.alert('Payment assigned to booking.')
+    } catch (err) {
+      setError(err.message || 'Failed to assign payment')
     }
   }, [loadBookings])
 
@@ -320,6 +363,12 @@ export default function BookingManagement({ tutorId }) {
                   Mark Paid by Cash
                 </button>
               )}
+              <button
+                onClick={() => handleAssignPayment(selectedBooking)}
+                className="btn-secondary"
+              >
+                Assign Payment
+              </button>
               {selectedBooking.status !== 'cancelled' && (
                 <button
                   onClick={() => handleCancelBooking(selectedBooking.id)}

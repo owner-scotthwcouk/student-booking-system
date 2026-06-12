@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 
-export async function resetStudentPassword(studentId) {
+export async function issueStudentTemporaryPassword(studentId) {
   const { data, error } = await supabase.functions.invoke('tutor-reset-password', {
     body: { student_id: studentId }
   })
@@ -14,6 +14,10 @@ export async function resetStudentPassword(studentId) {
   }
 
   return data
+}
+
+export async function resetStudentPassword(studentId) {
+  return issueStudentTemporaryPassword(studentId)
 }
 
 export async function getStudentPasswordResetRequests(studentId) {

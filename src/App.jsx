@@ -64,6 +64,10 @@ function ProtectedRoute({ children, allowedRole }) {
     return <Navigate to="/" replace />
   }
 
+  if (resolvedRole === 'student' && user?.app_metadata?.force_password_reset) {
+    return <Navigate to="/reset-password" replace />
+  }
+
   return children
 }
 

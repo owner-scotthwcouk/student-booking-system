@@ -412,3 +412,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/tutor-reset-password/deno.json"
 entrypoint = "./functions/tutor-reset-password/index.ts"
+
+[functions.complete-temp-password-reset]
+enabled = true
+verify_jwt = false
+import_map = "./functions/complete-temp-password-reset/deno.json"
+entrypoint = "./functions/complete-temp-password-reset/index.ts"

@@ -1,6 +1,5 @@
 import { supabaseAdmin } from "../_shared/supabase.ts";
 import { verifySupabaseJwt } from "../_shared/jwt.ts";
-import { sendEmail } from "../_shared/email.ts";
 
 type TutorResetPasswordRequest = {
   student_id: string;
@@ -17,6 +16,14 @@ function json(status: number, body: unknown) {
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });
+}
+
+function generateTemporaryPassword(length = 14) {
+  const alphabet =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
 Deno.serve(async (req) => {
@@ -72,30 +79,34 @@ Deno.serve(async (req) => {
       return json(400, { error: "Student does not have an email address" });
     }
 
-    const frontendUrl = Deno.env.get("FRONTEND_URL");
-    if (!frontendUrl) {
-      return json(500, { error: "FRONTEND_URL is not configured" });
+    const temporaryPassword = generateTemporaryPassword();
+
+    const { data: studentAuth, error: studentAuthError } =
+      await supabase.auth.admin.getUserById(student_id);
+    if (studentAuthError || !studentAuth?.user) {
+      return json(404, { error: "Student auth account not found" });
     }
 
-    const redirectTo = `${frontendUrl.replace(/\/$/, "")}/reset-password`;
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: "recovery",
-      email: studentProfile.email,
-      options: { redirectTo },
-    });
+    const nextAppMetadata = {
+      ...(studentAuth.user.app_metadata ?? {}),
+      force_password_reset: true,
+      password_reset_reason: "temporary_password",
+      password_reset_issued_at: new Date().toISOString(),
+    };
 
-    if (linkError) {
-      return json(500, { error: linkError.message || "Failed to generate reset link" });
-    }
+    const { error: updateUserError } = await supabase.auth.admin.updateUserById(
+      student_id,
+      {
+        password: temporaryPassword,
+        app_metadata: nextAppMetadata,
+      },
+    );
 
-    const actionLink = linkData?.properties?.action_link || linkData?.action_link;
-    if (!actionLink) {
-      return json(500, { error: "Reset link was not generated" });
+    if (updateUserError) {
+      return json(500, { error: updateUserError.message || "Failed to update student password" });
     }
 
     const tutorName = tutorProfile.full_name || tutorProfile.email || "Tutor";
-    const studentName = studentProfile.full_name || "student";
-    const subject = "Password reset requested by your tutor";
     const logPayload = {
       student_id,
       tutor_id: tutorId,
@@ -115,51 +126,20 @@ Deno.serve(async (req) => {
       return json(500, { error: logInsertError?.message || "Failed to record reset request" });
     }
 
-    const html = `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
-        <h2 style="margin: 0 0 16px;">Password reset request</h2>
-        <p>Hello ${studentName},</p>
-        <p>${tutorName} has requested a password reset for your student account.</p>
-        <p>
-          <a href="${actionLink}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#7c3aed;color:#ffffff;text-decoration:none;font-weight:600;">
-            Reset your password
-          </a>
-        </p>
-        <p>If you did not expect this email, you can ignore it.</p>
-      </div>
-    `;
-
-    try {
-      await sendEmail({
-        to: studentProfile.email,
-        subject,
-        html,
-      });
-
-      await supabase
-        .from("student_password_reset_requests")
-        .update({
-          status: "sent",
-          error_message: null,
-        })
-        .eq("id", logRow.id);
-    } catch (emailError) {
-      const message = emailError instanceof Error ? emailError.message : "Failed to send reset email";
-      await supabase
-        .from("student_password_reset_requests")
-        .update({
-          status: "failed",
-          error_message: message,
-        })
-        .eq("id", logRow.id);
-      return json(500, { error: message });
-    }
+    await supabase
+      .from("student_password_reset_requests")
+      .update({
+        status: "sent",
+        error_message: null,
+      })
+      .eq("id", logRow.id);
 
     return json(200, {
       ok: true,
       student_id,
       email: studentProfile.email,
       request_id: logRow.id,
+      temporary_password: temporaryPassword,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

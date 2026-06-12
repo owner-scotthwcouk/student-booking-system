@@ -27,5 +27,9 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return <Navigate to="/dashboard" replace />
   }
 
+  if (profile.role === 'student' && user?.app_metadata?.force_password_reset) {
+    return <Navigate to="/reset-password" replace />
+  }
+
   return children
 }
