@@ -119,6 +119,65 @@ export async function recordPayment(bookingId, studentId, amount, paymentReferen
   }
 }
 
+export async function deletePayment(paymentId) {
+  try {
+    if (!paymentId) throw new Error('Payment ID is required.')
+
+    const { data: payment, error: loadError } = await supabase
+      .from('payments')
+      .select('id, booking_id')
+      .eq('id', paymentId)
+      .single()
+
+    if (loadError) throw loadError
+
+    const { error: deleteError } = await supabase
+      .from('payments')
+      .delete()
+      .eq('id', paymentId)
+
+    if (deleteError) throw deleteError
+
+    if (payment?.booking_id) {
+      const { data: remainingPayments, error: remainingError } = await supabase
+        .from('payments')
+        .select('amount, status')
+        .eq('booking_id', payment.booking_id)
+
+      if (remainingError) throw remainingError
+
+      const totalPaid = (remainingPayments || [])
+        .filter((item) => item.status === 'completed')
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+      const totalRefunded = (remainingPayments || [])
+        .filter((item) => item.status === 'refunded')
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+
+      let bookingPaymentStatus = 'unpaid'
+      if (totalPaid > 0 && totalRefunded >= totalPaid) {
+        bookingPaymentStatus = 'refunded'
+      } else if (totalPaid > 0) {
+        bookingPaymentStatus = 'paid'
+      }
+
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({
+          payment_status: bookingPaymentStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', payment.booking_id)
+
+      if (bookingError) throw bookingError
+    }
+
+    return { data: true, error: null }
+  } catch (error) {
+    console.error('Error deleting payment:', error)
+    return { data: null, error }
+  }
+}
+
 export async function issueRefund(bookingId, studentId, amount) {
   try {
     const refundAmount = Number(amount)

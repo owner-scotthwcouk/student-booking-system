@@ -1,21 +1,32 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { getAllStudents, getTutorHourlyRate } from '../../lib/profileAPI'
-import { createBooking } from '../../lib/bookingAPI'
+import { createBooking, getTutorBookings } from '../../lib/bookingAPI'
+import { recordBookingPayment } from '../../lib/paymentsAPI'
 import { supabase } from '../../lib/supabaseClient'
+
+function parseLessonDate(lessonDate) {
+  if (!lessonDate) return null
+  const [year, month, day] = String(lessonDate).split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
 
 export default function POSSystem() {
   const { user } = useAuth()
   const [students, setStudents] = useState([])
+  const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(false)
+  const [bookingsLoading, setBookingsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [collectPaymentNow, setCollectPaymentNow] = useState(true)
+  const [checkoutMode, setCheckoutMode] = useState('new_booking')
+  const [selectedBookingId, setSelectedBookingId] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('card')
-  const [hourlyRate, setHourlyRate] = useState(30.00)
-  const [amount, setAmount] = useState(30.00)
+  const [hourlyRate, setHourlyRate] = useState(30.0)
+  const [amount, setAmount] = useState(30.0)
 
-  // Form State
   const [formData, setFormData] = useState({
     studentId: '',
     reason: 'Lesson',
@@ -50,27 +61,95 @@ export default function POSSystem() {
     }
   }, [user.id])
 
+  const loadBookings = useCallback(async () => {
+    try {
+      setBookingsLoading(true)
+      const { data, error } = await getTutorBookings(user.id)
+      if (error) throw error
+      setBookings(data || [])
+    } catch (err) {
+      console.error('Failed to load tutor bookings', err)
+    } finally {
+      setBookingsLoading(false)
+    }
+  }, [user.id])
+
   useEffect(() => {
     if (user) {
       loadStudents()
       loadRate()
+      loadBookings()
     }
-  }, [user, loadStudents, loadRate])
+  }, [user, loadStudents, loadRate, loadBookings])
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const unpaidPastBookings = bookings.filter((booking) => {
+    if (!booking) return false
+    if (booking.payment_status === 'paid' || booking.payment_status === 'refunded') return false
+    if (booking.status === 'cancelled') return false
+    const lessonDate = parseLessonDate(booking.lesson_date)
+    if (!lessonDate) return false
+    return lessonDate < today
+  })
 
   const handleStudentChange = (e) => {
     const studentId = e.target.value
-    const student = students.find(s => s.id === studentId)
+    const student = students.find((s) => s.id === studentId)
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       studentId,
       email: student ? student.email : ''
     }))
   }
 
+  const handleExistingBookingChange = (e) => {
+    const bookingId = e.target.value
+    setSelectedBookingId(bookingId)
+
+    const booking = bookings.find((item) => item.id === bookingId)
+    if (!booking) {
+      setFormData((prev) => ({
+        ...prev,
+        studentId: '',
+        email: '',
+        reason: 'Lesson',
+        lessonDate: '',
+        lessonTime: '09:00',
+        cardholderName: '',
+        cardNumber: '',
+        expiryDate: '',
+        cvv: '',
+        postCode: ''
+      }))
+      setAmount(Number(hourlyRate).toFixed(2))
+      return
+    }
+
+    const student = students.find((s) => s.id === booking.student_id)
+    const durationHours = Number(booking.duration_minutes || 60) / 60
+    const defaultAmount = Number((durationHours * Number(hourlyRate || 0)).toFixed(2))
+
+    setFormData({
+      studentId: booking.student_id,
+      reason: 'Lesson payment',
+      lessonDate: booking.lesson_date || '',
+      lessonTime: booking.lesson_time || '09:00',
+      email: student ? student.email : '',
+      cardholderName: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      postCode: ''
+    })
+    setAmount(defaultAmount || Number(hourlyRate))
+  }
+
   const handleInputChange = (e) => {
     const { id, value } = e.target
-    setFormData(prev => ({ ...prev, [id]: value }))
+    setFormData((prev) => ({ ...prev, [id]: value }))
   }
 
   const handleSubmit = async (e) => {
@@ -80,66 +159,85 @@ export default function POSSystem() {
     setSuccess(false)
 
     try {
-      // 1. Create the Booking
-      const { data: booking, error: bookingError } = await createBooking({
-        studentId: formData.studentId,
-        tutorId: user.id,
-        lessonDate: formData.lessonDate,
-        lessonTime: formData.lessonTime,
-        duration: 60
-      })
-
-      if (bookingError) throw bookingError
-
       const paymentAmount = Number(amount)
-      if (collectPaymentNow && (!paymentAmount || paymentAmount <= 0)) {
+      if (!paymentAmount || paymentAmount <= 0) {
         throw new Error('Enter a valid amount to charge.')
       }
 
-      if (collectPaymentNow) {
-        // 2. Mark Booking as Paid & Confirmed
-        const { error: updateError } = await supabase
-          .from('bookings')
-          .update({
-            status: 'confirmed',
-            payment_status: 'paid',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', booking.id)
+      if (checkoutMode === 'existing_booking') {
+        const booking = bookings.find((item) => item.id === selectedBookingId)
+        if (!booking) {
+          throw new Error('Select an unpaid past lesson first.')
+        }
 
-        if (updateError) throw updateError
-
-        // 3. Record the Payment
-        const { error: paymentError } = await supabase
-          .from('payments')
-          .insert({
-            booking_id: booking.id,
-            student_id: formData.studentId,
-            tutor_id: user.id,
-            amount: paymentAmount,
-            currency: 'GBP',
-            payment_method: paymentMethod === 'cash' ? 'cash' : 'pos_card_entry',
-            status: 'completed',
-            payment_date: new Date().toISOString(),
-            transaction_reference: paymentMethod === 'cash' ? `CASH-${Date.now()}` : `POS-${Date.now()}`
-          })
+        const { error: paymentError } = await recordBookingPayment({
+          bookingId: booking.id,
+          studentId: booking.student_id,
+          tutorId: user.id,
+          amount: paymentAmount,
+          currency: 'GBP',
+          paymentMethod: paymentMethod === 'cash' ? 'cash' : 'pos_card_entry',
+          transactionReference: paymentMethod === 'cash' ? `CASH-${Date.now()}` : `POS-${Date.now()}`,
+          status: 'completed'
+        })
 
         if (paymentError) throw paymentError
-      } else {
-        // Create booking on behalf of the student without taking payment.
-        const { error: updateError } = await supabase
-          .from('bookings')
-          .update({
-            status: 'confirmed',
-            payment_status: 'unpaid',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', booking.id)
 
-        if (updateError) throw updateError
+        await loadBookings()
+      } else {
+        const { data: booking, error: bookingError } = await createBooking({
+          studentId: formData.studentId,
+          tutorId: user.id,
+          lessonDate: formData.lessonDate,
+          lessonTime: formData.lessonTime,
+          duration: 60
+        })
+
+        if (bookingError) throw bookingError
+
+        if (collectPaymentNow) {
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({
+              status: 'confirmed',
+              payment_status: 'paid',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', booking.id)
+
+          if (updateError) throw updateError
+
+          const { error: paymentError } = await supabase
+            .from('payments')
+            .insert({
+              booking_id: booking.id,
+              student_id: formData.studentId,
+              tutor_id: user.id,
+              amount: paymentAmount,
+              currency: 'GBP',
+              payment_method: paymentMethod === 'cash' ? 'cash' : 'pos_card_entry',
+              status: 'completed',
+              payment_date: new Date().toISOString(),
+              transaction_reference: paymentMethod === 'cash' ? `CASH-${Date.now()}` : `POS-${Date.now()}`
+            })
+
+          if (paymentError) throw paymentError
+        } else {
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({
+              status: 'confirmed',
+              payment_status: 'unpaid',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', booking.id)
+
+          if (updateError) throw updateError
+        }
       }
 
       setSuccess(true)
+      setSelectedBookingId('')
       setFormData({
         studentId: '',
         reason: 'Lesson',
@@ -152,8 +250,16 @@ export default function POSSystem() {
         cvv: '',
         postCode: ''
       })
+      setAmount(Number(hourlyRate).toFixed(2))
     } catch (err) {
-      setError(err.message || (collectPaymentNow ? 'Failed to process transaction' : 'Failed to create booking'))
+      setError(
+        err.message ||
+          (checkoutMode === 'existing_booking'
+            ? 'Failed to record payment'
+            : collectPaymentNow
+              ? 'Failed to process transaction'
+              : 'Failed to create booking')
+      )
     } finally {
       setLoading(false)
     }
@@ -162,16 +268,18 @@ export default function POSSystem() {
   return (
     <div className="pos-system-container">
       <h2>POS System</h2>
-      <p className="description">Create bookings on behalf of students, with or without taking payment now.</p>
+      <p className="description">Create bookings on behalf of students, or collect payment for an unpaid lesson from the past.</p>
 
       {error && <div className="error-message">{error}</div>}
       {success && (
         <div className="success-message">
-          {collectPaymentNow
-            ? paymentMethod === 'cash'
-              ? 'Cash payment recorded and booking confirmed!'
-              : 'Payment processed and booking confirmed!'
-            : 'Booking created for student without payment.'}
+          {checkoutMode === 'existing_booking'
+            ? 'Payment recorded for the existing lesson.'
+            : collectPaymentNow
+              ? paymentMethod === 'cash'
+                ? 'Cash payment recorded and booking confirmed!'
+                : 'Payment processed and booking confirmed!'
+              : 'Booking created for student without payment.'}
         </div>
       )}
 
@@ -181,9 +289,60 @@ export default function POSSystem() {
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
               <input
+                type="radio"
+                name="checkoutMode"
+                checked={checkoutMode === 'new_booking'}
+                onChange={() => {
+                  setCheckoutMode('new_booking')
+                  setSelectedBookingId('')
+                }}
+              />
+              Create new booking
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+              <input
+                type="radio"
+                name="checkoutMode"
+                checked={checkoutMode === 'existing_booking'}
+                onChange={() => {
+                  setCheckoutMode('existing_booking')
+                  setCollectPaymentNow(true)
+                }}
+              />
+              Take payment for an existing unpaid lesson
+            </label>
+          </div>
+
+          {checkoutMode === 'existing_booking' && (
+            <div className="form-group">
+              <label htmlFor="existingBookingId">Unpaid past lessons</label>
+              <select
+                id="existingBookingId"
+                value={selectedBookingId}
+                onChange={handleExistingBookingChange}
+                disabled={bookingsLoading}
+                required
+              >
+                <option value="">{bookingsLoading ? 'Loading lessons...' : 'Select a lesson...'}</option>
+                {unpaidPastBookings.map((booking) => (
+                  <option key={booking.id} value={booking.id}>
+                    {booking.student?.full_name || 'Unknown student'} - {booking.lesson_date} {booking.lesson_time} - {booking.payment_status}
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: '#374151' }}>
+                Only unpaid lessons from the past are shown here.
+              </small>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
                 type="checkbox"
                 checked={collectPaymentNow}
                 onChange={(e) => setCollectPaymentNow(e.target.checked)}
+                disabled={checkoutMode === 'existing_booking'}
               />
               Collect payment now
             </label>
@@ -194,72 +353,135 @@ export default function POSSystem() {
         </div>
 
         <div className="form-grid">
-          {/* Section 1: Booking Details */}
           <div className="form-section lilac-card">
             <h3>Booking Details</h3>
 
-            <div className="form-group">
-              <label htmlFor="studentId">Name of Student *</label>
-              <select
-                id="studentId"
-                value={formData.studentId}
-                onChange={handleStudentChange}
-                required
-              >
-                <option value="">Select a student...</option>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.full_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {checkoutMode === 'existing_booking' ? (
+              <>
+                <div className="form-group">
+                  <label>Selected Student</label>
+                  <input
+                    type="text"
+                    value={students.find((student) => student.id === formData.studentId)?.full_name || ''}
+                    readOnly
+                    className="bg-gray"
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <input
-                type="email"
-                id="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                readOnly
-                className="bg-gray"
-              />
-            </div>
+                <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    readOnly
+                    className="bg-gray"
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="reason">Reason for payment *</label>
-              <input
-                type="text"
-                id="reason"
-                value={formData.reason}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
+                <div className="form-group">
+                  <label htmlFor="reason">Reason for payment *</label>
+                  <input
+                    type="text"
+                    id="reason"
+                    value={formData.reason}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="lessonDate">Lesson Date</label>
-                <input
-                  type="date"
-                  id="lessonDate"
-                  value={formData.lessonDate}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="lessonTime">Time</label>
-                <input
-                  type="time"
-                  id="lessonTime"
-                  value={formData.lessonTime}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="lessonDate">Lesson Date</label>
+                    <input
+                      type="date"
+                      id="lessonDate"
+                      value={formData.lessonDate}
+                      onChange={handleInputChange}
+                      readOnly
+                      className="bg-gray"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="lessonTime">Time</label>
+                    <input
+                      type="time"
+                      id="lessonTime"
+                      value={formData.lessonTime}
+                      onChange={handleInputChange}
+                      readOnly
+                      className="bg-gray"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label htmlFor="studentId">Name of Student *</label>
+                  <select
+                    id="studentId"
+                    value={formData.studentId}
+                    onChange={handleStudentChange}
+                    required
+                  >
+                    <option value="">Select a student...</option>
+                    {students.map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {student.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    readOnly
+                    className="bg-gray"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="reason">Reason for payment *</label>
+                  <input
+                    type="text"
+                    id="reason"
+                    value={formData.reason}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="lessonDate">Lesson Date</label>
+                    <input
+                      type="date"
+                      id="lessonDate"
+                      value={formData.lessonDate}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="lessonTime">Time</label>
+                    <input
+                      type="time"
+                      id="lessonTime"
+                      value={formData.lessonTime}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="form-group">
               <label htmlFor="amount">Total Amount to Charge (GBP)</label>
@@ -270,7 +492,7 @@ export default function POSSystem() {
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                required={collectPaymentNow}
+                required={collectPaymentNow || checkoutMode === 'existing_booking'}
               />
             </div>
             <div className="form-group">
@@ -280,7 +502,6 @@ export default function POSSystem() {
             </div>
           </div>
 
-          {/* Section 2: Payment Details */}
           <div className="form-section lilac-card">
             <h3>Payment Details</h3>
 
@@ -310,10 +531,10 @@ export default function POSSystem() {
               </div>
             </div>
 
-            {collectPaymentNow ? (
+            {collectPaymentNow || checkoutMode === 'existing_booking' ? (
               paymentMethod === 'cash' ? (
                 <p style={{ margin: 0, color: '#374151' }}>
-                  This booking will be marked as paid by cash and recorded for the student.
+                  This payment will be recorded as cash and linked to the lesson.
                 </p>
               ) : (
                 <>
@@ -392,12 +613,16 @@ export default function POSSystem() {
 
         <button type="submit" disabled={loading} className="btn-primary btn-large btn-block">
           {loading
-            ? (collectPaymentNow ? 'Processing Payment...' : 'Creating Booking...')
-            : (collectPaymentNow
-              ? paymentMethod === 'cash'
-                ? `Record Cash Payment (£${Number(amount).toFixed(2)})`
-                : `Charge £${Number(amount).toFixed(2)}`
-              : 'Create Booking (Unpaid)')}
+            ? (checkoutMode === 'existing_booking'
+              ? 'Recording Payment...'
+              : (collectPaymentNow ? 'Processing Payment...' : 'Creating Booking...'))
+            : (checkoutMode === 'existing_booking'
+              ? `Record Payment (£${Number(amount).toFixed(2)})`
+              : (collectPaymentNow
+                ? paymentMethod === 'cash'
+                  ? `Record Cash Payment (£${Number(amount).toFixed(2)})`
+                  : `Charge £${Number(amount).toFixed(2)}`
+                : 'Create Booking (Unpaid)'))}
         </button>
       </form>
 
@@ -440,7 +665,6 @@ export default function POSSystem() {
           margin-bottom: 4px;
           display: block;
         }
-        /* Ensure inputs inside glass card are readable */
         .lilac-card input,
         .lilac-card select {
           background-color: rgba(30, 41, 59, 0.8);
