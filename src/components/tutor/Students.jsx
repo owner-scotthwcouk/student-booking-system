@@ -4,6 +4,7 @@ import { getAllStudents, getProfile, updateStudentProfile } from '../../lib/prof
 import { getStudentPayments } from '../../lib/paymentsAPI'
 import { getTutorBookings } from '../../lib/bookingAPI'
 import { sendStudentEmail } from '../../lib/emailAPI'
+import { getStudentPasswordResetRequests, getStudentTemporaryPasswords, issueStudentTemporaryPassword } from '../../lib/tutorPasswordAPI'
 import { 
   Mail, 
   Phone, 
@@ -17,8 +18,17 @@ import {
   History,
   CreditCard,
   Send,
-  Users
+  KeyRound,
+  Users,
+  Copy
 } from 'lucide-react'
+
+function generateRandomTempPassword(length = 12) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%'
+  const bytes = new Uint8Array(length)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('')
+}
 
 export default function TutorStudents({ onPreviewStudent }) {
   const { user } = useAuth()
@@ -47,6 +57,14 @@ export default function TutorStudents({ onPreviewStudent }) {
   const [emailMessage, setEmailMessage] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailStatus, setEmailStatus] = useState(null)
+  const [resettingPassword, setResettingPassword] = useState(false)
+  const [passwordResetStatus, setPasswordResetStatus] = useState(null)
+  const [temporaryPassword, setTemporaryPassword] = useState('')
+  const [passwordResetRequests, setPasswordResetRequests] = useState([])
+  const [temporaryPasswordHistory, setTemporaryPasswordHistory] = useState([])
+  const [showTempPasswordModal, setShowTempPasswordModal] = useState(false)
+  const [tempPasswordInput, setTempPasswordInput] = useState('')
+  const [tempPasswordModalError, setTempPasswordModalError] = useState('')
 
   const loadData = useCallback(async () => {
     try {
@@ -102,14 +120,20 @@ export default function TutorStudents({ onPreviewStudent }) {
     setIsEditing(false) 
 
     try {
-      const [profileResult, paymentsResult] = await Promise.all([
+      const [profileResult, paymentsResult, resetRequestsResult, temporaryPasswordResult] = await Promise.all([
         getProfile(studentId),
-        getStudentPayments(studentId)
+        getStudentPayments(studentId),
+        getStudentPasswordResetRequests(studentId),
+        getStudentTemporaryPasswords(studentId),
       ])
+
+      if (resetRequestsResult.error) {
+        console.warn('Could not fetch reset requests:', resetRequestsResult.error)
+      }
 
       // If getProfile fails but we have initialData, keep initialData
       if (profileResult.error) {
-        console.warn("Could not fetch fresh profile, using list data:", profileResult.error)
+        console.warn('Could not fetch fresh profile, using list data:', profileResult.error)
       }
 
       // Merge fresh data with initial data to ensure no fields are lost
@@ -118,6 +142,8 @@ export default function TutorStudents({ onPreviewStudent }) {
       
       setStudentProfile(mergedProfile)
       setPayments(paymentsResult.data || [])
+      setPasswordResetRequests(resetRequestsResult.data || [])
+      setTemporaryPasswordHistory(temporaryPasswordResult.data || [])
       
       // Update form with the most complete data we have
       setEditForm({
@@ -139,6 +165,13 @@ export default function TutorStudents({ onPreviewStudent }) {
 
   const handleStudentSelect = (student) => {
     setSelectedStudentId(student.id)
+    setPasswordResetStatus(null)
+    setTemporaryPassword('')
+    setPasswordResetRequests([])
+    setTemporaryPasswordHistory([])
+    setShowTempPasswordModal(false)
+    setTempPasswordInput('')
+    setTempPasswordModalError('')
     
     // Immediately set the profile using the data we already have from the list
     setStudentProfile(student)
@@ -204,6 +237,61 @@ export default function TutorStudents({ onPreviewStudent }) {
       setError(err.message || 'Failed to update student details')
     } finally {
       setSaveLoading(false)
+    }
+  }
+
+  const handleResetStudentPassword = async () => {
+    if (!studentProfile?.id) {
+      setError('Select a student first.')
+      return
+    }
+
+    if (!studentProfile?.email) {
+      setError('Selected student has no email address.')
+      return
+    }
+
+    setTempPasswordInput(generateRandomTempPassword())
+    setTempPasswordModalError('')
+    setShowTempPasswordModal(true)
+  }
+
+  const handleConfirmTempPassword = async () => {
+    if (!studentProfile?.id) {
+      setTempPasswordModalError('Select a student first.')
+      return
+    }
+
+    const chosenPassword = tempPasswordInput.trim()
+    if (chosenPassword.length < 6) {
+      setTempPasswordModalError('Temporary password must be at least 6 characters.')
+      return
+    }
+
+    setResettingPassword(true)
+    setError(null)
+    setPasswordResetStatus(null)
+    setTemporaryPassword('')
+
+    try {
+      const data = await issueStudentTemporaryPassword(studentProfile.id, chosenPassword)
+      setPasswordResetStatus('Temporary password generated successfully.')
+      setTemporaryPassword(data?.temporary_password || chosenPassword)
+      const freshResetRequests = await getStudentPasswordResetRequests(studentProfile.id)
+      if (!freshResetRequests.error) {
+        setPasswordResetRequests(freshResetRequests.data || [])
+      }
+      const freshTemporaryPasswords = await getStudentTemporaryPasswords(studentProfile.id)
+      if (!freshTemporaryPasswords.error) {
+        setTemporaryPasswordHistory(freshTemporaryPasswords.data || [])
+      }
+      setShowTempPasswordModal(false)
+      setTempPasswordModalError('')
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'Failed to reset student password')
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -481,6 +569,14 @@ export default function TutorStudents({ onPreviewStudent }) {
                         >
                           <Edit2 size={16} /> Edit Details
                         </button>
+                        <button
+                          onClick={handleResetStudentPassword}
+                          disabled={resettingPassword}
+                          className="btn-secondary"
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#333', background: '#f1f5f9', border: '1px solid #cbd5e1' }}
+                        >
+                          <KeyRound size={16} /> {resettingPassword ? 'Sending Reset...' : 'Reset Password'}
+                        </button>
                         {onPreviewStudent && (
                           <button
                             onClick={() => onPreviewStudent(studentProfile)}
@@ -527,6 +623,102 @@ export default function TutorStudents({ onPreviewStudent }) {
                         {emailStatus}
                       </div>
                     )}
+                    {passwordResetStatus && (
+                      <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#e0f2fe', border: '1px solid #7dd3fc', color: '#075985' }}>
+                        {passwordResetStatus}
+                      </div>
+                    )}
+                    {temporaryPassword && (
+                      <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '8px', background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          <div>
+                            <strong>Temporary password</strong>
+                            <div style={{ marginTop: '0.35rem', fontFamily: 'monospace', fontSize: '1.05rem' }}>{temporaryPassword}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(temporaryPassword)
+                                setPasswordResetStatus('Temporary password copied to clipboard.')
+                              } catch {
+                                window.prompt('Copy this temporary password:', temporaryPassword)
+                              }
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #fb923c', background: '#fff', color: '#9a3412', cursor: 'pointer' }}
+                          >
+                            <Copy size={16} /> Copy
+                          </button>
+                        </div>
+                        <div style={{ marginTop: '0.75rem' }}>Share this with the student securely. It will be replaced after their next login.</div>
+                      </div>
+                    )}
+                    <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155' }}>Password Reset History</h4>
+                      {passwordResetRequests.length === 0 && temporaryPasswordHistory.length === 0 ? (
+                        <div style={{ color: '#64748b' }}>No reset activity recorded for this student.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {temporaryPasswordHistory.map((entry) => (
+                            <div key={entry.id} style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                                <strong style={{ color: '#0f172a' }}>Temporary Password Issued</strong>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  textTransform: 'capitalize',
+                                  background: entry.used_at ? '#dcfce7' : '#fff7ed',
+                                  color: entry.used_at ? '#166534' : '#9a3412'
+                                }}>
+                                  {entry.used_at ? 'used' : 'pending'}
+                                </span>
+                              </div>
+                              <div style={{ marginTop: '0.35rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                Issued {new Date(entry.issued_at).toLocaleString()}
+                              </div>
+                              {entry.expires_at && (
+                                <div style={{ marginTop: '0.25rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                  Expires {new Date(entry.expires_at).toLocaleString()}
+                                </div>
+                              )}
+                              {entry.used_at && (
+                                <div style={{ marginTop: '0.25rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                  Used {new Date(entry.used_at).toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {passwordResetRequests.map((request) => (
+                            <div key={request.id} style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                                <strong style={{ color: '#0f172a' }}>{request.tutor_name || request.tutor_email || 'Tutor'}</strong>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  textTransform: 'capitalize',
+                                  background: request.status === 'sent' ? '#dcfce7' : request.status === 'failed' ? '#fee2e2' : '#e0f2fe',
+                                  color: request.status === 'sent' ? '#166534' : request.status === 'failed' ? '#991b1b' : '#075985'
+                                }}>
+                                  {request.status}
+                                </span>
+                              </div>
+                              <div style={{ marginTop: '0.35rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                Requested {new Date(request.created_at).toLocaleString()}
+                              </div>
+                              {request.error_message && (
+                                <div style={{ marginTop: '0.4rem', color: '#991b1b', fontSize: '0.9rem' }}>
+                                  {request.error_message}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {showEmailComposer && (
                       <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}>
                         <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155' }}>Send Email to {studentProfile.full_name}</h4>
@@ -641,6 +833,133 @@ export default function TutorStudents({ onPreviewStudent }) {
           )}
         </div>
       </div>
+
+      {showTempPasswordModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          zIndex: 1000
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '560px',
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            padding: '1.75rem',
+            boxShadow: '0 30px 80px rgba(0, 0, 0, 0.35)',
+            border: '1px solid #e2e8f0',
+            color: '#0f172a'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.35rem' }}>Set Temporary Password</h3>
+                <p style={{ margin: '0.5rem 0 0', color: '#475569' }}>
+                  Choose the temporary password the student will use at next login.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!resettingPassword) {
+                    setShowTempPasswordModal(false)
+                    setTempPasswordModalError('')
+                  }
+                }}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: resettingPassword ? 'not-allowed' : 'pointer' }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div style={{ marginTop: '1.5rem' }}>
+              <label style={{ display: 'block', color: '#334155', marginBottom: '0.5rem', fontWeight: 600 }}>Temporary Password</label>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  value={tempPasswordInput}
+                  onChange={(e) => setTempPasswordInput(e.target.value)}
+                  style={{
+                    flex: '1 1 260px',
+                    padding: '0.9rem 1rem',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#fff',
+                    color: '#0f172a',
+                    fontSize: '1rem'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setTempPasswordInput(generateRandomTempPassword())}
+                  style={{
+                    padding: '0.9rem 1rem',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#f8fafc',
+                    color: '#0f172a',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                >
+                  Generate
+                </button>
+              </div>
+              <div style={{ marginTop: '0.75rem', color: '#64748b', fontSize: '0.92rem' }}>
+                The password is stored in Supabase and the student will be forced to change it after logging in.
+              </div>
+              {tempPasswordModalError && (
+                <div style={{ marginTop: '0.9rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b' }}>
+                  {tempPasswordModalError}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!resettingPassword) {
+                    setShowTempPasswordModal(false)
+                    setTempPasswordModalError('')
+                  }
+                }}
+                style={{
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#fff',
+                  color: '#334155',
+                  cursor: resettingPassword ? 'not-allowed' : 'pointer'
+                }}
+                disabled={resettingPassword}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmTempPassword}
+                disabled={resettingPassword}
+                style={{
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: resettingPassword ? '#c4b5fd' : '#7c3aed',
+                  color: '#fff',
+                  cursor: resettingPassword ? 'not-allowed' : 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                {resettingPassword ? 'Saving...' : 'Save Temporary Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPreviewModal && (
         <div style={{

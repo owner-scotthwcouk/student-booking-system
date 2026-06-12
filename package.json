@@ -15,8 +15,6 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@sendgrid/mail": "^8.1.6",
-    "@stripe/react-stripe-js": "^2.4.0",
-    "@stripe/stripe-js": "^2.4.0",
     "@supabase/supabase-js": "^2.90.1",
     "@vercel/analytics": "^2.0.1",
     "date-fns": "^4.1.0",
@@ -29,7 +27,6 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.71.1",
     "react-router-dom": "^7.12.0",
-    "stripe": "^12.10.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {

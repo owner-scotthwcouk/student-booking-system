@@ -12,9 +12,11 @@ import BookingForm from './components/student/BookingForm'
 import Policies from './pages/Policies' //
 import VideoRoom from './components/VideoRoom/VideoRoom'
 import VideoRoomPage from './pages/VideoRoomPage'
+import PaymentPage from './pages/PaymentPage'
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, profile, loading } = useAuth()
+  const resolvedRole = profile?.role ?? user?.user_metadata?.role ?? user?.app_metadata?.role ?? null
 
   if (loading) {
     return (
@@ -50,8 +52,20 @@ function ProtectedRoute({ children, allowedRole }) {
     return <Navigate to="/login" />
   }
 
-  if (allowedRole && profile?.role !== allowedRole) {
-    return <Navigate to={profile?.role === 'tutor' ? '/tutor' : '/student'} />
+  if (allowedRole && resolvedRole !== allowedRole) {
+    if (resolvedRole === 'tutor') {
+      return <Navigate to="/tutor" replace />
+    }
+
+    if (resolvedRole === 'student') {
+      return <Navigate to="/student" replace />
+    }
+
+    return <Navigate to="/" replace />
+  }
+
+  if (resolvedRole === 'student' && user?.app_metadata?.force_password_reset) {
+    return <Navigate to="/reset-password" replace />
   }
 
   return children
@@ -102,6 +116,7 @@ function AppRoutes() {
       <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/tutors" element={<ProtectedRoute allowedRole="student"><TutorSelection /></ProtectedRoute>} />
       <Route path="/student/book/:tutorId" element={<ProtectedRoute allowedRole="student"><BookingForm /></ProtectedRoute>} />
+      <Route path="/payment/:bookingId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
       <Route path="/video/:roomToken" element={<ProtectedRoute><VideoRoomPage /></ProtectedRoute>} />
       
       <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor"><TutorDashboard /></ProtectedRoute>} />

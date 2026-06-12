@@ -97,7 +97,7 @@ before update on public.bookings
 for each row execute function public.set_updated_at();
 
 -- ============================================================
--- Payments (PayPal)
+-- Payments
 -- ============================================================
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
@@ -105,9 +105,9 @@ create table if not exists public.payments (
   student_id uuid not null references public.profiles(id) on delete cascade,
   amount numeric(10,2) not null check (amount >= 0),
   currency text not null default 'GBP',
-  payment_method text not null default 'paypal',
-  paypal_transaction_id text null,
-  paypal_order_id text null,
+  payment_method text not null default 'stripe',
+  transaction_reference text null,
+  order_reference text null,
   status text not null default 'completed' check (status in ('pending', 'completed', 'failed', 'refunded')),
   payment_date timestamptz not null default now(),
   created_at timestamptz not null default now()

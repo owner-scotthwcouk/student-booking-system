@@ -1,4 +1,4 @@
-// supabase/functions/_shared/resend.ts
+// supabase/functions/_shared/email.ts
 
 function required(name: string): string {
   const v = Deno.env.get(name);
@@ -6,9 +6,9 @@ function required(name: string): string {
   return v.trim();
 }
 
-export const RESEND = {
-  apiKey: required("RESEND_API_KEY"),
-  from: required("RESEND_FROM"),
+export const EMAIL_CONFIG = {
+  apiKey: required("BREVO_API_KEY"),
+  from: required("BREVO_FROM"),
 };
 
 export async function sendEmail({
@@ -20,23 +20,23 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
-  const res = await fetch("https://api.resend.com/emails", {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${RESEND.apiKey}`,
+      "api-key": EMAIL_CONFIG.apiKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: RESEND.from,
-      to,
-      subject,
-      html,
+      sender: { email: EMAIL_CONFIG.from },
+      to: [{ email: to }],
+      subject: subject,
+      htmlContent: html,
     }),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Resend error (${res.status}): ${text}`);
+    throw new Error(`Brevo error (${res.status}): ${text}`);
   }
 
   return await res.json();

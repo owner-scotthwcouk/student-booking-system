@@ -95,7 +95,7 @@ export const extractCredentialsFromUrl = (url) => {
     }
     
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

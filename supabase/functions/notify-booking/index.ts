@@ -2,7 +2,7 @@
 
 import { supabaseAdmin } from "../_shared/supabase.ts";
 import { verifySupabaseJwt } from "../_shared/jwt.ts";
-import { sendEmail } from "../_shared/resend.ts";
+import { sendEmail } from "../_shared/email.ts";
 
 type NotifyBookingRequest = {
   booking_id: string;

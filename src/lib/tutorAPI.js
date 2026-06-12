@@ -19,7 +19,7 @@ export async function getTutorProfile(tutorId) {
 export async function setHourlyRate(tutorId, rate) {
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .update({ hourly_rate: rate })
       .eq('id', tutorId)
       .select()

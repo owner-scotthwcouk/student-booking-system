@@ -106,7 +106,7 @@ export async function getBookingById(bookingId) {
 
     // Get tutor details including hourly rate
     const { data: tutor, error: tutorError } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('id, full_name, email, hourly_rate')
       .eq('id', booking.tutor_id)
       .single()
@@ -264,6 +264,14 @@ export async function cancelBooking(bookingId) {
 // Record a cash payment for a booking and mark it paid
 export async function markBookingPaidByCash(bookingId, studentId, amount) {
   try {
+    const { data: booking, error: bookingLookupError } = await supabase
+      .from('bookings')
+      .select('id, tutor_id')
+      .eq('id', bookingId)
+      .single()
+
+    if (bookingLookupError) throw bookingLookupError
+
     const { data, error } = await supabase
       .from('bookings')
       .update({
@@ -282,12 +290,13 @@ export async function markBookingPaidByCash(bookingId, studentId, amount) {
       .insert({
         booking_id: bookingId,
         student_id: studentId,
+        tutor_id: booking?.tutor_id || null,
         amount,
         currency: 'GBP',
         payment_method: 'cash',
         status: 'completed',
         payment_date: new Date().toISOString(),
-        paypal_transaction_id: `CASH-${Date.now()}`
+        transaction_reference: `CASH-${Date.now()}`
       })
 
     if (paymentError) throw paymentError

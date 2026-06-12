@@ -130,7 +130,7 @@ where b.id is not null
   and not exists (select 1 from public.lessons l where l.booking_id = b.id);
 
 -- =====================================================
--- Seed a pending PayPal payment row for the most recent booking (if any)
+-- Seed a pending payment row for the most recent booking (if any)
 -- =====================================================
 with b as (
   select id, student_id
@@ -144,8 +144,8 @@ insert into public.payments (
   amount,
   currency,
   payment_method,
-  paypal_transaction_id,
-  paypal_order_id,
+  transaction_reference,
+  order_reference,
   status
 )
 select
@@ -153,7 +153,7 @@ select
   b.student_id,
   20.00,
   'GBP',
-  'paypal',
+  'stripe',
   null,
   null,
   'pending'

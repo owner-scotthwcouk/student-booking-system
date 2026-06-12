@@ -7,7 +7,6 @@ export default function TutorPayments({ tutorId }) {
   const [payments, setPayments] = useState([])
   const [studentProfiles, setStudentProfiles] = useState({})
   const [loading, setLoading] = useState(true)
-  const [refundLoading, setRefundLoading] = useState(false)
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [customFrom, setCustomFrom] = useState('')
@@ -20,11 +19,10 @@ export default function TutorPayments({ tutorId }) {
       try {
         setLoading(true)
 
-        // Attempt to join payments -> bookings to filter by tutor
         const { data, error } = await supabase
           .from('payments')
-          .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, bookings( tutor_id )')
-          .eq('bookings.tutor_id', tutorId)
+          .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
+          .eq('tutor_id', tutorId)
           .order('payment_date', { ascending: false })
 
         if (error) throw error
@@ -211,7 +209,7 @@ export default function TutorPayments({ tutorId }) {
         replacePlaceholdersInElement(clonedRow, {
           'Booking ID': payment.booking_id || '',
           'Payment ID': payment.id || '',
-          'Cash or Stripe': payment.payment_method || '',
+          'Payment method': payment.payment_method || '',
           Ststus: payment.status || '',
           amount: Number(payment.amount || 0).toFixed(2),
           'Date/Time completed': payment.payment_date ? format(parseISO(payment.payment_date), 'dd MMM yyyy HH:mm') : ''
@@ -304,14 +302,13 @@ export default function TutorPayments({ tutorId }) {
                     Paid: £{summary.totalPaid.toFixed(2)} · Refunded: £{summary.totalRefunded.toFixed(2)}
                   </div>
                 </div>
-                <button
+                  <button
                   type="button"
-                  disabled={refundLoading}
                   onClick={() => downloadStatement(summary.studentId)}
                   style={{
                     padding: '0.65rem 1rem',
                     borderRadius: '10px',
-                    cursor: refundLoading ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     border: 'none',
                     background: '#7c3aed',
                     color: '#fff',
@@ -382,12 +379,13 @@ export default function TutorPayments({ tutorId }) {
                             .insert({
                               booking_id: p.booking_id,
                               student_id: p.student_id,
+                              tutor_id: tutorId,
                               amount: parsedAmount,
                               currency: p.currency || 'GBP',
                               payment_method: 'refund',
                               status: 'refunded',
                               payment_date: new Date().toISOString(),
-                              paypal_transaction_id: `REFUND-${Date.now()}`
+                              transaction_reference: `REFUND-${Date.now()}`
                             })
 
                           if (insertError) throw insertError
@@ -415,10 +413,11 @@ export default function TutorPayments({ tutorId }) {
                           }
 
                           setSuccessMessage(`Refund of £${parsedAmount.toFixed(2)} recorded.`)
+
                           const { data: newData, error: reloadError } = await supabase
                             .from('payments')
-                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, bookings( tutor_id )')
-                            .eq('bookings.tutor_id', tutorId)
+                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
+                            .eq('tutor_id', tutorId)
                             .order('payment_date', { ascending: false })
 
                           if (reloadError) throw reloadError

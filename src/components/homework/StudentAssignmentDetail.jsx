@@ -49,7 +49,7 @@ export default function StudentAssignmentDetail({ assignment, onClose, onSubmit 
 
     setLoading(true)
     try {
-      const { data, error } = await submitAssignmentWork({
+      const { error } = await submitAssignmentWork({
         assignment_id: assignment.id,
         student_id: '...', // TODO: Get from auth
         submission_text: submissionText,

@@ -6,6 +6,7 @@ import BrandLogo from '../shared/BrandLogo'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const [currentPassword, setCurrentPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,18 +14,29 @@ export default function ResetPassword() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [canReset, setCanReset] = useState(false)
+  const [resetMode, setResetMode] = useState('recovery')
+  const [sessionEmail, setSessionEmail] = useState('')
 
   useEffect(() => {
     let mounted = true
 
-    async function checkRecoverySession() {
+    async function checkResetSession() {
       try {
         const { data } = await supabase.auth.getSession()
         if (!mounted) return
-        const hasSession = Boolean(data?.session?.user)
+
+        const sessionUser = data?.session?.user ?? null
+        const hasSession = Boolean(sessionUser)
+        const forceReset = Boolean(sessionUser?.app_metadata?.force_password_reset)
+
         setCanReset(hasSession)
+        setSessionEmail(sessionUser?.email || '')
+        setResetMode(forceReset ? 'temporary' : 'recovery')
+
         if (!hasSession) {
           setError('Reset link is invalid or expired. Request a new one.')
+        } else if (forceReset) {
+          setError('')
         }
       } catch {
         if (mounted) setError('Unable to validate reset session.')
@@ -33,7 +45,7 @@ export default function ResetPassword() {
       }
     }
 
-    checkRecoverySession()
+    checkResetSession()
 
     return () => {
       mounted = false
@@ -45,10 +57,16 @@ export default function ResetPassword() {
     setError('')
     setSuccess('')
 
+    if (resetMode === 'temporary' && currentPassword.length < 1) {
+      setError('Enter the temporary password provided by your tutor.')
+      return
+    }
+
     if (password.length < 6) {
       setError('Password must be at least 6 characters.')
       return
     }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match.')
       return
@@ -56,11 +74,34 @@ export default function ResetPassword() {
 
     setLoading(true)
     try {
+      if (resetMode === 'temporary') {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: sessionEmail,
+          password: currentPassword,
+        })
+        if (signInError) throw signInError
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({ password })
       if (updateError) throw updateError
 
-      setSuccess('Password updated successfully. Redirecting to login...')
-      setTimeout(() => navigate('/login'), 1200)
+      if (resetMode === 'temporary') {
+        const { error: finalizeError } = await supabase.functions.invoke(
+          'complete-temp-password-reset',
+          {
+            body: {},
+          },
+        )
+        if (finalizeError) throw finalizeError
+
+        await supabase.auth.refreshSession()
+        setSuccess('Password updated successfully. Redirecting to your dashboard...')
+        setTimeout(() => navigate('/student', { replace: true }), 1200)
+      } else {
+        await supabase.auth.signOut()
+        setSuccess('Password updated successfully. Redirecting to login...')
+        setTimeout(() => navigate('/login', { replace: true }), 1200)
+      }
     } catch (err) {
       setError(err.message || 'Failed to update password')
     } finally {
@@ -89,8 +130,12 @@ export default function ResetPassword() {
           <div className="header-icon">
             <KeyRound size={32} />
           </div>
-          <h2>Reset Password</h2>
-          <p>Set your new account password</p>
+          <h2>{resetMode === 'temporary' ? 'Set New Password' : 'Reset Password'}</h2>
+          <p>
+            {resetMode === 'temporary'
+              ? 'Enter the temporary password from your tutor, then choose a new one.'
+              : 'Set your new account password'}
+          </p>
         </div>
 
         {error && (
@@ -107,6 +152,23 @@ export default function ResetPassword() {
 
         {canReset ? (
           <form onSubmit={handleSubmit} className="auth-form">
+            {resetMode === 'temporary' && (
+              <div className="input-group">
+                <label htmlFor="currentPassword">Temporary Password</label>
+                <div className="input-wrapper">
+                  <input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Enter temporary password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                  />
+                  <Lock className="input-icon" size={18} />
+                </div>
+              </div>
+            )}
+
             <div className="input-group">
               <label htmlFor="password">New Password</label>
               <div className="input-wrapper">
