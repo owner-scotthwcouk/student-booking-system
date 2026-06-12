@@ -3,6 +3,7 @@ import { verifySupabaseJwt } from "../_shared/jwt.ts";
 
 type TutorResetPasswordRequest = {
   student_id: string;
+  temp_password?: string;
 };
 
 const corsHeaders = {
@@ -26,6 +27,13 @@ function generateTemporaryPassword(length = 14) {
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
+function sha256Hex(value: string) {
+  const encoder = new TextEncoder();
+  return crypto.subtle.digest("SHA-256", encoder.encode(value)).then((buffer) =>
+    Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, "0")).join("")
+  );
+}
+
 Deno.serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -40,7 +48,7 @@ Deno.serve(async (req) => {
     const tutorId = (payload.sub as string) || "";
     if (!tutorId) return json(401, { error: "Unauthorized" });
 
-    const { student_id } = (await req.json()) as TutorResetPasswordRequest;
+    const { student_id, temp_password } = (await req.json()) as TutorResetPasswordRequest;
     if (!student_id) {
       return json(400, { error: "student_id is required" });
     }
@@ -79,7 +87,10 @@ Deno.serve(async (req) => {
       return json(400, { error: "Student does not have an email address" });
     }
 
-    const temporaryPassword = generateTemporaryPassword();
+    const temporaryPassword = (temp_password || generateTemporaryPassword()).trim();
+    if (temporaryPassword.length < 6) {
+      return json(400, { error: "Temporary password must be at least 6 characters" });
+    }
 
     const { data: studentAuth, error: studentAuthError } =
       await supabase.auth.admin.getUserById(student_id);
@@ -104,6 +115,23 @@ Deno.serve(async (req) => {
 
     if (updateUserError) {
       return json(500, { error: updateUserError.message || "Failed to update student password" });
+    }
+
+    const passwordHash = await sha256Hex(temporaryPassword);
+    const issuedAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error: tempPasswordInsertError } = await supabase
+      .from("student_temporary_passwords")
+      .insert({
+        student_id,
+        tutor_id: tutorId,
+        password_hash: passwordHash,
+        issued_at: issuedAt,
+        expires_at: expiresAt,
+      });
+
+    if (tempPasswordInsertError) {
+      return json(500, { error: tempPasswordInsertError.message || "Failed to store temporary password" });
     }
 
     const tutorName = tutorProfile.full_name || tutorProfile.email || "Tutor";
@@ -140,6 +168,7 @@ Deno.serve(async (req) => {
       email: studentProfile.email,
       request_id: logRow.id,
       temporary_password: temporaryPassword,
+      expires_at: expiresAt,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

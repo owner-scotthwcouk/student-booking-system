@@ -64,6 +64,22 @@ Deno.serve(async (req) => {
       return json(500, { error: updateError.message || "Failed to clear temporary password flag" });
     }
 
+    const { data: tempPasswordRow } = await supabase
+      .from("student_temporary_passwords")
+      .select("id")
+      .eq("student_id", studentId)
+      .is("used_at", null)
+      .order("issued_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (tempPasswordRow?.id) {
+      await supabase
+        .from("student_temporary_passwords")
+        .update({ used_at: new Date().toISOString() })
+        .eq("id", tempPasswordRow.id);
+    }
+
     return json(200, { ok: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

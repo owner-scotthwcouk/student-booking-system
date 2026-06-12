@@ -1,8 +1,8 @@
 import { supabase } from './supabaseClient'
 
-export async function issueStudentTemporaryPassword(studentId) {
+export async function issueStudentTemporaryPassword(studentId, tempPassword) {
   const { data, error } = await supabase.functions.invoke('tutor-reset-password', {
-    body: { student_id: studentId }
+    body: { student_id: studentId, temp_password: tempPassword }
   })
 
   if (error) {
