@@ -1,5 +1,51 @@
 import { supabase } from './supabaseClient'
 
+export const PAYMENT_UPDATE_EVENT = 'student-booking-system:payments-updated'
+export const PAYMENT_UPDATE_STORAGE_KEY = 'student-booking-system:last-payment-update'
+
+export function notifyPaymentUpdate(studentId) {
+  if (typeof window === 'undefined') return
+
+  const payload = {
+    studentId: studentId || null,
+    updatedAt: new Date().toISOString(),
+  }
+
+  try {
+    window.localStorage.setItem(PAYMENT_UPDATE_STORAGE_KEY, JSON.stringify(payload))
+  } catch (error) {
+    console.warn('Failed to persist payment update signal:', error)
+  }
+
+  window.dispatchEvent(new CustomEvent(PAYMENT_UPDATE_EVENT, { detail: payload }))
+}
+
+export function subscribeToStudentPayments(studentId, onChange) {
+  if (!studentId || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel(`payments:${studentId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'payments',
+        filter: `student_id=eq.${studentId}`,
+      },
+      (payload) => {
+        onChange(payload)
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
 // Get payments for a student
 export async function getStudentPayments(studentId) {
   try {
@@ -44,6 +90,7 @@ export async function createPayment(paymentData) {
       .single()
     
     if (error) throw error
+    notifyPaymentUpdate(paymentData.studentId)
     return { data, error: null }
   } catch (error) {
     console.error('Error creating payment:', error)
@@ -85,6 +132,7 @@ export async function recordBookingPayment(paymentData) {
       if (bookingError) throw bookingError
     }
 
+    notifyPaymentUpdate(paymentData.studentId)
     return { data, error: null }
   } catch (error) {
     console.error('Error recording booking payment:', error)
@@ -112,6 +160,7 @@ export async function recordPayment(bookingId, studentId, amount, paymentReferen
       .single()
     
     if (error) throw error
+    notifyPaymentUpdate(studentId)
     return { data, error: null }
   } catch (error) {
     console.error('Error recording payment:', error)
@@ -171,6 +220,7 @@ export async function deletePayment(paymentId) {
       if (bookingError) throw bookingError
     }
 
+    notifyPaymentUpdate(payment?.student_id || null)
     return { data: true, error: null }
   } catch (error) {
     console.error('Error deleting payment:', error)
@@ -229,6 +279,7 @@ export async function issueRefund(bookingId, studentId, amount) {
       if (bookingError) throw bookingError
     }
 
+    notifyPaymentUpdate(studentId)
     return { data: true, error: null }
   } catch (error) {
     console.error('Error issuing refund:', error)

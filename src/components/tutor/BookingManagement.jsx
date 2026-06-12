@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { cancelBooking, ensureBookingVideoRoom, getTutorBookings, markBookingPaidByCash, updateBookingStatus } from '../../lib/bookingAPI'
+import { cancelBooking, ensureBookingVideoRoom, getTutorBookings, markBookingPaidByCash, subscribeToTutorBookings, updateBookingStatus } from '../../lib/bookingAPI'
 import { buildVideoRoomUrl } from '../../lib/videoRoomAPI'
 import { recordBookingPayment } from '../../lib/paymentsAPI'
 
@@ -41,6 +41,14 @@ export default function BookingManagement({ tutorId }) {
   useEffect(() => {
     loadBookings()
   }, [loadBookings])
+
+  useEffect(() => {
+    if (!tutorId) return
+
+    return subscribeToTutorBookings(tutorId, () => {
+      loadBookings()
+    })
+  }, [tutorId, loadBookings])
 
   const handleStatusChange = useCallback(
     async (bookingId, newStatus) => {
@@ -174,7 +182,7 @@ export default function BookingManagement({ tutorId }) {
     } catch (err) {
       setError(err.message || 'Failed to assign payment')
     }
-  }, [loadBookings])
+  }, [loadBookings, tutorId])
 
   if (loading) return <div>Loading bookings...</div>
 

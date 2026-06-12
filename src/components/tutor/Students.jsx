@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { getAllStudents, getProfile, updateStudentProfile } from '../../lib/profileAPI'
-import { getStudentPayments } from '../../lib/paymentsAPI'
+import { getStudentPayments, PAYMENT_UPDATE_EVENT, PAYMENT_UPDATE_STORAGE_KEY, subscribeToStudentPayments } from '../../lib/paymentsAPI'
 import { getTutorBookings } from '../../lib/bookingAPI'
 import { sendStudentEmail } from '../../lib/emailAPI'
 import { getStudentPasswordResetRequests, getStudentTemporaryPasswords, issueStudentTemporaryPassword } from '../../lib/tutorPasswordAPI'
@@ -65,6 +65,11 @@ export default function TutorStudents({ onPreviewStudent }) {
   const [showTempPasswordModal, setShowTempPasswordModal] = useState(false)
   const [tempPasswordInput, setTempPasswordInput] = useState('')
   const [tempPasswordModalError, setTempPasswordModalError] = useState('')
+  const studentProfileRef = useRef(null)
+
+  useEffect(() => {
+    studentProfileRef.current = studentProfile
+  }, [studentProfile])
 
   const loadData = useCallback(async () => {
     try {
@@ -207,6 +212,58 @@ export default function TutorStudents({ onPreviewStudent }) {
   useEffect(() => {
     if (user) loadData()
   }, [user, loadData])
+
+  useEffect(() => {
+    if (!selectedStudentId) return
+
+    const refreshSelectedStudent = () => {
+      loadStudentDetails(selectedStudentId, studentProfileRef.current)
+    }
+
+    const handlePaymentUpdate = (event) => {
+      const updatedStudentId = event?.detail?.studentId || null
+      if (!updatedStudentId || updatedStudentId === selectedStudentId) {
+        refreshSelectedStudent()
+      }
+    }
+
+    const handleStorageUpdate = (event) => {
+      if (event.key !== PAYMENT_UPDATE_STORAGE_KEY || !event.newValue) return
+      try {
+        const payload = JSON.parse(event.newValue)
+        if (!payload.studentId || payload.studentId === selectedStudentId) {
+          refreshSelectedStudent()
+        }
+      } catch (error) {
+        console.warn('Failed to parse payment update signal:', error)
+      }
+    }
+
+    const handleFocus = () => refreshSelectedStudent()
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshSelectedStudent()
+    }
+
+    window.addEventListener(PAYMENT_UPDATE_EVENT, handlePaymentUpdate)
+    window.addEventListener('storage', handleStorageUpdate)
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener(PAYMENT_UPDATE_EVENT, handlePaymentUpdate)
+      window.removeEventListener('storage', handleStorageUpdate)
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [selectedStudentId, loadStudentDetails])
+
+  useEffect(() => {
+    if (!selectedStudentId) return
+
+    return subscribeToStudentPayments(selectedStudentId, () => {
+      loadStudentDetails(selectedStudentId, studentProfileRef.current)
+    })
+  }, [selectedStudentId, loadStudentDetails])
 
   const handleEditChange = (e) => {
     const { name, value } = e.target

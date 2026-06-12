@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getStudentPayments } from '../../lib/paymentsAPI'
+import { getStudentPayments, PAYMENT_UPDATE_EVENT, PAYMENT_UPDATE_STORAGE_KEY, subscribeToStudentPayments } from '../../lib/paymentsAPI'
 import { CreditCard, AlertCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -27,6 +27,56 @@ export default function StudentPayments({ studentId }) {
     if (studentId) {
       loadPayments()
     }
+  }, [studentId, loadPayments])
+
+  useEffect(() => {
+    if (!studentId) return
+
+    const refreshPayments = () => loadPayments()
+
+    const handlePaymentUpdate = (event) => {
+      const updatedStudentId = event?.detail?.studentId || null
+      if (!updatedStudentId || updatedStudentId === studentId) {
+        refreshPayments()
+      }
+    }
+
+    const handleStorageUpdate = (event) => {
+      if (event.key !== PAYMENT_UPDATE_STORAGE_KEY || !event.newValue) return
+      try {
+        const payload = JSON.parse(event.newValue)
+        if (!payload.studentId || payload.studentId === studentId) {
+          refreshPayments()
+        }
+      } catch (error) {
+        console.warn('Failed to parse payment update signal:', error)
+      }
+    }
+
+    const handleFocus = () => refreshPayments()
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshPayments()
+    }
+
+    window.addEventListener(PAYMENT_UPDATE_EVENT, handlePaymentUpdate)
+    window.addEventListener('storage', handleStorageUpdate)
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener(PAYMENT_UPDATE_EVENT, handlePaymentUpdate)
+      window.removeEventListener('storage', handleStorageUpdate)
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [studentId, loadPayments])
+
+  useEffect(() => {
+    if (!studentId) return
+
+    return subscribeToStudentPayments(studentId, () => {
+      loadPayments()
+    })
   }, [studentId, loadPayments])
 
   const totalPaid = payments

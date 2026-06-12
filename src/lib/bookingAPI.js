@@ -1,5 +1,58 @@
 // src/lib/bookingAPI.js
 import { supabase } from './supabaseClient'
+import { notifyPaymentUpdate } from './paymentsAPI'
+
+export function subscribeToStudentBookings(studentId, onChange) {
+  if (!studentId || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel(`bookings:student:${studentId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `student_id=eq.${studentId}`,
+      },
+      (payload) => {
+        onChange(payload)
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
+export function subscribeToTutorBookings(tutorId, onChange) {
+  if (!tutorId || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel(`bookings:tutor:${tutorId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `tutor_id=eq.${tutorId}`,
+      },
+      (payload) => {
+        onChange(payload)
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
 
 function generateHexToken(length = 24) {
   const bytes = new Uint8Array(Math.ceil(length / 2))
@@ -300,6 +353,7 @@ export async function markBookingPaidByCash(bookingId, studentId, amount) {
       })
 
     if (paymentError) throw paymentError
+    notifyPaymentUpdate(studentId)
     return { data, error: null }
   } catch (error) {
     console.error('Error marking booking as paid by cash:', error)

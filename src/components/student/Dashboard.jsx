@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/auth'
-import { getStudentBookings } from '../../lib/bookingAPI'
+import { getStudentBookings, subscribeToStudentBookings } from '../../lib/bookingAPI'
 import { getAllTutors } from '../../lib/profileAPI'
 import Profile from './Profile'
 import Lessons from './Lessons'
@@ -55,6 +55,14 @@ export default function StudentDashboard() {
       loadTutors()
     }
   }, [user, loadBookings, loadTutors])
+
+  useEffect(() => {
+    if (!user?.id) return
+
+    return subscribeToStudentBookings(user.id, () => {
+      loadBookings()
+    })
+  }, [user?.id, loadBookings])
 
   const handleBookLesson = () => {
     if (tutorLoadingError) {

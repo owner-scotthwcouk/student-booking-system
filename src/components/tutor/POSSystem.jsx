@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { getAllStudents, getTutorHourlyRate } from '../../lib/profileAPI'
 import { createBooking, getTutorBookings } from '../../lib/bookingAPI'
-import { recordBookingPayment } from '../../lib/paymentsAPI'
+import { recordBookingPayment, notifyPaymentUpdate } from '../../lib/paymentsAPI'
 import { supabase } from '../../lib/supabaseClient'
 
 function parseLessonDate(lessonDate) {
@@ -222,6 +222,7 @@ export default function POSSystem() {
             })
 
           if (paymentError) throw paymentError
+          notifyPaymentUpdate(formData.studentId)
         } else {
           const { error: updateError } = await supabase
             .from('bookings')
