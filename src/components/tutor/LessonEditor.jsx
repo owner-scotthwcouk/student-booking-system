@@ -6,6 +6,7 @@ export default function LessonEditor({ tutorId }) {
   const [students, setStudents] = useState([])
   const [selectedLesson, setSelectedLesson] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [showArchivedLessons, setShowArchivedLessons] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -42,6 +43,9 @@ export default function LessonEditor({ tutorId }) {
       console.error('Failed to load students', err)
     }
   }, [])
+
+  const activeLessons = lessons.filter((lesson) => lesson.status !== 'archived')
+  const archivedLessons = lessons.filter((lesson) => lesson.status === 'archived')
 
   useEffect(() => {
     loadLessons()
@@ -137,6 +141,10 @@ export default function LessonEditor({ tutorId }) {
     try {
       const { error } = await archiveLesson(lessonId)
       if (error) throw error
+      if (selectedLesson?.id === lessonId) {
+        setSelectedLesson(null)
+        setShowForm(false)
+      }
       loadLessons()
     } catch (err) {
       setError(err.message || 'Failed to archive lesson')
@@ -317,12 +325,12 @@ export default function LessonEditor({ tutorId }) {
           marginTop: '1.5rem'
         }}
       >
-        {lessons.length === 0 ? (
+        {activeLessons.length === 0 ? (
           <div className="empty-state" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: '#666' }}>
-            No lessons found.
+            No active lessons found.
           </div>
         ) : (
-          lessons.map((lesson) => (
+          activeLessons.map((lesson) => (
             <div
               key={lesson.id}
               className="lesson-card"
@@ -396,6 +404,81 @@ export default function LessonEditor({ tutorId }) {
           ))
         )}
       </div>
+
+      {archivedLessons.length > 0 && (
+        <div style={{ marginTop: '2rem' }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowArchivedLessons((prev) => !prev)}
+            style={{ marginBottom: '1rem' }}
+          >
+            {showArchivedLessons ? `Hide Archived Lessons (${archivedLessons.length})` : `Show Archived Lessons (${archivedLessons.length})`}
+          </button>
+
+          {showArchivedLessons && (
+            <div
+              className="lessons-list archived-lessons-list"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: '1rem'
+              }}
+            >
+              {archivedLessons.map((lesson) => (
+                <div
+                  key={lesson.id}
+                  className="lesson-card"
+                  style={{
+                    background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.5))',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    opacity: 0.85
+                  }}
+                >
+                  <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#cbd5e1' }}>{lesson.title}</h3>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#cbd5e1' }}>
+                      <strong>Student:</strong> {lesson.student?.full_name || 'N/A'}
+                    </p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#cbd5e1' }}>
+                      <strong>Date:</strong> {new Date(lesson.lesson_date).toLocaleDateString()}
+                    </p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#cbd5e1' }}>
+                      <strong>Time:</strong> {lesson.lesson_time.slice(0, 5)}
+                    </p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: '#cbd5e1' }}>
+                      <strong>Status:</strong>{' '}
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '20px',
+                          fontSize: '0.85rem',
+                          backgroundColor: 'rgba(107, 114, 128, 0.2)',
+                          color: '#d1d5db',
+                          textTransform: 'capitalize'
+                        }}
+                      >
+                        archived
+                      </span>
+                    </p>
+                  </div>
+                  <div className="lesson-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button onClick={() => handleEdit(lesson)} className="btn-secondary" style={{ flex: '1 1 auto', minWidth: '80px' }}>
+                      Edit
+                    </button>
+                    <button onClick={() => handleDelete(lesson.id)} className="btn-danger" style={{ flex: '1 1 auto', minWidth: '80px' }}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
