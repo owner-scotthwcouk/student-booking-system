@@ -26,7 +26,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // 1. Sign in
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({
           email,
@@ -39,7 +38,6 @@ export default function Login() {
         throw new Error("Login failed");
       }
 
-      // 2. Fetch profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
@@ -48,25 +46,21 @@ export default function Login() {
 
       if (profileError) throw profileError;
 
-      // 3. Normalize role to lowercase for robust comparison
       const role = profile.role?.toLowerCase().trim();
 
-      // 4. Maintenance check for students
       if (role === "student") {
         try {
           const { data: setting } = await getSystemSetting("maintenance_mode");
           if (setting && setting.value === "true") {
             await supabase.auth.signOut();
-            throw new Error(
-              "⚠️ Maintenance: We are currently upgrading the system. Please try again later.",
-            );
+            navigate("/maintenance", { replace: true });
+            return;
           }
         } catch (maintenanceError) {
           console.error("Maintenance check skipped:", maintenanceError);
         }
       }
 
-      // 5. Redirect based on role
       if (role === "tutor") {
         navigate("/tutor");
       } else if (role === "student") {

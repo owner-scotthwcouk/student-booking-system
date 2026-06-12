@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/auth'
 import Home from './components/Home'
 import Login from './components/auth/Login'
@@ -13,8 +14,10 @@ import Policies from './pages/Policies' //
 import VideoRoom from './components/VideoRoom/VideoRoom'
 import VideoRoomPage from './pages/VideoRoomPage'
 import PaymentPage from './pages/PaymentPage'
+import MaintenancePage from './pages/Maintenance'
+import { getSystemSetting } from './lib/settingsAPI'
 
-function ProtectedRoute({ children, allowedRole }) {
+function ProtectedRoute({ children, allowedRole, maintenanceMode }) {
   const { user, profile, loading } = useAuth()
   const resolvedRole = profile?.role ?? user?.user_metadata?.role ?? user?.app_metadata?.role ?? null
 
@@ -52,6 +55,10 @@ function ProtectedRoute({ children, allowedRole }) {
     return <Navigate to="/login" />
   }
 
+  if (maintenanceMode && resolvedRole === 'student') {
+    return <Navigate to="/maintenance" replace />
+  }
+
   if (allowedRole && resolvedRole !== allowedRole) {
     if (resolvedRole === 'tutor') {
       return <Navigate to="/tutor" replace />
@@ -72,9 +79,51 @@ function ProtectedRoute({ children, allowedRole }) {
 }
 
 function AppRoutes() {
-  const { loading } = useAuth()
+  const { loading, user, profile } = useAuth()
+  const location = useLocation()
+  const resolvedRole = profile?.role ?? user?.user_metadata?.role ?? user?.app_metadata?.role ?? null
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false)
 
-  if (loading) {
+  useEffect(() => {
+    let mounted = true
+
+    const loadMaintenance = async () => {
+      if (resolvedRole !== 'student') {
+        if (mounted) {
+          setMaintenanceMode(false)
+          setMaintenanceLoading(false)
+        }
+        return
+      }
+
+      setMaintenanceLoading(true)
+      try {
+        const { data } = await getSystemSetting('maintenance_mode')
+        if (mounted) {
+          setMaintenanceMode(data?.value === 'true')
+        }
+      } catch {
+        if (mounted) {
+          setMaintenanceMode(false)
+        }
+      } finally {
+        if (mounted) {
+          setMaintenanceLoading(false)
+        }
+      }
+    }
+
+    if (!loading) {
+      loadMaintenance()
+    }
+
+    return () => {
+      mounted = false
+    }
+  }, [loading, resolvedRole])
+
+  if (loading || maintenanceLoading) {
     return (
       <div style={{
         display: 'flex',
@@ -104,6 +153,10 @@ function AppRoutes() {
     )
   }
 
+  if (maintenanceMode && resolvedRole === 'student' && location.pathname !== '/maintenance') {
+    return <Navigate to="/maintenance" replace />
+  }
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />
@@ -112,14 +165,15 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/policies" element={<Policies />} />
+      <Route path="/maintenance" element={<MaintenancePage />} />
       
-      <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
-      <Route path="/student/tutors" element={<ProtectedRoute allowedRole="student"><TutorSelection /></ProtectedRoute>} />
-      <Route path="/student/book/:tutorId" element={<ProtectedRoute allowedRole="student"><BookingForm /></ProtectedRoute>} />
-      <Route path="/payment/:bookingId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
-      <Route path="/video/:roomToken" element={<ProtectedRoute><VideoRoomPage /></ProtectedRoute>} />
+      <Route path="/student" element={<ProtectedRoute allowedRole="student" maintenanceMode={maintenanceMode}><StudentDashboard /></ProtectedRoute>} />
+      <Route path="/student/tutors" element={<ProtectedRoute allowedRole="student" maintenanceMode={maintenanceMode}><TutorSelection /></ProtectedRoute>} />
+      <Route path="/student/book/:tutorId" element={<ProtectedRoute allowedRole="student" maintenanceMode={maintenanceMode}><BookingForm /></ProtectedRoute>} />
+      <Route path="/payment/:bookingId" element={<ProtectedRoute maintenanceMode={maintenanceMode}><PaymentPage /></ProtectedRoute>} />
+      <Route path="/video/:roomToken" element={<ProtectedRoute maintenanceMode={maintenanceMode}><VideoRoomPage /></ProtectedRoute>} />
       
-      <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor"><TutorDashboard /></ProtectedRoute>} />
+      <Route path="/tutor" element={<ProtectedRoute allowedRole="tutor" maintenanceMode={maintenanceMode}><TutorDashboard /></ProtectedRoute>} />
 
       <Route path="/video-room/:meetingId" element={<VideoRoom />} />
       <Route path="*" element={<Navigate to="/" />} />   
