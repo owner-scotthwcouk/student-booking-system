@@ -46,8 +46,8 @@ export function AuthProvider({ children }) {
     // Get initial session
     const initAuth = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        const sessionUser = data.session?.user ?? null;
+        const { data } = await supabase.auth.getUser();
+        const sessionUser = data.user ?? null;
         setUser(sessionUser);
         await loadProfile(sessionUser);
       } catch (err) {
@@ -63,9 +63,20 @@ export function AuthProvider({ children }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user ?? null;
-      setUser(sessionUser);
-      void loadProfile(sessionUser);
-      setLoading(false);
+      void (async () => {
+        try {
+          const { data } = await supabase.auth.getUser();
+          const freshUser = data.user ?? sessionUser;
+          setUser(freshUser);
+          void loadProfile(freshUser);
+        } catch (err) {
+          console.error("Error refreshing auth user:", err);
+          setUser(sessionUser);
+          void loadProfile(sessionUser);
+        } finally {
+          setLoading(false);
+        }
+      })();
     });
 
     return () => subscription.unsubscribe();

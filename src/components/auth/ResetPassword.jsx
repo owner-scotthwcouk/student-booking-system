@@ -22,10 +22,10 @@ export default function ResetPassword() {
 
     async function checkResetSession() {
       try {
-        const { data } = await supabase.auth.getSession()
+        const { data } = await supabase.auth.getUser()
         if (!mounted) return
 
-        const sessionUser = data?.session?.user ?? null
+        const sessionUser = data?.user ?? null
         const hasSession = Boolean(sessionUser)
         const forceReset = Boolean(sessionUser?.app_metadata?.force_password_reset)
 

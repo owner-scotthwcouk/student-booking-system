@@ -38,6 +38,9 @@ export default function Login() {
         throw new Error("Login failed");
       }
 
+      const { data: authData } = await supabase.auth.getUser();
+      const freshUser = authData.user ?? data.user;
+
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
@@ -64,7 +67,7 @@ export default function Login() {
       if (role === "tutor") {
         navigate("/tutor");
       } else if (role === "student") {
-        if (data.user?.app_metadata?.force_password_reset) {
+        if (freshUser?.app_metadata?.force_password_reset) {
           navigate("/reset-password", { replace: true });
         } else {
           navigate("/student");
