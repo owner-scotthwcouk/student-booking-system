@@ -68,13 +68,10 @@ export default function ResetPassword() {
 
     setLoading(true)
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password })
-      if (updateError) throw updateError
-
       const { error: finalizeError } = await supabase.functions.invoke(
         'complete-temp-password-reset',
         {
-          body: {},
+          body: { new_password: password },
         },
       )
       if (finalizeError) throw finalizeError
