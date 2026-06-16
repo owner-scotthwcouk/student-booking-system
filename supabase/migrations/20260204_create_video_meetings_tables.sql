@@ -65,7 +65,7 @@ CREATE POLICY "Users can view meeting participants" ON public.video_participants
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.video_meetings vm
-      WHERE vm.id = video_participants.meeting_id
+      WHERE vm.id = video_participants.meeting_id::uuid
       AND (auth.uid() = vm.tutor_id::uuid OR auth.uid() = vm.student_id::uuid)
     )
   );
@@ -75,7 +75,7 @@ CREATE POLICY "Tutors can add participants" ON public.video_participants
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.video_meetings vm
-      WHERE vm.id = meeting_id AND auth.uid() = vm.tutor_id::uuid
+      WHERE vm.id = meeting_id::uuid AND auth.uid() = vm.tutor_id::uuid
     )
   );
 
@@ -84,12 +84,12 @@ CREATE POLICY "Tutors can update participants" ON public.video_participants
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM public.video_meetings vm
-      WHERE vm.id = meeting_id AND auth.uid() = vm.tutor_id::uuid
+      WHERE vm.id = meeting_id::uuid AND auth.uid() = vm.tutor_id::uuid
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.video_meetings vm
-      WHERE vm.id = meeting_id AND auth.uid() = vm.tutor_id::uuid
+      WHERE vm.id = meeting_id::uuid AND auth.uid() = vm.tutor_id::uuid
     )
   );
