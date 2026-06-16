@@ -25,4 +25,5 @@ Deploy checklist
 - Provide the server env vars in your hosting provider (Vercel, Azure, etc.).
 - Ensure RLS policies on Supabase allow the server (service role) to write `payments` and update `bookings`.
 - Configure the Stripe webhook endpoint and protect it with the Stripe signing secret.
+- For the live webhook endpoint, make sure the Supabase Edge Function has the live `STRIPE_WEBHOOK_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` configured in its secrets, then redeploy `stripe-webhook`.
 - Run end-to-end tests for booking → payment → booking status update.

@@ -1,6 +1,10 @@
 import { supabaseAdmin } from "../_shared/supabase.ts";
 import { verifySupabaseJwt } from "../_shared/jwt.ts";
 
+type CompleteTempPasswordResetRequest = {
+  new_password?: string;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -49,6 +53,12 @@ Deno.serve(async (req) => {
       return json(403, { error: "Only students can complete a temporary password reset" });
     }
 
+    const { new_password } = (await req.json()) as CompleteTempPasswordResetRequest;
+    const nextPassword = (new_password || "").trim();
+    if (nextPassword.length < 6) {
+      return json(400, { error: "new_password is required and must be at least 6 characters" });
+    }
+
     const nextAppMetadata = {
       ...(authResult.user.app_metadata ?? {}),
       force_password_reset: false,
@@ -57,6 +67,7 @@ Deno.serve(async (req) => {
     };
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(studentId, {
+      password: nextPassword,
       app_metadata: nextAppMetadata,
     });
 

@@ -59,67 +59,97 @@ serve(async (req) => {
           : session.id;
       const amount = Number(session.amount_total || 0) / 100;
 
-      if (bookingId && studentId) {
-        const { data: booking, error: bookingLookupError } = await supabase
-          .from("bookings")
-          .select("tutor_id")
-          .eq("id", bookingId)
-          .single();
+      if (!bookingId || !studentId) {
+        console.error("stripe-webhook missing booking or student metadata", {
+          eventId: event.id,
+          sessionId: session.id,
+          bookingId,
+          studentId,
+        });
+        return new Response("OK", { status: 200 });
+      }
 
-        if (bookingLookupError) {
-          throw bookingLookupError;
+      const { data: booking, error: bookingLookupError } = await supabase
+        .from("bookings")
+        .select("tutor_id")
+        .eq("id", bookingId)
+        .single();
+
+      if (bookingLookupError) {
+        console.error("stripe-webhook could not load booking", {
+          eventId: event.id,
+          sessionId: session.id,
+          bookingId,
+          error: bookingLookupError,
+        });
+        return new Response("OK", { status: 200 });
+      }
+
+      if (stripeCustomerId) {
+        const { error: customerUpdateError } = await supabase
+          .from("profiles")
+          .update({ stripe_customer_id: stripeCustomerId })
+          .eq("id", studentId);
+
+        if (customerUpdateError) {
+          console.warn("Failed to persist Stripe customer id:", customerUpdateError);
         }
+      }
 
-        if (stripeCustomerId) {
-          const { error: customerUpdateError } = await supabase
-            .from("profiles")
-            .update({ stripe_customer_id: stripeCustomerId })
-            .eq("id", studentId);
+      const { data: existingPayments, error: existingPaymentError } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("transaction_reference", transactionReference)
+        .limit(1);
 
-          if (customerUpdateError) {
-            console.warn("Failed to persist Stripe customer id:", customerUpdateError);
-          }
-        }
+      if (existingPaymentError) {
+        console.error("stripe-webhook failed to check for existing payment", {
+          eventId: event.id,
+          sessionId: session.id,
+          bookingId,
+          error: existingPaymentError,
+        });
+        return new Response("OK", { status: 200 });
+      }
 
-        const { data: existingPayment, error: existingPaymentError } = await supabase
-          .from("payments")
-          .select("id")
-          .eq("transaction_reference", transactionReference)
-          .maybeSingle();
+      if (!existingPayments || existingPayments.length === 0) {
+        const { error: insertError } = await supabase.from("payments").insert({
+          booking_id: bookingId,
+          student_id: studentId,
+          tutor_id: booking?.tutor_id || null,
+          amount,
+          currency: "GBP",
+          payment_method: "stripe",
+          transaction_reference: transactionReference,
+          order_reference: session.id,
+          status: "completed",
+          payment_date: new Date().toISOString(),
+        });
 
-        if (existingPaymentError) {
-          throw existingPaymentError;
-        }
-
-        if (!existingPayment) {
-          const { error: insertError } = await supabase.from("payments").insert({
-            booking_id: bookingId,
-            student_id: studentId,
-            tutor_id: booking?.tutor_id || null,
-            amount,
-            currency: "GBP",
-            payment_method: "stripe",
-            transaction_reference: transactionReference,
-            order_reference: session.id,
-            status: "completed",
-            payment_date: new Date().toISOString(),
+        if (insertError) {
+          console.error("stripe-webhook failed to persist payment", {
+            eventId: event.id,
+            sessionId: session.id,
+            bookingId,
+            error: insertError,
           });
-
-          if (insertError) {
-            throw insertError;
-          }
+          return new Response("OK", { status: 200 });
         }
+      }
 
-        const { error: bookingError } = await supabase
-          .from("bookings")
-          .update({ status: "confirmed", payment_status: "paid" })
-          .eq("id", bookingId);
+      const { error: bookingError } = await supabase
+        .from("bookings")
+        .update({ status: "confirmed", payment_status: "paid" })
+        .eq("id", bookingId);
 
-        if (bookingError) {
-          throw bookingError;
-        }
-      } else {
-        throw new Error("Missing booking or student metadata on Stripe session");
+      if (bookingError) {
+        console.error("stripe-webhook failed to update booking", {
+          eventId: event.id,
+          sessionId: session.id,
+          bookingId,
+          error: bookingError,
+        });
+        return new Response("OK", { status: 200 });
       }
     }
 

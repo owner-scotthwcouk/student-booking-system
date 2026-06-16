@@ -80,24 +80,28 @@ export default function ResetPassword() {
           password: currentPassword,
         })
         if (signInError) throw signInError
-      }
 
-      const { error: updateError } = await supabase.auth.updateUser({ password })
-      if (updateError) throw updateError
-
-      if (resetMode === 'temporary') {
         const { error: finalizeError } = await supabase.functions.invoke(
           'complete-temp-password-reset',
           {
-            body: {},
+            body: { new_password: password },
           },
         )
         if (finalizeError) throw finalizeError
 
-        await supabase.auth.refreshSession()
+        await supabase.auth.signOut()
+        const { error: reSignInError } = await supabase.auth.signInWithPassword({
+          email: sessionEmail,
+          password,
+        })
+        if (reSignInError) throw reSignInError
+
         setSuccess('Password updated successfully. Redirecting to your dashboard...')
         setTimeout(() => navigate('/student', { replace: true }), 1200)
       } else {
+        const { error: updateError } = await supabase.auth.updateUser({ password })
+        if (updateError) throw updateError
+
         await supabase.auth.signOut()
         setSuccess('Password updated successfully. Redirecting to login...')
         setTimeout(() => navigate('/login', { replace: true }), 1200)
