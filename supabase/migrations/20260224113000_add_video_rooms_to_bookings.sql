@@ -5,11 +5,11 @@ alter table public.bookings
   add column if not exists video_room_created_at timestamptz not null default now();
 
 alter table public.bookings
-  alter column video_room_token set default encode(gen_random_bytes(12), 'hex');
+  alter column video_room_token set default replace(gen_random_uuid()::text, '-', '');
 
 -- Backfill existing rows.
 update public.bookings
-set video_room_token = encode(gen_random_bytes(12), 'hex')
+set video_room_token = replace(gen_random_uuid()::text, '-', '')
 where video_room_token is null;
 
 -- Enforce uniqueness and presence after backfill.
