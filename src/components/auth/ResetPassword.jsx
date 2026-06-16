@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { Lock, Loader2, AlertCircle, KeyRound } from 'lucide-react'
 import BrandLogo from '../shared/BrandLogo'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
-  const [currentPassword, setCurrentPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -14,7 +13,6 @@ export default function ResetPassword() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [canReset, setCanReset] = useState(false)
-  const [resetMode, setResetMode] = useState('recovery')
   const [sessionEmail, setSessionEmail] = useState('')
 
   useEffect(() => {
@@ -29,14 +27,15 @@ export default function ResetPassword() {
         const hasSession = Boolean(sessionUser)
         const forceReset = Boolean(sessionUser?.app_metadata?.force_password_reset)
 
-        setCanReset(hasSession)
+        setCanReset(hasSession && forceReset)
         setSessionEmail(sessionUser?.email || '')
-        setResetMode(forceReset ? 'temporary' : 'recovery')
 
         if (!hasSession) {
-          setError('Reset link is invalid or expired. Request a new one.')
+          setError('This page is only available for temporary password resets.')
         } else if (forceReset) {
           setError('')
+        } else {
+          setError('This page is only available for temporary password resets.')
         }
       } catch {
         if (mounted) setError('Unable to validate reset session.')
@@ -57,11 +56,6 @@ export default function ResetPassword() {
     setError('')
     setSuccess('')
 
-    if (resetMode === 'temporary' && currentPassword.length < 1) {
-      setError('Enter the temporary password provided by your tutor.')
-      return
-    }
-
     if (password.length < 6) {
       setError('Password must be at least 6 characters.')
       return
@@ -74,38 +68,26 @@ export default function ResetPassword() {
 
     setLoading(true)
     try {
-      if (resetMode === 'temporary') {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: sessionEmail,
-          password: currentPassword,
-        })
-        if (signInError) throw signInError
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) throw updateError
 
-        const { error: finalizeError } = await supabase.functions.invoke(
-          'complete-temp-password-reset',
-          {
-            body: { new_password: password },
-          },
-        )
-        if (finalizeError) throw finalizeError
+      const { error: finalizeError } = await supabase.functions.invoke(
+        'complete-temp-password-reset',
+        {
+          body: {},
+        },
+      )
+      if (finalizeError) throw finalizeError
 
-        await supabase.auth.signOut()
-        const { error: reSignInError } = await supabase.auth.signInWithPassword({
-          email: sessionEmail,
-          password,
-        })
-        if (reSignInError) throw reSignInError
+      await supabase.auth.signOut()
+      const { error: reSignInError } = await supabase.auth.signInWithPassword({
+        email: sessionEmail,
+        password,
+      })
+      if (reSignInError) throw reSignInError
 
-        setSuccess('Password updated successfully. Redirecting to your dashboard...')
-        setTimeout(() => navigate('/student', { replace: true }), 1200)
-      } else {
-        const { error: updateError } = await supabase.auth.updateUser({ password })
-        if (updateError) throw updateError
-
-        await supabase.auth.signOut()
-        setSuccess('Password updated successfully. Redirecting to login...')
-        setTimeout(() => navigate('/login', { replace: true }), 1200)
-      }
+      setSuccess('Password updated successfully. Redirecting to your dashboard...')
+      setTimeout(() => navigate('/student', { replace: true }), 1200)
     } catch (err) {
       setError(err.message || 'Failed to update password')
     } finally {
@@ -134,12 +116,8 @@ export default function ResetPassword() {
           <div className="header-icon">
             <KeyRound size={32} />
           </div>
-          <h2>{resetMode === 'temporary' ? 'Set New Password' : 'Reset Password'}</h2>
-          <p>
-            {resetMode === 'temporary'
-              ? 'Enter the temporary password from your tutor, then choose a new one.'
-              : 'Set your new account password'}
-          </p>
+          <h2>Set New Password</h2>
+          <p>Choose a new password for your student account.</p>
         </div>
 
         {error && (
@@ -156,23 +134,6 @@ export default function ResetPassword() {
 
         {canReset ? (
           <form onSubmit={handleSubmit} className="auth-form">
-            {resetMode === 'temporary' && (
-              <div className="input-group">
-                <label htmlFor="currentPassword">Temporary Password</label>
-                <div className="input-wrapper">
-                  <input
-                    id="currentPassword"
-                    type="password"
-                    placeholder="Enter temporary password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    required
-                  />
-                  <Lock className="input-icon" size={18} />
-                </div>
-              </div>
-            )}
-
             <div className="input-group">
               <label htmlFor="password">New Password</label>
               <div className="input-wrapper">
@@ -209,7 +170,7 @@ export default function ResetPassword() {
           </form>
         ) : (
           <div className="auth-footer" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-            <p><Link to="/forgot-password">Request a new reset link</Link></p>
+            <p>Contact your tutor if you need a new temporary password.</p>
           </div>
         )}
       </div>

@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/auth'
 import Home from './components/Home'
 import Login from './components/auth/Login'
 import Register from './components/auth/Register'
-import ForgotPassword from './components/auth/ForgotPassword'
 import ResetPassword from './components/auth/ResetPassword'
 import StudentDashboard from './components/student/StudentDashboard'
 import TutorDashboard from './components/tutor/TutorDashboard'
@@ -162,7 +161,6 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/policies" element={<Policies />} />
       <Route path="/maintenance" element={<MaintenancePage />} />
