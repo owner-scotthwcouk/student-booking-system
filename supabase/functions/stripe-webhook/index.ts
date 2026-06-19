@@ -98,7 +98,7 @@ serve(async (req) => {
 
       const { data: existingPayments, error: existingPaymentError } = await supabase
         .from("payments")
-        .select("id")
+        .select("id, booking_id, student_id, tutor_id, amount, currency, payment_method, status, payment_date, order_reference")
         .eq("transaction_reference", transactionReference)
         .limit(1);
 
@@ -112,18 +112,22 @@ serve(async (req) => {
         return new Response("OK", { status: 200 });
       }
 
+      const paymentPayload = {
+        booking_id: bookingId,
+        student_id: studentId,
+        tutor_id: booking?.tutor_id || null,
+        amount,
+        currency: "GBP",
+        payment_method: "stripe",
+        transaction_reference: transactionReference,
+        order_reference: session.id,
+        status: "completed",
+        payment_date: new Date().toISOString(),
+      };
+
       if (!existingPayments || existingPayments.length === 0) {
         const { error: insertError } = await supabase.from("payments").insert({
-          booking_id: bookingId,
-          student_id: studentId,
-          tutor_id: booking?.tutor_id || null,
-          amount,
-          currency: "GBP",
-          payment_method: "stripe",
-          transaction_reference: transactionReference,
-          order_reference: session.id,
-          status: "completed",
-          payment_date: new Date().toISOString(),
+          ...paymentPayload,
         });
 
         if (insertError) {
@@ -134,6 +138,31 @@ serve(async (req) => {
             error: insertError,
           });
           return new Response("OK", { status: 200 });
+        }
+      } else {
+        const existingPayment = existingPayments[0];
+        const requiresRepair =
+          !existingPayment?.tutor_id ||
+          !existingPayment?.booking_id ||
+          existingPayment?.booking_id !== bookingId ||
+          existingPayment?.student_id !== studentId;
+
+        if (requiresRepair) {
+          const { error: repairError } = await supabase
+            .from("payments")
+            .update(paymentPayload)
+            .eq("id", existingPayment.id);
+
+          if (repairError) {
+            console.error("stripe-webhook failed to repair existing payment", {
+              eventId: event.id,
+              sessionId: session.id,
+              bookingId,
+              paymentId: existingPayment.id,
+              error: repairError,
+            });
+            return new Response("OK", { status: 200 });
+          }
         }
       }
 

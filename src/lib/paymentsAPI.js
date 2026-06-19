@@ -3,6 +3,20 @@ import { supabase } from './supabaseClient'
 export const PAYMENT_UPDATE_EVENT = 'student-booking-system:payments-updated'
 export const PAYMENT_UPDATE_STORAGE_KEY = 'student-booking-system:last-payment-update'
 
+async function resolveTutorIdForBooking(bookingId, fallbackTutorId = null) {
+  if (fallbackTutorId) return fallbackTutorId
+  if (!bookingId) return null
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('tutor_id')
+    .eq('id', bookingId)
+    .single()
+
+  if (error) throw error
+  return data?.tutor_id || null
+}
+
 export function notifyPaymentUpdate(studentId) {
   if (typeof window === 'undefined') return
 
@@ -72,12 +86,13 @@ export async function getStudentPayments(studentId) {
 // Create a payment record (for tutor POS system)
 export async function createPayment(paymentData) {
   try {
+    const tutorId = await resolveTutorIdForBooking(paymentData.bookingId, paymentData.tutorId || null)
     const { data, error } = await supabase
       .from('payments')
       .insert({
         booking_id: paymentData.bookingId || null,
         student_id: paymentData.studentId,
-        tutor_id: paymentData.tutorId || null,
+        tutor_id: tutorId,
         amount: paymentData.amount,
         currency: paymentData.currency || 'GBP',
         payment_method: paymentData.paymentMethod || 'stripe',
@@ -101,12 +116,13 @@ export async function createPayment(paymentData) {
 // Record a payment against an existing booking and mark the booking paid.
 export async function recordBookingPayment(paymentData) {
   try {
+    const tutorId = await resolveTutorIdForBooking(paymentData.bookingId, paymentData.tutorId || null)
     const { data, error } = await supabase
       .from('payments')
       .insert({
         booking_id: paymentData.bookingId,
         student_id: paymentData.studentId,
-        tutor_id: paymentData.tutorId || null,
+        tutor_id: tutorId,
         amount: paymentData.amount,
         currency: paymentData.currency || 'GBP',
         payment_method: paymentData.paymentMethod || 'manual',
@@ -143,12 +159,13 @@ export async function recordBookingPayment(paymentData) {
 // Record a payment from an external payment provider
 export async function recordPayment(bookingId, studentId, amount, paymentReference) {
   try {
+    const tutorId = await resolveTutorIdForBooking(bookingId)
     const { data, error } = await supabase
       .from('payments')
       .insert({
         booking_id: bookingId,
         student_id: studentId,
-        tutor_id: null,
+        tutor_id: tutorId,
         amount: amount,
         currency: 'GBP',
         payment_method: 'stripe',
@@ -235,12 +252,14 @@ export async function issueRefund(bookingId, studentId, amount) {
     if (!studentId) throw new Error('Student ID is required for refund.')
     if (!refundAmount || refundAmount <= 0) throw new Error('Refund amount must be a positive value.')
 
+    const tutorId = await resolveTutorIdForBooking(bookingId)
+
     const { error: insertError } = await supabase
       .from('payments')
       .insert({
         booking_id: bookingId,
         student_id: studentId,
-        tutor_id: null,
+        tutor_id: tutorId,
         amount: refundAmount,
         currency: 'GBP',
         payment_method: 'refund',

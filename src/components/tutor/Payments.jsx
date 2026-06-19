@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import JSZip from 'jszip'
 import { format, endOfDay, parseISO, isValid } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
@@ -13,6 +13,11 @@ export default function TutorPayments({ tutorId }) {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
 
+  const isTutorPayment = useCallback(
+    (payment) => payment?.tutor_id === tutorId || payment?.booking?.tutor_id === tutorId,
+    [tutorId]
+  )
+
   useEffect(() => {
     let mounted = true
 
@@ -22,12 +27,11 @@ export default function TutorPayments({ tutorId }) {
 
         const { data, error } = await supabase
           .from('payments')
-          .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
-          .eq('tutor_id', tutorId)
+          .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, tutor_id, booking:booking_id(tutor_id)')
           .order('payment_date', { ascending: false })
 
         if (error) throw error
-        const paymentsData = data || []
+        const paymentsData = (data || []).filter(isTutorPayment)
         if (mounted) setPayments(paymentsData)
 
         const studentIds = [...new Set(paymentsData.map((item) => item.student_id).filter(Boolean))]
@@ -57,7 +61,7 @@ export default function TutorPayments({ tutorId }) {
 
     if (tutorId) load()
     return () => (mounted = false)
-  }, [tutorId])
+  }, [tutorId, isTutorPayment])
 
   const studentSummaries = Object.entries(studentProfiles).map(([studentId, profile]) => {
     const studentPayments = payments.filter((payment) => payment.student_id === studentId)
@@ -418,12 +422,11 @@ export default function TutorPayments({ tutorId }) {
 
                           const { data: newData, error: reloadError } = await supabase
                             .from('payments')
-                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date')
-                            .eq('tutor_id', tutorId)
+                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, tutor_id, booking:booking_id(tutor_id)')
                             .order('payment_date', { ascending: false })
 
                           if (reloadError) throw reloadError
-                          setPayments(newData || [])
+                          setPayments((newData || []).filter(isTutorPayment))
                         } catch (err) {
                           console.error('Failed to issue refund', err)
                           setError(err.message || 'Failed to issue refund')
@@ -452,12 +455,11 @@ export default function TutorPayments({ tutorId }) {
 
                           const { data: newData, error: reloadError } = await supabase
                             .from('payments')
-                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, tutor_id')
-                            .eq('tutor_id', tutorId)
+                            .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, tutor_id, booking:booking_id(tutor_id)')
                             .order('payment_date', { ascending: false })
 
                           if (reloadError) throw reloadError
-                          setPayments(newData || [])
+                          setPayments((newData || []).filter(isTutorPayment))
                         } catch (err) {
                           console.error('Failed to delete payment', err)
                           setError(err.message || 'Failed to delete payment')
