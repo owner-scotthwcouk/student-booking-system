@@ -113,20 +113,25 @@ export async function getStudentPayments(studentId) {
 export async function createPayment(paymentData) {
   try {
     const tutorId = await resolveTutorIdForBooking(paymentData.bookingId, paymentData.tutorId || null)
+    const paymentPayload = {
+      booking_id: paymentData.bookingId || null,
+      student_id: paymentData.studentId,
+      tutor_id: tutorId,
+      amount: paymentData.amount,
+      currency: paymentData.currency || 'GBP',
+      payment_method: paymentData.paymentMethod || 'stripe',
+      transaction_reference: paymentData.transactionReference,
+      status: paymentData.status || 'completed',
+      payment_date: paymentData.paymentDate || new Date().toISOString()
+    }
+
+    if (paymentData.orderReference) {
+      paymentPayload.order_reference = paymentData.orderReference
+    }
+
     const { data, error } = await supabase
       .from('payments')
-      .insert({
-        booking_id: paymentData.bookingId || null,
-        student_id: paymentData.studentId,
-        tutor_id: tutorId,
-        amount: paymentData.amount,
-        currency: paymentData.currency || 'GBP',
-        payment_method: paymentData.paymentMethod || 'stripe',
-        transaction_reference: paymentData.transactionReference,
-        order_reference: paymentData.orderReference,
-        status: paymentData.status || 'completed',
-        payment_date: paymentData.paymentDate || new Date().toISOString()
-      })
+      .insert(paymentPayload)
       .select()
       .single()
     
@@ -143,20 +148,25 @@ export async function createPayment(paymentData) {
 export async function recordBookingPayment(paymentData) {
   try {
     const tutorId = await resolveTutorIdForBooking(paymentData.bookingId, paymentData.tutorId || null)
+    const paymentPayload = {
+      booking_id: paymentData.bookingId,
+      student_id: paymentData.studentId,
+      tutor_id: tutorId,
+      amount: paymentData.amount,
+      currency: paymentData.currency || 'GBP',
+      payment_method: paymentData.paymentMethod || 'manual',
+      transaction_reference: paymentData.transactionReference,
+      status: paymentData.status || 'completed',
+      payment_date: paymentData.paymentDate || new Date().toISOString()
+    }
+
+    if (paymentData.orderReference) {
+      paymentPayload.order_reference = paymentData.orderReference
+    }
+
     const { data, error } = await supabase
       .from('payments')
-      .insert({
-        booking_id: paymentData.bookingId,
-        student_id: paymentData.studentId,
-        tutor_id: tutorId,
-        amount: paymentData.amount,
-        currency: paymentData.currency || 'GBP',
-        payment_method: paymentData.paymentMethod || 'manual',
-        transaction_reference: paymentData.transactionReference,
-        order_reference: paymentData.orderReference,
-        status: paymentData.status || 'completed',
-        payment_date: paymentData.paymentDate || new Date().toISOString()
-      })
+      .insert(paymentPayload)
       .select()
       .single()
 

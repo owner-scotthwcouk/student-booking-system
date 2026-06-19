@@ -110,7 +110,6 @@ serve(async (req) => {
       currency: "GBP",
       payment_method: "stripe",
       transaction_reference: transactionReference,
-      order_reference: session.id,
       status: "completed",
       payment_date: new Date().toISOString(),
     };

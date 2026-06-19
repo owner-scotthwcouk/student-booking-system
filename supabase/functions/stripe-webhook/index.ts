@@ -98,7 +98,7 @@ serve(async (req) => {
 
       const { data: existingPayments, error: existingPaymentError } = await supabase
         .from("payments")
-        .select("id, booking_id, student_id, tutor_id, amount, currency, payment_method, status, payment_date, order_reference")
+        .select("id, booking_id, student_id, tutor_id, amount, currency, payment_method, status, payment_date")
         .eq("transaction_reference", transactionReference)
         .limit(1);
 
@@ -120,7 +120,6 @@ serve(async (req) => {
         currency: "GBP",
         payment_method: "stripe",
         transaction_reference: transactionReference,
-        order_reference: session.id,
         status: "completed",
         payment_date: new Date().toISOString(),
       };
