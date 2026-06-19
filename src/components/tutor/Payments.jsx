@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import JSZip from 'jszip'
 import { format, endOfDay, parseISO, isValid } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
-import { deletePayment } from '../../lib/paymentsAPI'
+import { deletePayment, PAYMENT_UPDATE_EVENT, PAYMENT_UPDATE_STORAGE_KEY, subscribeToTutorPayments } from '../../lib/paymentsAPI'
 
 export default function TutorPayments({ tutorId }) {
   const [payments, setPayments] = useState([])
@@ -12,56 +12,100 @@ export default function TutorPayments({ tutorId }) {
   const [successMessage, setSuccessMessage] = useState('')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
+  const mountedRef = useRef(true)
 
   const isTutorPayment = useCallback(
     (payment) => payment?.tutor_id === tutorId || payment?.booking?.tutor_id === tutorId,
     [tutorId]
   )
 
-  useEffect(() => {
-    let mounted = true
+  const loadPayments = useCallback(async ({ showLoading = false } = {}) => {
+    try {
+      if (showLoading && mountedRef.current) setLoading(true)
 
-    const load = async () => {
-      try {
-        setLoading(true)
+      const { data, error } = await supabase
+        .from('payments')
+        .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, tutor_id, booking:booking_id(tutor_id)')
+        .order('payment_date', { ascending: false })
 
-        const { data, error } = await supabase
-          .from('payments')
-          .select('id, booking_id, student_id, amount, currency, payment_method, status, payment_date, tutor_id, booking:booking_id(tutor_id)')
-          .order('payment_date', { ascending: false })
+      if (error) throw error
+      const paymentsData = (data || []).filter(isTutorPayment)
+      if (!mountedRef.current) return
+      setPayments(paymentsData)
 
-        if (error) throw error
-        const paymentsData = (data || []).filter(isTutorPayment)
-        if (mounted) setPayments(paymentsData)
+      const studentIds = [...new Set(paymentsData.map((item) => item.student_id).filter(Boolean))]
+      if (studentIds.length) {
+        const { data: students, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', studentIds)
 
-        const studentIds = [...new Set(paymentsData.map((item) => item.student_id).filter(Boolean))]
-        if (studentIds.length) {
-          const { data: students, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, full_name, email')
-            .in('id', studentIds)
+        if (profileError) throw profileError
 
-          if (profileError) throw profileError
-
-          if (mounted) {
-            const profileMap = (students || []).reduce((acc, student) => {
-              acc[student.id] = student
-              return acc
-            }, {})
-            setStudentProfiles(profileMap)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load tutor payments', err)
-        if (mounted) setError(err.message || 'Failed to load')
-      } finally {
-        if (mounted) setLoading(false)
+        if (!mountedRef.current) return
+        const profileMap = (students || []).reduce((acc, student) => {
+          acc[student.id] = student
+          return acc
+        }, {})
+        setStudentProfiles(profileMap)
+      } else {
+        setStudentProfiles({})
       }
+    } catch (err) {
+      console.error('Failed to load tutor payments', err)
+      if (mountedRef.current) setError(err.message || 'Failed to load')
+    } finally {
+      if (mountedRef.current && showLoading) setLoading(false)
+    }
+  }, [isTutorPayment])
+
+  useEffect(() => () => {
+    mountedRef.current = false
+  }, [])
+
+  useEffect(() => {
+    if (tutorId) {
+      loadPayments({ showLoading: true })
+    }
+  }, [tutorId, loadPayments])
+
+  useEffect(() => {
+    if (!tutorId) return
+
+    const handlePaymentUpdate = () => {
+      loadPayments()
     }
 
-    if (tutorId) load()
-    return () => (mounted = false)
-  }, [tutorId, isTutorPayment])
+    const handleStorageUpdate = (event) => {
+      if (event.key !== PAYMENT_UPDATE_STORAGE_KEY || !event.newValue) return
+      loadPayments()
+    }
+
+    const handleFocus = () => loadPayments()
+    const handleVisibilityChange = () => {
+      if (!document.hidden) loadPayments()
+    }
+
+    window.addEventListener(PAYMENT_UPDATE_EVENT, handlePaymentUpdate)
+    window.addEventListener('storage', handleStorageUpdate)
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener(PAYMENT_UPDATE_EVENT, handlePaymentUpdate)
+      window.removeEventListener('storage', handleStorageUpdate)
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [tutorId, loadPayments])
+
+  useEffect(() => {
+    if (!tutorId) return
+
+    return subscribeToTutorPayments(tutorId, () => {
+      loadPayments()
+    })
+  }, [tutorId, loadPayments])
 
   const studentSummaries = Object.entries(studentProfiles).map(([studentId, profile]) => {
     const studentPayments = payments.filter((payment) => payment.student_id === studentId)

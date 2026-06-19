@@ -60,6 +60,32 @@ export function subscribeToStudentPayments(studentId, onChange) {
   }
 }
 
+export function subscribeToTutorPayments(tutorId, onChange) {
+  if (!tutorId || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel(`payments:tutor:${tutorId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'payments',
+        filter: `tutor_id=eq.${tutorId}`,
+      },
+      (payload) => {
+        onChange(payload)
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
 // Get payments for a student
 export async function getStudentPayments(studentId) {
   try {

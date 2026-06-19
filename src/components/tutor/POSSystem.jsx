@@ -12,6 +12,19 @@ function parseLessonDate(lessonDate) {
   return new Date(year, month - 1, day)
 }
 
+function parseLessonDateTime(lessonDate, lessonTime) {
+  if (!lessonDate) return null
+
+  if (lessonTime) {
+    const parsed = new Date(`${lessonDate}T${lessonTime}`)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed
+    }
+  }
+
+  return parseLessonDate(lessonDate)
+}
+
 export default function POSSystem() {
   const { user } = useAuth()
   const [students, setStudents] = useState([])
@@ -82,16 +95,13 @@ export default function POSSystem() {
     }
   }, [user, loadStudents, loadRate, loadBookings])
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   const unpaidPastBookings = bookings.filter((booking) => {
     if (!booking) return false
     if (booking.payment_status === 'paid' || booking.payment_status === 'refunded') return false
     if (booking.status === 'cancelled') return false
-    const lessonDate = parseLessonDate(booking.lesson_date)
-    if (!lessonDate) return false
-    return lessonDate < today
+    const lessonDateTime = parseLessonDateTime(booking.lesson_date, booking.lesson_time)
+    if (!lessonDateTime) return false
+    return lessonDateTime < new Date()
   })
 
   const handleStudentChange = (e) => {
