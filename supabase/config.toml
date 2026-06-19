@@ -401,6 +401,12 @@ verify_jwt = false
 import_map = "./functions/stripe-webhook/deno.json"
 entrypoint = "./functions/stripe-webhook/index.ts"
 
+[functions.stripe-reconcile]
+enabled = true
+verify_jwt = false
+import_map = "./functions/stripe-reconcile/deno.json"
+entrypoint = "./functions/stripe-reconcile/index.ts"
+
 [functions.stripe-portal]
 enabled = true
 verify_jwt = false
