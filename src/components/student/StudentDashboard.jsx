@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/auth'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabaseClient'
 import { 
   User, 
   CalendarPlus, 
@@ -24,8 +26,12 @@ import BrandLogo from '../shared/BrandLogo'
 
 export default function StudentDashboard({ previewStudentId = null, previewStudentProfile = null, previewMode = false }) {
   const { user, profile, signOut } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('lessons') // Default to 'lessons' or 'home'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [paymentSyncMessage, setPaymentSyncMessage] = useState('')
+  const [paymentSyncError, setPaymentSyncError] = useState('')
 
   const studentIdToUse = previewStudentId || user?.id
   const studentProfileDisplay = previewMode ? (previewStudentProfile || profile) : profile
@@ -41,6 +47,64 @@ export default function StudentDashboard({ previewStudentId = null, previewStude
   const handleSignOut = async () => {
     await signOut()
   }
+
+  useEffect(() => {
+    if (previewMode || !user?.id) return
+
+    const searchParams = new URLSearchParams(location.search)
+    const paymentFlag = searchParams.get('payment')
+    const bookingId = searchParams.get('booking_id')
+    const sessionId = searchParams.get('session_id')
+
+    if (paymentFlag !== 'success' || !bookingId || !sessionId) return
+
+    let cancelled = false
+
+    const reconcilePayment = async () => {
+      try {
+        setPaymentSyncError('')
+        setPaymentSyncMessage('Checking Stripe payment...')
+
+        const { data: sessionData } = await supabase.auth.getSession()
+        const accessToken = sessionData?.session?.access_token
+
+        const { data, error } = await supabase.functions.invoke('stripe-reconcile', {
+          body: {
+            bookingId,
+            sessionId,
+          },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        })
+
+        if (error) {
+          throw new Error(error.message || 'Failed to sync Stripe payment')
+        }
+
+        if (cancelled) return
+
+        if (data?.ok) {
+          setPaymentSyncMessage('Payment synced from Stripe.')
+          const nextParams = new URLSearchParams(location.search)
+          nextParams.delete('payment')
+          nextParams.delete('booking_id')
+          nextParams.delete('session_id')
+          navigate({ pathname: location.pathname, search: nextParams.toString() ? `?${nextParams.toString()}` : '' }, { replace: true })
+        } else {
+          throw new Error('Stripe payment could not be synced.')
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPaymentSyncError(err.message || 'Failed to sync Stripe payment')
+        }
+      }
+    }
+
+    reconcilePayment()
+
+    return () => {
+      cancelled = true
+    }
+  }, [location.pathname, location.search, navigate, previewMode, user?.id])
 
   return (
     <div className="dashboard-layout">
@@ -103,6 +167,12 @@ export default function StudentDashboard({ previewStudentId = null, previewStude
           <p className="current-date">
             {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
+          {paymentSyncMessage && (
+            <p style={{ marginTop: '0.5rem', color: '#16a34a' }}>{paymentSyncMessage}</p>
+          )}
+          {paymentSyncError && (
+            <p style={{ marginTop: '0.5rem', color: '#dc2626' }}>{paymentSyncError}</p>
+          )}
         </header>
 
         <div className="content-body">

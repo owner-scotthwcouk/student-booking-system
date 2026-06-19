@@ -88,7 +88,7 @@ serve(async (req) => {
           },
         },
       ],
-      success_url: `${frontendUrl}/student?payment=success&booking_id=${encodeURIComponent(bookingId)}`,
+      success_url: `${frontendUrl}/student?payment=success&booking_id=${encodeURIComponent(bookingId)}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/payment/${encodeURIComponent(bookingId)}?cancelled=1`,
       metadata: {
         booking_id: bookingId,
