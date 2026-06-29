@@ -200,7 +200,8 @@ export default function POSSystem() {
           tutorId: user.id,
           lessonDate: formData.lessonDate,
           lessonTime: formData.lessonTime,
-          duration: 60
+          duration: 60,
+          createdByRole: 'tutor'
         })
 
         if (bookingError) throw bookingError

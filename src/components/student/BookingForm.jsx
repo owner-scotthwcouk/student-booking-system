@@ -1,10 +1,29 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { createBooking, getBlockedTimeSlots } from "../../lib/bookingAPI";
+import {
+  MIN_BOOKING_NOTICE_HOURS,
+  createBooking,
+  getBlockedTimeSlots,
+  isBookingAtLeast24HoursAway,
+} from "../../lib/bookingAPI";
 import { getTutorAvailability } from "../../lib/availabilityAPI";
 import { getTutorHourlyRate, getProfile } from "../../lib/profileAPI";
 import { supabase } from "../../lib/supabaseClient";
 import { useParams } from "react-router-dom";
+
+function formatDateForInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatBookingDeadline(date) {
+  return date.toLocaleString([], {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
 
 function BookingForm() {
   const { tutorId } = useParams();
@@ -19,6 +38,16 @@ function BookingForm() {
   const [loading, setLoading] = useState(false);
   const [hourlyRate, setHourlyRate] = useState(30.0);
   const [tutorName, setTutorName] = useState("");
+
+  const minBookingDate = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    return formatDateForInput(date);
+  }, []);
+
+  const bookingDeadline = useMemo(() => {
+    return new Date(Date.now() + MIN_BOOKING_NOTICE_HOURS * 60 * 60 * 1000);
+  }, []);
 
   const loadTutorInfo = useCallback(async () => {
     const { data: profile } = await getProfile(tutorId);
@@ -87,6 +116,7 @@ function BookingForm() {
 
     const durationMinutes = 60;
     const dayStart = new Date(`${selectedDate}T00:00:00`).getTime();
+    const minimumAllowedStart = Date.now() + MIN_BOOKING_NOTICE_HOURS * 60 * 60 * 1000;
     const times = [];
 
     for (const slot of dayAvailability) {
@@ -102,6 +132,8 @@ function BookingForm() {
         const slotStart = dayStart + t * 60 * 1000;
         const slotEnd = slotStart + durationMinutes * 60 * 1000;
 
+        if (slotStart < minimumAllowedStart) continue;
+
         const overlapsBlocked = blockedRanges.some(
           (b) => slotStart < b.end && slotEnd > b.start,
         );
@@ -111,21 +143,33 @@ function BookingForm() {
     setAvailableTimes(times);
   }, [availability, blockedSlots, selectedDate, selectedDayOfWeek]);
 
+  useEffect(() => {
+    if (selectedTime && !availableTimes.includes(selectedTime)) {
+      setSelectedTime("");
+    }
+  }, [availableTimes, selectedTime]);
+
   const handlePay = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
+      const leadTimeCheck = isBookingAtLeast24HoursAway(selectedDate, selectedTime);
+      if (!leadTimeCheck.valid) {
+        throw new Error(leadTimeCheck.message);
+      }
+
       const { data: booking, error: bookingError } = await createBooking({
         studentId: user.id,
         tutorId: tutorId,
         lessonDate: selectedDate,
         lessonTime: selectedTime,
         duration: 60,
+        createdByRole: "student",
       });
 
-      if (bookingError) throw new Error("Failed to create booking");
+      if (bookingError) throw bookingError;
 
       const { data, error: paymentError } = await supabase.functions.invoke(
         "stripe-init",
@@ -158,7 +202,11 @@ function BookingForm() {
     <div className="booking-form-container">
       <h2>Book a Lesson with {tutorName}</h2>
       <p className="tutor-rate">
-        Hourly Rate: £{Number(hourlyRate).toFixed(2)}
+        Hourly Rate: GBP {Number(hourlyRate).toFixed(2)}
+      </p>
+      <p className="booking-notice">
+        Student bookings must be made at least 24 hours in advance. Earliest allowed start:{" "}
+        {formatBookingDeadline(bookingDeadline)}.
       </p>
       {error && <div className="error">{error}</div>}
       <form onSubmit={handlePay} className="booking-form">
@@ -169,7 +217,7 @@ function BookingForm() {
             id="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
+            min={minBookingDate}
             required
             className="form-input"
           />
@@ -191,13 +239,18 @@ function BookingForm() {
               </option>
             ))}
           </select>
+          {selectedDate && availableTimes.length === 0 && (
+            <p className="helper-text">
+              No times are available for this date once the 24-hour booking window is applied.
+            </p>
+          )}
         </div>
         <button
           type="submit"
-          disabled={loading || !selectedTime}
+          disabled={loading || !selectedTime || !selectedDate}
           className="btn-primary"
         >
-        {loading ? "Redirecting..." : "Continue to Stripe checkout"}
+          {loading ? "Redirecting..." : "Continue to Stripe checkout"}
         </button>
       </form>
 
@@ -239,12 +292,26 @@ function BookingForm() {
           border-radius: 8px;
           cursor: pointer;
         }
+        .tutor-rate {
+          color: #ffffff;
+          margin-bottom: 1.5rem;
+        }
+        .booking-notice {
+          color: #cbd5e1;
+          margin: 0 0 1rem 0;
+          line-height: 1.5;
+        }
         .error {
           background-color: #7f1d1d;
           color: #fecaca;
           padding: 1rem;
           border-radius: 6px;
           margin-bottom: 1.5rem;
+        }
+        .helper-text {
+          color: #cbd5e1;
+          font-size: 0.9rem;
+          margin: 0.5rem 0 0;
         }
       `}</style>
     </div>

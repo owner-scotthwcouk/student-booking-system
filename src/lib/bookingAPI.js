@@ -2,6 +2,39 @@
 import { supabase } from './supabaseClient'
 import { notifyPaymentUpdate } from './paymentsAPI'
 
+export const MIN_BOOKING_NOTICE_HOURS = 24
+
+function normalizeTimeValue(lessonTime) {
+  if (!lessonTime) return null
+  return lessonTime.length === 5 ? `${lessonTime}:00` : lessonTime
+}
+
+export function getBookingStartDateTime(lessonDate, lessonTime) {
+  if (!lessonDate || !lessonTime) return null
+
+  const normalizedTime = normalizeTimeValue(lessonTime)
+  const bookingStart = new Date(`${lessonDate}T${normalizedTime}`)
+
+  return Number.isNaN(bookingStart.getTime()) ? null : bookingStart
+}
+
+export function isBookingAtLeast24HoursAway(lessonDate, lessonTime, minimumHours = MIN_BOOKING_NOTICE_HOURS) {
+  const bookingStart = getBookingStartDateTime(lessonDate, lessonTime)
+  if (!bookingStart) {
+    return { valid: false, message: 'Please choose a valid lesson date and time.' }
+  }
+
+  const minimumStart = Date.now() + minimumHours * 60 * 60 * 1000
+  if (bookingStart.getTime() < minimumStart) {
+    return {
+      valid: false,
+      message: `Students must book at least ${minimumHours} hours in advance.`,
+    }
+  }
+
+  return { valid: true, message: null }
+}
+
 export function subscribeToStudentBookings(studentId, onChange) {
   if (!studentId || typeof onChange !== 'function') {
     return () => {}
@@ -119,6 +152,19 @@ export async function ensureBookingVideoRoom(bookingId) {
 // Create a new booking
 export async function createBooking(bookingData) {
   try {
+    const createdByRole = bookingData.createdByRole || 'student'
+
+    if (createdByRole === 'student') {
+      const leadTimeCheck = isBookingAtLeast24HoursAway(
+        bookingData.lessonDate,
+        bookingData.lessonTime,
+      )
+
+      if (!leadTimeCheck.valid) {
+        throw new Error(leadTimeCheck.message)
+      }
+    }
+
     const { data, error } = await supabase
       .from('bookings')
       .insert({
