@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   User,
-  FileText
+  FileText,
+  CircleHelp
 } from 'lucide-react'
 
 // Sub-components
@@ -28,6 +29,7 @@ import TutorProfile from './Profile'
 import './TutorDashboard.css'
 import BrandLogo from '../shared/BrandLogo'
 import StudentDashboard from '../student/StudentDashboard'
+import HelpCenter from '../shared/HelpCenter'
 
 export default function TutorDashboard() {
   const { user, profile, signOut } = useAuth()
@@ -47,6 +49,7 @@ export default function TutorDashboard() {
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'help', label: 'Help & Contact', icon: CircleHelp },
   ]
 
   const handleSignOut = async () => {
@@ -158,6 +161,7 @@ export default function TutorDashboard() {
             {activeTab === 'payments' && <TutorPayments tutorId={user?.id} />}
             {activeTab === 'profile' && <TutorProfile />}
             {activeTab === 'settings' && <SettingsPage />}
+            {activeTab === 'help' && <HelpCenter role="tutor" user={user} profile={profile} />}
           </section>
         </div>
       </main>

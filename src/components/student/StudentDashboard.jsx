@@ -11,7 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  Home
+  Home,
+  CircleHelp
 } from 'lucide-react'
 
 // Import Sub-components
@@ -23,6 +24,7 @@ import TutorSelection from './TutorSelection' // Assuming this is your "Book a L
 
 import './StudentDashboard.css'
 import BrandLogo from '../shared/BrandLogo'
+import HelpCenter from '../shared/HelpCenter'
 
 export default function StudentDashboard({ previewStudentId = null, previewStudentProfile = null, previewMode = false }) {
   const { user, profile, signOut } = useAuth()
@@ -42,6 +44,7 @@ export default function StudentDashboard({ previewStudentId = null, previewStude
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'homework', label: 'Homework', icon: Upload },
     { id: 'profile', label: 'My Profile', icon: User },
+    { id: 'help', label: 'Help & Contact', icon: CircleHelp },
   ]
 
   const handleSignOut = async () => {
@@ -182,6 +185,7 @@ export default function StudentDashboard({ previewStudentId = null, previewStude
             {activeTab === 'lessons' && <StudentLessons studentId={studentIdToUse} />}
             {activeTab === 'payments' && <StudentPayments studentId={studentIdToUse} />}
             {activeTab === 'homework' && <HomeworkSubmission studentId={studentIdToUse} previewMode={previewMode} />}
+            {activeTab === 'help' && <HelpCenter role="student" user={user} profile={studentProfileDisplay} />}
           </section>
         </div>
       </main>
