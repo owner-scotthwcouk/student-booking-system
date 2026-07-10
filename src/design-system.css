@@ -71,6 +71,11 @@
   -webkit-backdrop-filter: blur(20px) saturate(135%);
   animation: rainbow-glass-flow 14s linear infinite;
 }
+.dashboard-main :is(.glass-card, [class*="card"]:not(.card-header):not(.card-header-centered), .booking-edit-panel, .help-contact, .bookings-table) { color: #fff; }
+.dashboard-main :is(.glass-card, [class*="card"]:not(.card-header):not(.card-header-centered), .booking-edit-panel, .help-contact) :is(h1, h2, h3, h4, h5, h6, p, li, label, span, small, td, th) { color: inherit; }
+.dashboard-main :is(.glass-card, [class*="card"]:not(.card-header):not(.card-header-centered), .booking-edit-panel, .help-contact) :is(.current-date, .help-guide p, .help-message span, .help-inbox > p, .user-role) { color: #eadfff; opacity: .9; }
+.dashboard-main .bookings-table :is(th, td) { color: #fff; }.dashboard-main .bookings-table th { background: rgba(135, 39, 245, .34); }
+.dashboard-main .help-error { color: #ffd2d2 !important; }.dashboard-main .help-success { color: #c8ffd8 !important; }
 .glass-card { border-radius: 1.25rem; padding: clamp(1.1rem, 3vw, 1.8rem); }
 .dashboard-main .control-card, .dashboard-main .day-card { background-color: transparent; }
 .dashboard-main :is(input, select, textarea) { width: 100%; min-width: min(100%, 340px); min-height: 46px; color: #24113b !important; border: 1px solid transparent !important; background: linear-gradient(#fff, #fff) padding-box, linear-gradient(115deg, #8727F5, #4fe8ff, #ff82d8, #f7d46a, #8727F5) border-box !important; background-size: 100% 100%, 300% 300% !important; box-shadow: 0 8px 18px rgba(8, 0, 20, .14); animation: rainbow-glass-flow 11s linear infinite; }.dashboard-main textarea { min-height: 140px; }.dashboard-main :is(input, select, textarea)::placeholder { color: #745f8c; }.dashboard-main :is(input, select, textarea):focus { outline: 3px solid rgba(183,119,255,.28); }
