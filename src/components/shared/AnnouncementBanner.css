@@ -32,7 +32,7 @@
   color: inherit;
   font-weight: 600;
   white-space: nowrap;
-  animation: announcement-scroll 18s linear infinite;
+  animation: announcement-scroll 32s linear infinite;
 }
 
 @keyframes announcement-scroll {
