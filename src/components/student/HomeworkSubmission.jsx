@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { supabase } from '../../lib/supabaseClient'
+import { uploadHomework } from '../../lib/fileUploadAPI'
 import { 
   UploadCloud, 
   FileText, 
@@ -23,17 +24,17 @@ export default function HomeworkSubmission({ studentId = null, previewMode = fal
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch recent confirmed lessons
+  // Fetch recent lessons. Homework submissions reference lessons, not bookings.
   useEffect(() => {
     async function loadLessons() {
       const activeStudentId = studentId || user?.id
       if (!activeStudentId) return
       try {
         const { data, error } = await supabase
-          .from('bookings')
-          .select('id, lesson_date, lesson_time, status')
+          .from('lessons')
+          .select('id, lesson_date, lesson_time, title, status')
           .eq('student_id', activeStudentId)
-          .eq('status', 'confirmed')
+          .neq('status', 'cancelled')
           .order('lesson_date', { ascending: false })
           .limit(10)
 
@@ -44,7 +45,7 @@ export default function HomeworkSubmission({ studentId = null, previewMode = fal
       }
     }
     loadLessons()
-  }, [user])
+  }, [studentId, user?.id])
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -67,30 +68,14 @@ export default function HomeworkSubmission({ studentId = null, previewMode = fal
     setSuccess(false)
 
     try {
-      // 1. Upload File
       const activeStudentId = studentId || user.id
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${activeStudentId}/${Date.now()}.${fileExt}`
-      
-      const { error: uploadError } = await supabase.storage
-        .from('homework-submissions')
-        .upload(fileName, file)
+      const { error: uploadError } = await uploadHomework(
+        file,
+        selectedLesson,
+        activeStudentId,
+      )
 
       if (uploadError) throw uploadError
-
-      // 2. Save Database Record
-      const { error: dbError } = await supabase
-        .from('homework_submissions')
-        .insert({
-          student_id: activeStudentId,
-          booking_id: selectedLesson,
-          file_path: fileName,
-          comments: comments,
-          submitted_at: new Date().toISOString(),
-          status: 'pending_review'
-        })
-
-      if (dbError) throw dbError
 
       setSuccess(true)
       setFile(null)
@@ -144,7 +129,7 @@ export default function HomeworkSubmission({ studentId = null, previewMode = fal
                 <option value="">-- Choose a lesson --</option>
                 {lessons.map(l => (
                   <option key={l.id} value={l.id}>
-                    {new Date(l.lesson_date).toLocaleDateString()} at {l.lesson_time.slice(0, 5)}
+                    {l.title} — {new Date(l.lesson_date).toLocaleDateString()} at {l.lesson_time.slice(0, 5)}
                   </option>
                 ))}
               </select>
