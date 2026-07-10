@@ -605,8 +605,8 @@ export default function TutorStudents({ onPreviewStudent }) {
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.75rem' }}>{studentProfile.full_name}</h3>
-                        <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Student Profile</span>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#ffffff', fontSize: '1.75rem' }}>{studentProfile.full_name}</h3>
+                        <span style={{ fontSize: '0.9rem', color: '#eadfff' }}>Student Profile</span>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
@@ -648,31 +648,31 @@ export default function TutorStudents({ onPreviewStudent }) {
                     
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
                       <div className="info-item">
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#64748b', marginBottom: '0.25rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#eadfff', marginBottom: '0.25rem' }}>
                           <Mail size={14} /> Email
                         </label>
-                        <div style={{ fontSize: '1rem', color: '#0f172a' }}>{studentProfile.email || '-'}</div>
+                        <div style={{ fontSize: '1rem', color: '#ffffff' }}>{studentProfile.email || '-'}</div>
                       </div>
                       
                       <div className="info-item">
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#64748b', marginBottom: '0.25rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#eadfff', marginBottom: '0.25rem' }}>
                           <Phone size={14} /> Phone
                         </label>
-                        <div style={{ fontSize: '1rem', color: '#0f172a' }}>{studentProfile.phone_number || '-'}</div>
+                        <div style={{ fontSize: '1rem', color: '#ffffff' }}>{studentProfile.phone_number || '-'}</div>
                       </div>
 
                       <div className="info-item">
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#64748b', marginBottom: '0.25rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#eadfff', marginBottom: '0.25rem' }}>
                           <Calendar size={14} /> Date of Birth
                         </label>
-                        <div style={{ fontSize: '1rem', color: '#0f172a' }}>{studentProfile.date_of_birth || '-'}</div>
+                        <div style={{ fontSize: '1rem', color: '#ffffff' }}>{studentProfile.date_of_birth || '-'}</div>
                       </div>
                       
                       <div className="info-item" style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#64748b', marginBottom: '0.25rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: '#eadfff', marginBottom: '0.25rem' }}>
                           <MapPin size={14} /> Address
                         </label>
-                        <div style={{ fontSize: '1rem', color: '#0f172a', whiteSpace: 'pre-wrap' }}>{studentProfile.address || '-'}</div>
+                        <div style={{ fontSize: '1rem', color: '#ffffff', whiteSpace: 'pre-wrap' }}>{studentProfile.address || '-'}</div>
                       </div>
                     </div>
                     {emailStatus && (
