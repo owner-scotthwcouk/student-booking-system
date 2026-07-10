@@ -25,6 +25,7 @@ import TutorSelection from './TutorSelection' // Assuming this is your "Book a L
 import './StudentDashboard.css'
 import BrandLogo from '../shared/BrandLogo'
 import HelpCenter from '../shared/HelpCenter'
+import AnnouncementBanner from '../shared/AnnouncementBanner'
 
 export default function StudentDashboard({ previewStudentId = null, previewStudentProfile = null, previewMode = false }) {
   const { user, profile, signOut } = useAuth()
@@ -165,6 +166,7 @@ export default function StudentDashboard({ previewStudentId = null, previewStude
 
       {/* Main Content Area */}
       <main className="dashboard-main">
+        <AnnouncementBanner />
         <header className="content-header">
           <h1>{menuItems.find(i => i.id === activeTab)?.label}</h1>
           <p className="current-date">

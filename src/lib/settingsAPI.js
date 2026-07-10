@@ -19,3 +19,12 @@ export async function updateSystemSetting(key, value) {
   
   return { data, error }
 }
+
+export async function upsertSystemSetting(key, value) {
+  const { data, error } = await supabase
+    .from('system_settings')
+    .upsert({ key, value: String(value) }, { onConflict: 'key' })
+    .select()
+
+  return { data, error }
+}

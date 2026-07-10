@@ -30,6 +30,7 @@ import './TutorDashboard.css'
 import BrandLogo from '../shared/BrandLogo'
 import StudentDashboard from '../student/StudentDashboard'
 import HelpCenter from '../shared/HelpCenter'
+import AnnouncementBanner from '../shared/AnnouncementBanner'
 
 export default function TutorDashboard() {
   const { user, profile, signOut } = useAuth()
@@ -145,6 +146,7 @@ export default function TutorDashboard() {
 
       {/* Main Content Area */}
       <main className="dashboard-main">
+        <AnnouncementBanner />
         <header className="content-header">
           <h1>{menuItems.find(i => i.id === activeTab)?.label}</h1>
           <p className="current-date">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p>

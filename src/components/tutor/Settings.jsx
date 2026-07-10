@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/auth'
 import { getTutorHourlyRate, updateTutorHourlyRate } from '../../lib/profileAPI'
-import { getSystemSetting, updateSystemSetting } from '../../lib/settingsAPI'
+import { getSystemSetting, updateSystemSetting, upsertSystemSetting } from '../../lib/settingsAPI'
 import { Save, AlertTriangle, Power } from 'lucide-react'
 
 export default function Settings() {
@@ -10,6 +10,7 @@ export default function Settings() {
   // States
   const [rate, setRate] = useState(30.00)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [announcement, setAnnouncement] = useState('')
   
   // UI States
   const [loading, setLoading] = useState(false)
@@ -28,6 +29,13 @@ export default function Settings() {
       if (settingData) setMaintenanceMode(settingData.value === 'true')
     } catch (err) {
       console.error("Could not load maintenance setting:", err)
+    }
+
+    try {
+      const { data: announcementData } = await getSystemSetting('announcement_banner')
+      if (announcementData) setAnnouncement(announcementData.value || '')
+    } catch (err) {
+      console.error('Could not load announcement:', err)
     }
   }, [user?.id])
 
@@ -48,6 +56,11 @@ export default function Settings() {
       // 2. Update Maintenance Mode
       const { error: settingError } = await updateSystemSetting('maintenance_mode', maintenanceMode)
       if (settingError) throw settingError
+
+      const { error: announcementError } = await upsertSystemSetting('announcement_banner', announcement.trim())
+      if (announcementError) throw announcementError
+
+      window.dispatchEvent(new CustomEvent('announcement-banner-updated', { detail: announcement.trim() }))
 
       setMsg({ type: 'success', text: 'All settings updated successfully!' })
     } catch (err) {
@@ -146,6 +159,25 @@ export default function Settings() {
               <span>Warning: Existing students may be disconnected upon page refresh.</span>
             </div>
           )}
+        </div>
+
+        <div style={{ paddingBottom: '1.5rem', borderBottom: '1px solid #333' }}>
+          <h3 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '1rem' }}>Student announcement</h3>
+          <label style={{ display: 'block', color: '#cbd5e1', marginBottom: '0.5rem', fontWeight: '500' }} htmlFor="announcement-banner">
+            Banner message
+          </label>
+          <textarea
+            id="announcement-banner"
+            value={announcement}
+            onChange={(event) => setAnnouncement(event.target.value)}
+            maxLength="500"
+            rows="3"
+            placeholder="Write an announcement for all dashboard users..."
+            style={{ width: '100%', boxSizing: 'border-box', padding: '0.75rem', fontSize: '1rem', backgroundColor: '#000000', color: '#ffffff', border: '1px solid #3a3a3a', borderRadius: '6px', resize: 'vertical' }}
+          />
+          <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+            This scrolls across the top of every student and tutor dashboard tab. Leave it empty and save to remove it.
+          </p>
         </div>
 
         <button

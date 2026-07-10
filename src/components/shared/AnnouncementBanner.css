@@ -1,0 +1,49 @@
+.announcement-banner {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  padding: .8rem 1rem;
+  color: #e0f7ff;
+  background: linear-gradient(90deg, rgba(69, 213, 232, .2), rgba(158, 101, 236, .24));
+  border: 1px solid rgba(69, 213, 232, .45);
+  border-radius: .75rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .16);
+}
+
+.announcement-banner-icon {
+  flex: 0 0 auto;
+  color: #45d5e8;
+}
+
+.announcement-banner-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.announcement-banner-message {
+  display: inline-block;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  padding-left: 100%;
+  color: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: announcement-scroll 18s linear infinite;
+}
+
+@keyframes announcement-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-banner-message {
+    min-width: auto;
+    padding-left: 0;
+    animation: none;
+  }
+}
