@@ -831,19 +831,19 @@ export default function TutorStudents({ onPreviewStudent }) {
                   </div>
                 </div>
 
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: '#334155' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: '#ffffff' }}>
                   <History size={18} /> Recent Activity
                 </h4>
 
                 {payments.length === 0 ? (
-                  <div className="empty-state" style={{ padding: '2rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', color: '#64748b', border: '1px solid #e2e8f0' }}>
+                  <div className="empty-state" style={{ padding: '2rem', background: 'rgba(15, 7, 31, 0.6)', borderRadius: '8px', textAlign: 'center', color: '#ffffff', border: '1px solid rgba(230, 207, 255, 0.45)' }}>
                     No payments recorded for this student.
                   </div>
                 ) : (
-                  <div className="payments-table-container" style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div className="payments-table-container" style={{ border: '1px solid rgba(230, 207, 255, 0.45)', borderRadius: '8px', overflow: 'hidden', background: 'rgba(15, 7, 31, 0.6)' }}>
                     <table className="payments-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-                      <thead style={{ background: '#f1f5f9' }}>
-                        <tr style={{ textAlign: 'left', color: '#475569' }}>
+                      <thead style={{ background: 'rgba(135, 39, 245, 0.36)' }}>
+                        <tr style={{ textAlign: 'left', color: '#ffffff' }}>
                           <th style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>Date</th>
                           <th style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>Lesson</th>
                           <th style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>Amount</th>
@@ -852,7 +852,7 @@ export default function TutorStudents({ onPreviewStudent }) {
                       </thead>
                       <tbody>
                         {payments.map((payment, idx) => (
-                          <tr key={payment.id} style={{ borderTop: idx > 0 ? '1px solid #e2e8f0' : 'none', color: '#334155' }}>
+                          <tr key={payment.id} style={{ borderTop: idx > 0 ? '1px solid rgba(230, 207, 255, 0.28)' : 'none', color: '#ffffff' }}>
                             <td style={{ padding: '0.75rem 1rem' }}>
                               {payment.payment_date
                                 ? new Date(payment.payment_date).toLocaleDateString()
