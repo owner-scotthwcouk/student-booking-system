@@ -812,20 +812,20 @@ export default function TutorStudents({ onPreviewStudent }) {
 
               {/* Financial Summary */}
               <div>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: '#334155' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: '#ffffff' }}>
                   <CreditCard size={18} /> Financial Overview
                 </h4>
                 
                 <div className="payment-summary" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
                   <div className="summary-card" style={{ flex: 1, padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <h5 style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Total Paid</h5>
-                    <p className="amount paid" style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16a34a', margin: '0.5rem 0 0' }}>
+                    <h5 style={{ margin: 0, color: '#eadfff', fontSize: '0.9rem' }}>Total Paid</h5>
+                    <p className="amount paid" style={{ fontSize: '1.75rem', fontWeight: '700', color: '#86efac', margin: '0.5rem 0 0' }}>
                       £{totalPaid.toFixed(2)}
                     </p>
                   </div>
                   <div className="summary-card" style={{ flex: 1, padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <h5 style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Outstanding</h5>
-                    <p className="amount outstanding" style={{ fontSize: '1.75rem', fontWeight: '700', color: '#dc2626', margin: '0.5rem 0 0' }}>
+                    <h5 style={{ margin: 0, color: '#eadfff', fontSize: '0.9rem' }}>Outstanding</h5>
+                    <p className="amount outstanding" style={{ fontSize: '1.75rem', fontWeight: '700', color: '#fda4af', margin: '0.5rem 0 0' }}>
                       £{totalOutstanding.toFixed(2)}
                     </p>
                   </div>
