@@ -5,6 +5,7 @@ create or replace function public.enforce_student_booking_minimum_notice()
 returns trigger
 language plpgsql
 as $$
+declare
   booking_start timestamptz;
 begin
   -- Only validate when the lesson start actually changes.

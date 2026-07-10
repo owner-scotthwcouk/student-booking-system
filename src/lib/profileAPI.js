@@ -128,8 +128,7 @@ export async function uploadProfilePicture(userId, file) {
     const { error: uploadError } = await supabase.storage
       .from('profile-pictures')
       .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: true
+        cacheControl: '3600'
       })
     
     if (uploadError) throw uploadError
