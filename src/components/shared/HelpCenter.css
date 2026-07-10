@@ -7,9 +7,11 @@
 .help-guide { display: flex; gap: .75rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: .75rem; background: #fff; }
 .help-guide svg { color: #4f46e5; flex: 0 0 auto; margin-top: .15rem; }
 .help-guide h3 { margin: 0; font-size: 1rem; }.help-guide p { font-size: .9rem; }
-.help-contact, .help-inbox { border-top: 1px solid #e2e8f0; padding-top: 1.5rem; }
-.help-form { display: grid; gap: 1rem; margin-top: 1rem; max-width: 640px; }.help-form label { display: grid; gap: .4rem; font-weight: 600; font-size: .9rem; }
-.help-form input, .help-form textarea { width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: .5rem; padding: .7rem; font: inherit; resize: vertical; }.help-form input:focus, .help-form textarea:focus { outline: 2px solid #c7d2fe; border-color: #6366f1; }
+.help-contact { padding: 1.5rem; border-radius: .75rem; background: #0f172a; color: #fff; }
+.help-contact-heading h2, .help-contact-heading p { color: #fff; }.help-contact-heading p { opacity: .78; }
+.help-inbox { border-top: 1px solid #e2e8f0; padding-top: 1.5rem; }
+.help-form { display: grid; gap: 1rem; margin-top: 1rem; max-width: 640px; }.help-form label { display: grid; gap: .4rem; color: #fff; font-weight: 600; font-size: .9rem; }
+.help-form input, .help-form textarea { width: 100%; box-sizing: border-box; border: 1px solid #475569; border-radius: .5rem; padding: .7rem; color: #fff; background: #1e293b; font: inherit; resize: vertical; }.help-form input::placeholder, .help-form textarea::placeholder { color: #cbd5e1; }.help-form input:focus, .help-form textarea:focus { outline: 2px solid #a5b4fc; border-color: #818cf8; }
 .help-send { justify-self: start; display: inline-flex; align-items: center; gap: .5rem; border: 0; border-radius: .5rem; padding: .7rem 1rem; color: #fff; background: #4f46e5; font-weight: 600; cursor: pointer; }.help-send:disabled { opacity: .55; cursor: not-allowed; }
 .help-error { color: #b91c1c !important; }.help-success { color: #15803d; margin: 0; }.help-inbox { display: grid; gap: .75rem; }.help-message { padding: 1rem; border: 1px solid #e2e8f0; border-radius: .75rem; background: #fff; }.help-message div { display: flex; justify-content: space-between; gap: 1rem; }.help-message span { color: #64748b; font-size: .8rem; }.help-message p { margin: .5rem 0 0; white-space: pre-wrap; }
 @media (max-width: 600px) { .help-message div { display: grid; gap: .2rem; } }

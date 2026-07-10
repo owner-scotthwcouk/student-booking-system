@@ -1,15 +1,15 @@
 :root {
-  --bg-primary: #000000;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #2a2a2a;
-  --text-primary: #ffffff;
-  --text-secondary: #e5e5e5;
-  --text-muted: #a0a0a0;
-  --purple-primary: #45d5e8;
-  --purple-dark: #36b8cb;
-  --purple-light: #9e65ec;
-  --purple-lighter: #c39bff;
-  --border-color: #3a3a3a;
+  --bg-primary: #120720;
+  --bg-secondary: #1e0c35;
+  --bg-tertiary: #2d164b;
+  --text-primary: #fffaff;
+  --text-secondary: #eee4ff;
+  --text-muted: #cbbde0;
+  --purple-primary: #8727F5;
+  --purple-dark: #6d18d2;
+  --purple-light: #b777ff;
+  --purple-lighter: #e4caff;
+  --border-color: rgba(238, 215, 255, 0.3);
 }
 
 * {
@@ -28,6 +28,8 @@ html, body, #root {
 body {
   margin: 0;
   line-height: 1.6;
+  background-image: radial-gradient(circle at 12% 15%, rgba(135, 39, 245, .32), transparent 25%), radial-gradient(circle at 88% 5%, rgba(0, 220, 255, .18), transparent 22%), radial-gradient(circle at 55% 92%, rgba(255, 82, 193, .2), transparent 27%);
+  background-attachment: fixed;
 }
 
 @keyframes spin {
