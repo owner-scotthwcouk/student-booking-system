@@ -73,8 +73,8 @@
 }
 .glass-card { border-radius: 1.25rem; padding: clamp(1.1rem, 3vw, 1.8rem); }
 .dashboard-main .control-card, .dashboard-main .day-card { background-color: transparent; }
-.dashboard-main :is(input, select, textarea) { color: #fff; background-color: rgba(13, 5, 28, .68); border-color: rgba(233, 211, 255, .34); }.dashboard-main :is(input, select, textarea)::placeholder { color: #d8c9e8; }.dashboard-main :is(input, select, textarea):focus { border-color: #b777ff; outline: 2px solid rgba(183,119,255,.3); }
-.dashboard-main :is(button.btn-primary, .btn-submit-homework, .help-send) { background: linear-gradient(135deg, #8727F5, #ad68ff); color: #fff; }
+.dashboard-main :is(input, select, textarea) { width: 100%; min-width: min(100%, 340px); min-height: 46px; color: #24113b !important; border: 1px solid transparent !important; background: linear-gradient(#fff, #fff) padding-box, linear-gradient(115deg, #8727F5, #4fe8ff, #ff82d8, #f7d46a, #8727F5) border-box !important; background-size: 100% 100%, 300% 300% !important; box-shadow: 0 8px 18px rgba(8, 0, 20, .14); animation: rainbow-glass-flow 11s linear infinite; }.dashboard-main textarea { min-height: 140px; }.dashboard-main :is(input, select, textarea)::placeholder { color: #745f8c; }.dashboard-main :is(input, select, textarea):focus { outline: 3px solid rgba(183,119,255,.28); }
+.dashboard-main button:not(.nav-item), .auth-container button { color: #fff !important; border: 1px solid transparent !important; background: linear-gradient(rgba(75, 29, 125, .92), rgba(50, 16, 92, .92)) padding-box, linear-gradient(115deg, #8727F5, #4fe8ff, #ff82d8, #f7d46a, #8727F5) border-box !important; background-size: 100% 100%, 300% 300% !important; box-shadow: 0 8px 20px rgba(22, 4, 47, .35); animation: rainbow-glass-flow 10s linear infinite; }.dashboard-main button:not(.nav-item):hover, .auth-container button:hover { filter: brightness(1.13); transform: translateY(-2px); }
 .dashboard-main a { color: #e4caff; }.dashboard-main a:hover { color: #fff; }
 
 /* Auth and standalone panels share the same readable glass language. */
